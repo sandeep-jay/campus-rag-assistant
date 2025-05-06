@@ -73,7 +73,7 @@ class ConfigManager:
             if local_env_specific_file.exists():
                 env_files.append(str(local_env_specific_file))
 
-        # Then check root directory (chatbot-poc/) if files weren't found in APP_LOCAL_CONFIGS
+        # Then check root directory (chabot/) if files weren't found in APP_LOCAL_CONFIGS
         if not env_files or len(env_files) < 2:
             # Check for .env in root directory
             root_env_file = self.root_dir / '.env'
