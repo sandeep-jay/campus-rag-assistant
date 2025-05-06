@@ -36,6 +36,19 @@ ENV/
 .env.local
 .env.*.local
 
+# Local configs
+.env.*local
+config/apache-local.conf
+config/*-local.py
+config/build-summary.json
+
+# Logs
+*.log
+logs/
+frontend_logs.log
+backend_logs.log
+log.txt
+
 # Data
 data/*
 
