@@ -24,6 +24,7 @@ ENHANCEMENTS, OR MODIFICATIONS.
 """
 
 from app.core.config_manager import settings
+from app.core.logger import initialize_logger, logger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -34,7 +35,12 @@ app = FastAPI(
     version='0.1.0',
 )
 
+# Initialize enhanced logger with FastAPI app
+initialize_logger(app)
+logger.info('Enhanced logging system initialized with FastAPI app')
+
 # Configure CORS
+logger.info('Configuring CORS middleware')
 app.add_middleware(
     CORSMiddleware,
     # For production, specify exactly your frontend URL
@@ -50,13 +56,16 @@ app.add_middleware(
 )
 
 # TODO: Include routers
+logger.info('TODO: Including API routers')
 
 @app.get('/')
-async def root() -> dict:
+async def root():
+    logger.debug('Root endpoint accessed')
     return {'message': 'Welcome to RTL Services Support Chatbot API'}
 
 
 @app.get('/api/health')
-async def health_check() -> dict:
-    # Simple health check endpoint.
+async def health_check():
+    """Simple health check endpoint."""
+    logger.debug('Health check endpoint accessed')
     return {'status': 'ok', 'message': 'API is healthy'}
