@@ -22,3 +22,18 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 "AS IS". REGENTS HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
 ENHANCEMENTS, OR MODIFICATIONS.
 """
+
+from app.config.default import DefaultSettings
+
+
+class TestSettings(DefaultSettings):
+    """Test-specific settings.
+    
+    Overrides default settings for development environments.
+    """
+
+    DATABASE_URL: str = 'postgresql://chatbot:chatbot@localhost:5432/chatbot_test'
+    LOGGING_LEVEL: str = 'DEBUG'
+    ENVIRONMENT: str = 'test'
+
+    TEST_MODE: bool = True

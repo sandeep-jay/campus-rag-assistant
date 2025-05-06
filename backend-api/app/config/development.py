@@ -22,3 +22,19 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 "AS IS". REGENTS HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
 ENHANCEMENTS, OR MODIFICATIONS.
 """
+
+from app.config.default import DefaultSettings
+
+
+class DevelopmentSettings(DefaultSettings):
+    """Development-specific settings.
+    
+    These settings override default settings for the development environment.
+    """
+
+    DATABASE_URL: str = 'postgresql://chatbot:chatbot@localhost:5432/chatbot_dev'
+    LOGGING_LEVEL: str = 'DEBUG'
+    ENVIRONMENT: str = 'development'
+
+    # Development-specific settings
+    DEBUG: bool = True
