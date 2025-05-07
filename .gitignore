@@ -31,6 +31,11 @@ ENV/
 *.swp
 *.swo
 
+# Database
+*.sqlite3
+*.db
+test.db
+
 # Environment variables
 .env
 .env.local
