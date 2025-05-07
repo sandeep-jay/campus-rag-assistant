@@ -25,9 +25,15 @@ ENHANCEMENTS, OR MODIFICATIONS.
 
 from app.core.config_manager import settings
 from app.core.logger import initialize_logger, logger
+from app.db.database import Base, engine
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+
+# Create database tables
+logger.info('Initializing database tables')
+Base.metadata.create_all(bind=engine)
+logger.info('Database tables initialized successfully')
 
 app = FastAPI(
     title='RTL Services Support Chatbot API',
