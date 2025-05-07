@@ -2,6 +2,10 @@
 fastapi==0.109.2
 uvicorn==0.27.1
 
+# Database Dependencies
+sqlalchemy==2.0.27
+psycopg2-binary==2.9.9
+
 # Pydantic
 pydantic>=2.7.4,<3.0.0
 pydantic-settings>=2.4.0,<3.0.0
