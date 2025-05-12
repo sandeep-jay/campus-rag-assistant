@@ -26,9 +26,8 @@ ENHANCEMENTS, OR MODIFICATIONS.
 import os
 from pathlib import Path
 
-from app.config.development import DevelopmentSettings
-from app.config.test import TestSettings
-from pydantic_settings import BaseSettings
+from backend.app.config.development import DevelopmentSettings
+from backend.app.config.test import TestSettings
 
 
 class ConfigManager:

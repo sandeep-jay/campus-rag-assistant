@@ -23,12 +23,12 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
-from app.config.default import DefaultSettings
+from backend.app.config.default import DefaultSettings
 
 
 class TestSettings(DefaultSettings):
     """Test-specific settings.
-    
+
     Overrides default settings for development environments.
     """
 
