@@ -1,0 +1,79 @@
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    "__pycache__",
+    "build",
+    "dist",
+    "venv"
+]
+
+# Line length from black configuration
+line-length = 150
+indent-width = 4
+
+# Python version
+target-version = "py311"
+
+[lint]
+select = ['ALL']
+
+# Rules to ignore
+ignore = [
+    "ANN", "ANN202", # type annotations
+    "ARG001", "B006", "B007", "B008", "B023", # arg/default issues
+    "B904", "BLE001", "EM101", "EM102", "TRY003", "TRY201", "TRY300", "TRY301", "TRY400", "TRY401", # exceptions
+    "C401", "C402", "C403", "C408", "C416", "C417", "PIE800", "PIE804", # comprehensions & idioms
+    "D10", "D203", "D211", "D212", "D213", "D400", "D401", "D412", "D413", "D415", # docstrings
+    "DTZ", "E731", "FLY002", "W605", "COM812", "ISC001", "ISC002", # formatting & style
+    "FIX002", "TD002", "TD003", # TODOs
+    "G004", "T201", # logging & prints
+    "FBT002", "FBT003", "N805", "N999", # naming & bools
+    "PERF102", "PERF401", # performance
+    "PLR1714", "PLR1736", "PLR2004", "PLR5501", "SIM102", "SIM108", "SIM115", "SIM118", "SIM210", "SIM401", "SIM910", # readability
+    "RET503", "RET505", "RET506", "RET508", "PLW0603", "PLW2901", # control flow
+    "INP001", "TID252", "PTH", # imports & paths
+    "S101", "S108", "S603", "S607", # security
+    "UP012", "UP015", "UP017", "UP028" # upgrades
+]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[lint.pylint]
+max-args = 21
+max-branches = 15
+max-statements = 58
+
+[lint.mccabe]
+max-complexity = 10
+
+[format]
+# Use single quotes for strings.
+quote-style = "single"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+[lint.flake8-quotes]
+# Ensure quotes are consistent with the formatter
+inline-quotes = "single"
+multiline-quotes = "double"
+docstring-quotes = "double"
+
+[lint.per-file-ignores]
+# Ignore specific issues in test files
+"**/tests/**/*.py" = ["PT009", "S106", "S105"]  # Ignore unittest-style assertions and hardcoded password warnings in test files
+"**/backend/app/services/rag_service.py" = ["C901"]  # Ignore complexity in rag_service.py
