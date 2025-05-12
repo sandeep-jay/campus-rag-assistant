@@ -23,8 +23,6 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
-"""Logging configuration for the backend application."""
-
 import atexit
 import contextlib
 import logging
@@ -32,8 +30,10 @@ import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from app.core.config_manager import settings
+from backend.app.core.config_manager import settings
 from fastapi import FastAPI
+
+"""Logging configuration for the backend application."""
 
 # Define loggers to be configured
 LOGGERS_TO_CONFIGURE = [
@@ -49,6 +49,7 @@ LOGGERS_TO_CONFIGURE = [
 
 # Create the logger instance that will be exported
 logger = logging.getLogger('app')
+handler = None
 
 
 def _create_console_handler(level: int, fmt: str):

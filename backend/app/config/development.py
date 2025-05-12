@@ -23,24 +23,18 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
-from app.core.config_manager import settings
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, declarative_base, sessionmaker
-
-# Create SQLAlchemy engine
-engine = create_engine(settings.SQLALCHEMY_DATABASE_URI)
-
-# Create session factory
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Create declarative base
-Base = declarative_base()
+from backend.app.config.default import DefaultSettings
 
 
-# Dependency to get DB session
-def get_db() -> Session:
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+class DevelopmentSettings(DefaultSettings):
+    """Development-specific settings.
+
+    These settings override default settings for the development environment.
+    """
+
+    DATABASE_URL: str = 'postgresql://chatbot:chatbot@localhost:5432/chatbot_dev'
+    LOGGING_LEVEL: str = 'DEBUG'
+    ENVIRONMENT: str = 'development'
+
+    # Development-specific settings
+    DEBUG: bool = True

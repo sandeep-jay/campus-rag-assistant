@@ -23,18 +23,26 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
-from app.config.default import DefaultSettings
+from app.core.config_manager import settings
 
 
-class DevelopmentSettings(DefaultSettings):
-    """Development-specific settings.
-    
-    These settings override default settings for the development environment.
-    """
+def main() -> None:
+    """Print out key settings to verify configuration manager is working correctly."""
+    print('Verifying configuration settings...')
+    print(f'PROJECT_NAME: {settings.PROJECT_NAME}')
+    print(f'VERSION: {settings.VERSION}')
+    print(f'ENVIRONMENT: {settings.ENVIRONMENT}')
+    print(f'APP_ENV: {settings.APP_ENV}')
+    print(f'DATABASE_URL: {settings.DATABASE_URL}')
+    print(f'AWS_REGION: {settings.AWS_REGION}')
+    print(f'BEDROCK_MODEL_ID: {settings.BEDROCK_MODEL_ID}')
+    print(f'BEDROCK_KNOWLEDGE_BASE_ID: {settings.BEDROCK_KNOWLEDGE_BASE_ID}')
+    print(f'LANGCHAIN_PROJECT: {settings.LANGCHAIN_PROJECT}')
+    print(f'LOGGING_LEVEL: {settings.LOGGING_LEVEL}')
+    print(f'LOG_TO_FILE: {settings.LOG_TO_FILE}')
+    print(f'LOGGING_LOCATION: {settings.LOGGING_LOCATION}')
+    print('Configuration verification complete.')
 
-    DATABASE_URL: str = 'postgresql://chatbot:chatbot@localhost:5432/chatbot_dev'
-    LOGGING_LEVEL: str = 'DEBUG'
-    ENVIRONMENT: str = 'development'
 
-    # Development-specific settings
-    DEBUG: bool = True
+if __name__ == '__main__':
+    main()
