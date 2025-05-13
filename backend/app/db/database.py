@@ -23,9 +23,10 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
-from backend.app.core.config_manager import settings
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
+
+from backend.app.core.config_manager import settings
 
 # Create SQLAlchemy engine
 engine = create_engine(settings.SQLALCHEMY_DATABASE_URI)

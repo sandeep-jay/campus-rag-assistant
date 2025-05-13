@@ -23,14 +23,42 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
-from fastapi import APIRouter
+from typing import Any
 
-from backend.app.api import chat
+from pydantic import BaseModel
 
-"""API router initialization module."""
+"""Chat schema models using Pydantic."""
 
-# Create main API router
-api_router = APIRouter()
 
-# Include sub-routers
-api_router.include_router(chat.router, prefix='/chat', tags=['chat'])
+class Message(BaseModel):
+    """Model representing a chat message."""
+
+    role: str  # 'human' or 'ai'
+    content: str
+
+
+class ChatHistory(BaseModel):
+    """Model representing a list of chat messages."""
+
+    messages: list[Message] = []
+
+
+class ChatRequest(BaseModel):
+    """Model representing a chat request."""
+
+    message: str
+    chat_history: list[dict[str, str]] = []  # List of {'role': 'human'|'ai', 'content': '...'}
+
+
+class SourceDocument(BaseModel):
+    """Model representing a source document."""
+
+    content: str
+    metadata: dict[str, Any]
+
+
+class ChatResponse(BaseModel):
+    """Model representing a chat response."""
+
+    answer: str
+    source_documents: list[SourceDocument] | None = None

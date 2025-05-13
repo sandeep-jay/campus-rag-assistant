@@ -1,0 +1,48 @@
+[
+  {
+    "input": "How do I embed Kaltura media in bCourses using the Rich Content Editor?",
+    "output": [
+        "1. With the Rich Content Editor open, click Embed Kaltura Media.",
+        "2. From the window that opens up on the page, if the media you want to embed is already in your My Media or a Media Gallery, click on the appropriate tab..",
+        "3. If you are happy with the default embed settings: Click the </>Embed button next to the media you want to embed."
+    ]
+  },
+  {
+    "input": "What are the steps to create an assignment in Gradescope?",
+    "output": [
+        "1. Create a bCourses assignment to add a new item to the gradebook.",
+        "2. Set submission type as 'External Tool', then click 'Find' and select 'Gradescope'. Set a point value, then Save (and publish).",
+        "3. The page will re-load with Gradescope embedded where you can create your Gradescope assignment.",
+        "4. Link your Gradescope assignment to the bCourses assignment/gradebook.",
+        "5. When you have completed grading in Gradescope, you can sync your scores to the bCourses gradebook and/or publish grades on Gradescope."
+    ]
+  },
+  {
+    "input": "How do I access the Ally report for my bCourses page?",
+    "output": [
+        "1. In the bCourses course navigation, scroll down and select Settings.",
+        "2. At the top of the Settings page, select the Navigation link.",
+        "3. Locate the Ally Course Accessibility Report from the list of options. Select the three vertical dots at the end of this row and then select Enable.",
+        "4. After making this change, you must select the Save button on the bottom of this page.",
+        "5. The Ally Course Accessibility Report option now appears in the course navigation."
+    ]
+  },
+  {
+    "input": "How can I automatically publish my course capture recordings with all students?",
+    "output": [
+        "1. Log into the Course Capture website.",
+        "2. Click the course for which you want to enable auto-publishing.",
+        "3. Under Recording Placement, click Edit",
+        "4. Choose Publish to the Media Gallery",
+        "5. The dropdown will display your current semester bCourses site and any project sites you have created. Select the desired site and click Add",
+        "6. Repeat the previous step if you wish to add more than one site",
+        "7. Click Save"
+    ]
+  },
+  {
+    "input": "Hi, What's up?",
+    "output": [
+      "Hi, I am a chatbot designed to answer questions related to bCourses, Ally, Course Capture, Academic Integrity, Kaltura, SuiteC, and Gradescope. Please ask a question related to these topics."
+    ]
+  }
+]
