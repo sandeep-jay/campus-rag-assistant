@@ -1,0 +1,1 @@
+Assistant: (Answer strictly based on the provided context, with kb_url and kb_number. If the context does not contain the answer, reiterate: "I can only answer questions related to bCourses, Ally, Course Capture, Academic Integrity, Kaltura, SuiteC, and Gradescope.")
