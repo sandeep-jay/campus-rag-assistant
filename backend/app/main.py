@@ -23,11 +23,13 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from backend.app.api import api_router
 from backend.app.core.config_manager import settings
 from backend.app.core.logger import initialize_logger, logger
 from backend.app.db.database import Base, engine
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
 # Create database tables
 logger.info('Initializing database tables')
@@ -60,8 +62,9 @@ app.add_middleware(
     allow_headers=['*'],
 )
 
-# TODO: Include routers
+# Include API routers
 logger.info('TODO: Including API routers')
+app.include_router(api_router, prefix='/api')
 
 
 @app.get('/')
