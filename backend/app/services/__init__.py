@@ -22,15 +22,3 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 "AS IS". REGENTS HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
 ENHANCEMENTS, OR MODIFICATIONS.
 """
-
-from fastapi import APIRouter
-
-from backend.app.api import chat
-
-"""API router initialization module."""
-
-# Create main API router
-api_router = APIRouter()
-
-# Include sub-routers
-api_router.include_router(chat.router, prefix='/chat', tags=['chat'])

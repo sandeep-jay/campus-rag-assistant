@@ -30,8 +30,9 @@ import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from backend.app.core.config_manager import settings
 from fastapi import FastAPI
+
+from backend.app.core.config_manager import settings
 
 """Logging configuration for the backend application."""
 
