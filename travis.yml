@@ -1,0 +1,17 @@
+dist: jammy
+
+sudo: required
+
+language: python
+
+python: "3.11"
+
+services:
+  - postgresql
+
+install:
+  - pip install tox-travis
+  - pip install -r requirements.txt
+
+script:
+  - tox || travis_terminate 1
