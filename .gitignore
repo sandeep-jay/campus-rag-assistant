@@ -47,6 +47,10 @@ config/apache-local.conf
 config/*-local.py
 config/build-summary.json
 
+# Testing
+.tox/
+.ruff_cache/
+
 # Logs
 *.log
 logs/
