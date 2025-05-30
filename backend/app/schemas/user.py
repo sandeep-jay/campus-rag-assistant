@@ -23,26 +23,48 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
-from sqlalchemy import Column, DateTime, Integer, String, func
-from sqlalchemy.orm import relationship
+from datetime import datetime
 
-from backend.app.db.database import Base
+from pydantic import BaseModel, EmailStr
 
 
-class Tenant(Base):
-    __tablename__ = 'tenant'
+class UserBase(BaseModel):
+    username: str
+    email: EmailStr
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True, nullable=False)
-    description = Column(String, nullable=True)
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(
-        DateTime,
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
-    )
 
-    # Relationships
-    users = relationship('User', back_populates='tenant')
-    chat_sessions = relationship('ChatSession', back_populates='tenant')
+class UserCreate(UserBase):
+    password: str
+
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+
+class UserUpdate(UserBase):
+    username: str | None = None
+    email: EmailStr | None = None
+    password: str | None = None
+
+
+class User(UserBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class UserInDB(User):
+    hashed_password: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    username: str | None = None

@@ -23,9 +23,11 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
-from app.db.database import Base
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import relationship
+
+from backend.app.core.password import verify_password
+from backend.app.db.database import Base
 
 
 class User(Base):
@@ -61,3 +63,6 @@ class User(Base):
         back_populates='user',
         cascade='all, delete-orphan',
     )
+
+    def verify_password(self, password: str) -> bool:
+        return verify_password(password, self.hashed_password)

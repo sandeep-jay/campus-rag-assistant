@@ -54,7 +54,7 @@ handler = None
 
 
 def _create_console_handler(level: int, fmt: str):
-    """Create a console handler for logging."""
+    # Create a console handler for logging.
     handler = logging.StreamHandler(sys.stdout)
     handler.setLevel(level)
     handler.setFormatter(logging.Formatter(fmt))
@@ -62,7 +62,7 @@ def _create_console_handler(level: int, fmt: str):
 
 
 def _create_file_handler(level: int, fmt: str):
-    """Create a file handler for logging if enabled in settings."""
+    # Create a file handler for logging if enabled in settings.
     if not settings.LOG_TO_FILE:
         return None
     try:
@@ -84,7 +84,7 @@ def _create_file_handler(level: int, fmt: str):
 
 
 def initialize_logger(app: FastAPI | None = None):
-    """Initialize and configure backend logging."""
+    # Initialize and configure backend logging.
     level = getattr(logging, settings.LOGGING_LEVEL.upper(), logging.INFO)
     fmt = settings.LOGGING_FORMAT
 
@@ -138,7 +138,7 @@ def cleanup_logging():
 
 
 def get_logger(name: str):
-    """Get a configured logger."""
+    # Get a configured logger.
     return logging.getLogger(name)
 
 
