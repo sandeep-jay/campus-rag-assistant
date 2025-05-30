@@ -16,10 +16,7 @@ sudo chown -R webapp:webapp /var/log/app
 # Make run_services.sh executable
 chmod +x /var/app/current/run_services.sh
 
-# Example: If you needed to run database migrations, this would be a place.
-# python your_app/manage.py migrate
-
-# Your services are started by the Procfile command: 'web: ./run_services.sh'
+# Our services are started by the Procfile command: 'web: ./run_services.sh'
 # So, no need to start them here.
 
 echo "Post-deployment hook finished. Main web services will be started by Procfile."

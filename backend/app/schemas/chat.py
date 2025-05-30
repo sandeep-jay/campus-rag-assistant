@@ -101,10 +101,3 @@ class MessageFeedback(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-class SourceDocument(BaseModel):
-    # Model representing a source document.
-
-    content: str
-    metadata: dict[str, Any]
