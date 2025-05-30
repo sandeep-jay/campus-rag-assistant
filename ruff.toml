@@ -27,7 +27,7 @@ ignore = [
     "B904", "BLE001", "EM101", "EM102", "TRY003", "TRY201", "TRY300", "TRY301", "TRY400", "TRY401", # exceptions
     "C401", "C402", "C403", "C408", "C416", "C417", "PIE800", "PIE804", # comprehensions & idioms
     "D10", "D203", "D211", "D212", "D213", "D400", "D401", "D412", "D413", "D415", # docstrings
-    "DTZ", "E731", "FLY002", "W605", "COM812", "ISC001", "ISC002", # formatting & style
+    "DTZ", "E402", "E731", "FLY002", "W605", "COM812", "ISC001", "ISC002", # formatting & style
     "FIX002", "TD002", "TD003", # TODOs
     "G004", "T201", # logging & prints
     "FBT002", "FBT003", "N805", "N999", # naming & bools
