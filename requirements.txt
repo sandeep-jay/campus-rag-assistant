@@ -1,28 +1,40 @@
 # Core API Dependencies
 fastapi==0.109.2
 uvicorn==0.27.1
+gunicorn==21.2.0
+python-multipart==0.0.9
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+PyJWT==2.10.1
+email-validator==2.1.0.post1
+python-dotenv==1.0.1
 
 # Database Dependencies
 sqlalchemy==2.0.27
 psycopg2-binary==2.9.9
+pgvector==0.2.5
 
 # Pydantic
 pydantic>=2.7.4,<3.0.0
 pydantic-settings>=2.4.0,<3.0.0
 
 # AWS and LangChain Dependencies
-boto3>=1.37.24
+boto3>=1.37.11
 botocore>=1.27.0
 langchain==0.3.20
 langchain-aws>=0.2.15
 langchain-community==0.3
-langsmith>=0.1.0
+langsmith>=0.0.77
+s3transfer>=0.10.0
+urllib3>=1.26.16,<2.0.0
 
 # Frontend Dependencies
 streamlit==1.29.0
 requests==2.31.0
-python-dotenv==1.0.0
 
 # Linting and Formatting
 ruff==0.5.0  # Replaces flake8
 pytest-ruff==0.2.1 # Replaces pytest-flake8
+
+# Testing Tools
+tox<4.25.0  # Downgrade tox to avoid packaging dependency conflict

@@ -23,6 +23,8 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
+from typing import Any
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
@@ -48,8 +50,8 @@ class DefaultSettings(BaseSettings):
     FRONTEND_URL: str = 'http://localhost:8501'  # Default Streamlit port
 
     @field_validator('BACKEND_CORS_ORIGINS')
-    def assemble_cors_origins(cls, v: list[str] | str):
-        # Validate CORS origins.
+    def assemble_cors_origins(cls, v: list[str] | str) -> list[str] | str:
+        """Validate CORS origins."""
         if isinstance(v, str) and not v.startswith('['):
             return [i.strip() for i in v.split(',')]
         elif isinstance(v, list):
@@ -61,7 +63,7 @@ class DefaultSettings(BaseSettings):
 
     @field_validator('SQLALCHEMY_DATABASE_URI', mode='before')
     @classmethod
-    def assemble_db_connection(cls, v: str | None, info):
+    def assemble_db_connection(cls, v: str | None, info) -> Any:
         if isinstance(v, str):
             return v
         return info.data.get('DATABASE_URL')
@@ -71,8 +73,8 @@ class DefaultSettings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: str | None = None
     AWS_REGION: str = 'us-east-1'
     AWS_ROLE_ARN: str | None = None
-    AWS_PROFILE_NAME: str | None = None
-    BEDROCK_MODEL_ID: str = 'anthropic.claude-v2'
+    AWS_PROFILE_NAME: str | None = None  # Deprecated: Use instance profiles on EC2 instead
+    BEDROCK_MODEL_ID: str = 'anthropic.claude-instant-v1'
     BEDROCK_KNOWLEDGE_BASE_ID: str | None = None
 
     # LangSmith settings
@@ -88,9 +90,16 @@ class DefaultSettings(BaseSettings):
     # Logging settings
     LOG_TO_FILE: bool = True
     LOGGING_FORMAT: str = '[%(asctime)s] - %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
-    LOGGING_LOCATION: str = 'backend_logs.log'
+    LOGGING_LOCATION: str = 'fastapi.log'
     LOGGING_LEVEL: str = 'INFO'  # Default to INFO level
     LOGGING_PROPAGATION_LEVEL: str = 'INFO'
+
+    # RAG and LLM tuning parameters
+    MAX_TOKENS: int = 500  # Default for LLM max tokens
+    TOP_K: int = 10  # Default for LLM top_k
+    RETRIEVER_NUMBER_OF_RESULTS: int = 3  # Default number of docs to retrieve
+    RETRIEVER_SEARCH_TYPE: str = 'HYBRID'  # Default search type for retriever
+    TEMPERATURE: float = 0.1  # Default temperature for LLM
 
     model_config = {
         'extra': 'allow',

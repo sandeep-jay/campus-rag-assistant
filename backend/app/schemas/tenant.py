@@ -23,26 +23,24 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
-from sqlalchemy import Column, DateTime, Integer, String, func
-from sqlalchemy.orm import relationship
+from datetime import datetime
 
-from backend.app.db.database import Base
+from pydantic import BaseModel
 
 
-class Tenant(Base):
-    __tablename__ = 'tenant'
+class TenantBase(BaseModel):
+    name: str
+    description: str | None = None
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True, nullable=False)
-    description = Column(String, nullable=True)
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(
-        DateTime,
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
-    )
 
-    # Relationships
-    users = relationship('User', back_populates='tenant')
-    chat_sessions = relationship('ChatSession', back_populates='tenant')
+class TenantCreate(TenantBase):
+    pass
+
+
+class Tenant(TenantBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

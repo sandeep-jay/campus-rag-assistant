@@ -23,26 +23,40 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
-from sqlalchemy import Column, DateTime, Integer, String, func
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import relationship
 
 from backend.app.db.database import Base
 
 
-class Tenant(Base):
-    __tablename__ = 'tenant'
+class Feedback(Base):
+    __tablename__ = 'feedback'
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True, nullable=False)
-    description = Column(String, nullable=True)
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(
-        DateTime,
-        server_default=func.now(),
-        onupdate=func.now(),
+    message_id = Column(
+        Integer,
+        ForeignKey('chat_message.id', ondelete='CASCADE'),
         nullable=False,
+        index=True,
     )
+    user_id = Column(
+        Integer,
+        ForeignKey('user.id', ondelete='CASCADE'),
+        nullable=False,
+        index=True,
+    )
+    feedback_type = Column(
+        String,
+        nullable=False,
+    )  # 'thumbs_up', 'thumbs_down', 'rating'
+    rating = Column(Integer, nullable=True)  # 1-4 star rating
+    comment = Column(Text, nullable=True)
+    run_id = Column(String, nullable=True)  # For LangSmith tracing
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
 
     # Relationships
-    users = relationship('User', back_populates='tenant')
-    chat_sessions = relationship('ChatSession', back_populates='tenant')
+    message = relationship('ChatMessage', back_populates='feedbacks')
+    user = relationship('User', back_populates='feedbacks')
+
+    def __repr__(self):
+        return f'<Feedback(id={self.id}, message_id={self.message_id}, feedback_type={self.feedback_type}, rating={self.rating})>'

@@ -26,12 +26,14 @@ ENHANCEMENTS, OR MODIFICATIONS.
 import os
 from pathlib import Path
 
+from pydantic_settings import BaseSettings
+
 from backend.app.config.development import DevelopmentSettings
 from backend.app.config.test import TestSettings
 
 
 class ConfigManager:
-    """Application Config manager that implements the configuration precedence scheme."""
+    """Config manager that implements the configuration precedence scheme."""
 
     def __init__(self):
         self.app_env = os.environ.get('APP_ENV', 'development').lower()
@@ -39,21 +41,21 @@ class ConfigManager:
         self.root_dir = Path(__file__).resolve().parent.parent.parent.parent
         self.settings = None
 
-    def _get_settings_class(self):
-        """Get the appropriate settings class based on APP_ENV."""
+    def _get_settings_class(self) -> type[BaseSettings]:
+        # Get the appropriate settings class based on APP_ENV.
         if self.app_env == 'test':
             return TestSettings
         else:
             # Default to development if unknown environment
             return DevelopmentSettings
 
-    def _find_env_files(self):
+    def _find_env_files(self) -> list[str]:
         """Find .env files in the following order.
 
         1. .env in APP_LOCAL_CONFIGS
-        2. .env in root directory (chabot/)
+        2. .env in root directory (chatbot-poc/)
         3. .env.{APP_ENV} in APP_LOCAL_CONFIGS
-        4. .env.{APP_ENV} in root directory (chabot/)
+        4. .env.{APP_ENV} in root directory (chatbot-poc/)
         """
         env_files = []
 
@@ -72,7 +74,7 @@ class ConfigManager:
             if local_env_specific_file.exists():
                 env_files.append(str(local_env_specific_file))
 
-        # Then check root directory (chabot/) if files weren't found in APP_LOCAL_CONFIGS
+        # Then check root directory (chatbot-poc/) if files weren't found in APP_LOCAL_CONFIGS
         if not env_files or len(env_files) < 2:
             # Check for .env in root directory
             root_env_file = self.root_dir / '.env'
@@ -87,8 +89,8 @@ class ConfigManager:
 
         return env_files
 
-    def load_config(self):
-        """Load configuration according to the precedence scheme."""
+    def load_config(self) -> BaseSettings:
+        # Load configuration according to the precedence scheme.
         # Get appropriate settings class
         settings_class = self._get_settings_class()
 
@@ -141,7 +143,7 @@ AWS_ACCESS_KEY_ID: str | None = settings.AWS_ACCESS_KEY_ID
 AWS_SECRET_ACCESS_KEY: str | None = settings.AWS_SECRET_ACCESS_KEY
 AWS_REGION: str = settings.AWS_REGION
 AWS_ROLE_ARN: str | None = settings.AWS_ROLE_ARN
-AWS_PROFILE_NAME: str | None = settings.AWS_PROFILE_NAME
+AWS_PROFILE_NAME: str | None = settings.AWS_PROFILE_NAME  # Deprecated: Use instance profiles on EC2 instead
 BEDROCK_MODEL_ID: str = settings.BEDROCK_MODEL_ID
 BEDROCK_KNOWLEDGE_BASE_ID: str | None = settings.BEDROCK_KNOWLEDGE_BASE_ID
 LANGCHAIN_TRACING_V2: bool = settings.LANGCHAIN_TRACING_V2
@@ -155,3 +157,8 @@ LOGGING_FORMAT: str = settings.LOGGING_FORMAT
 LOGGING_LOCATION: str = settings.LOGGING_LOCATION
 LOGGING_LEVEL: str = settings.LOGGING_LEVEL
 LOGGING_PROPAGATION_LEVEL: str = settings.LOGGING_PROPAGATION_LEVEL
+TEMPERATURE: float = settings.TEMPERATURE
+MAX_TOKENS: int = settings.MAX_TOKENS
+TOP_K: int = settings.TOP_K
+RETRIEVER_NUMBER_OF_RESULTS: int = settings.RETRIEVER_NUMBER_OF_RESULTS
+RETRIEVER_SEARCH_TYPE: str = settings.RETRIEVER_SEARCH_TYPE
