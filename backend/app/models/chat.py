@@ -23,10 +23,22 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
-from app.db.database import Base
+import os
+
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
+from sqlalchemy.types import JSON
+
+from backend.app.db.database import Base
+
+
+# Helper function to determine which JSON type to use based on environment
+def get_json_type():
+    # Use JSON for SQLite tests, JSONB for PostgreSQL
+    if os.environ.get('TESTING', 'False').lower() == 'true':
+        return JSON
+    return JSONB
 
 
 class ChatSession(Base):
@@ -92,3 +104,10 @@ class ChatMessage(Base):
         back_populates='message',
         cascade='all, delete-orphan',
     )
+
+
+def get_json_column_type():
+    # Use JSON for SQLite tests, JSONB for PostgreSQL
+    if os.environ.get('TESTING', 'False').lower() == 'true':
+        return JSON
+    return JSONB

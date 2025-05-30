@@ -25,15 +25,25 @@ ENHANCEMENTS, OR MODIFICATIONS.
 
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Integer
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
+from pydantic import BaseModel
 
 
-class BaseModel(Base):
-    __abstract__ = True
+class FeedbackBase(BaseModel):
+    message_id: int
+    feedback_type: str  # 'thumbs_up', 'thumbs_down', 'rating'
+    rating: int | None = None  # 1-4 star rating
+    comment: str | None = None
+    run_id: str | None = None
 
-    id = Column(Integer, primary_key=True, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class FeedbackCreate(FeedbackBase):
+    pass
+
+
+class Feedback(FeedbackBase):
+    id: int
+    user_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

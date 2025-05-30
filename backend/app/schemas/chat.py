@@ -23,42 +23,88 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel
 
-"""Chat schema models using Pydantic."""
+from .feedback import Feedback
 
 
-class Message(BaseModel):
-    """Model representing a chat message."""
-
-    role: str  # 'human' or 'ai'
+class ChatMessageBase(BaseModel):
     content: str
+    role: str
+    message_meta: dict[str, Any] | None = None
 
 
-class ChatHistory(BaseModel):
-    """Model representing a list of chat messages."""
+class ChatMessageCreate(BaseModel):
+    content: str
+    session_id: int | None = None
 
-    messages: list[Message] = []
+
+class ChatMessage(ChatMessageBase):
+    id: int
+    session_id: int
+    created_at: datetime
+    feedbacks: list[Feedback] = []
+
+    class Config:
+        from_attributes = True
+
+
+class ChatSessionBase(BaseModel):
+    title: str
+
+
+class ChatSessionCreate(ChatSessionBase):
+    tenant_id: int | None = None
+
+
+class ChatSession(ChatSessionBase):
+    id: int
+    user_id: int
+    tenant_id: int | None = None
+    created_at: datetime
+    updated_at: datetime
+    messages: list[ChatMessage] = []
+
+    class Config:
+        from_attributes = True
 
 
 class ChatRequest(BaseModel):
-    """Model representing a chat request."""
-
     message: str
-    chat_history: list[dict[str, str]] = []  # List of {'role': 'human'|'ai', 'content': '...'}
-
-
-class SourceDocument(BaseModel):
-    """Model representing a source document."""
-
-    content: str
-    metadata: dict[str, Any]
+    session_id: int | None = None
+    tenant_id: int | None = None
 
 
 class ChatResponse(BaseModel):
-    """Model representing a chat response."""
+    message: str
+    session_id: int
+    message_meta: dict[str, Any] | None = None
 
-    answer: str
-    source_documents: list[SourceDocument] | None = None
+
+class MessageFeedbackCreate(BaseModel):
+    message_id: int
+    rating: int  # 1-5 rating
+    comment: str | None = None
+    run_id: str | None = None  # For LangSmith tracing
+
+
+class MessageFeedback(BaseModel):
+    id: int
+    message_id: int
+    rating: int
+    comment: str | None = None
+    run_id: str | None = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class SourceDocument(BaseModel):
+    # Model representing a source document.
+
+    content: str
+    metadata: dict[str, Any]

@@ -22,3 +22,12 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 "AS IS". REGENTS HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
 ENHANCEMENTS, OR MODIFICATIONS.
 """
+
+from .chat import ChatMessage, ChatSession
+from .feedback import Feedback
+from .tenant import Tenant
+from .user import User
+
+"""Database model definitions."""
+
+__all__ = ['ChatMessage', 'ChatSession', 'Feedback', 'Tenant', 'User']
