@@ -23,27 +23,11 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
-import logging
-
-from fastapi import APIRouter, HTTPException
-
-from backend.app.schemas.chat import ChatRequest, ChatResponse
-from backend.app.services.rag_service import get_rag_service
-
-"""Chat API endpoint module."""
+from fastapi import APIRouter
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
 
 
-@router.post('', response_model=ChatResponse)
-async def process_chat_message(request: ChatRequest):
-    # Process a chat message using RAG.
-    try:
-        rag_service = get_rag_service()
-        result = rag_service.process_chat_request(request)
-
-        return ChatResponse(answer=result['answer'], source_documents=result.get('source_documents', []))
-    except Exception as e:
-        logger.exception('Error processing chat request')
-        raise HTTPException(status_code=500, detail=f'Failed to process chat message: {e}')
+@router.get('/chat')
+async def root_base():
+    return {'message': 'OK'}
