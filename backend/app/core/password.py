@@ -23,26 +23,17 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
-from sqlalchemy import Column, DateTime, Integer, String, func
-from sqlalchemy.orm import relationship
+from passlib.context import CryptContext
 
-from backend.app.db.database import Base
+# Password hashing context
+pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 
 
-class Tenant(Base):
-    __tablename__ = 'tenant'
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    # Verify a password against a hash.
+    return pwd_context.verify(plain_password, hashed_password)
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True, nullable=False)
-    description = Column(String, nullable=True)
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(
-        DateTime,
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
-    )
 
-    # Relationships
-    users = relationship('User', back_populates='tenant')
-    chat_sessions = relationship('ChatSession', back_populates='tenant')
+def get_password_hash(password: str) -> str:
+    # Generate a password hash.
+    return pwd_context.hash(password)
