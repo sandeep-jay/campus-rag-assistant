@@ -41,6 +41,13 @@ def get_json_type():
     return JSONB
 
 
+def get_json_column_type():
+    # Use JSON for SQLite tests, JSONB for PostgreSQL
+    if os.environ.get('TESTING', 'False').lower() == 'true':
+        return JSON
+    return JSONB
+
+
 class ChatSession(Base):
     __tablename__ = 'chat_session'
 
@@ -104,10 +111,3 @@ class ChatMessage(Base):
         back_populates='message',
         cascade='all, delete-orphan',
     )
-
-
-def get_json_column_type():
-    # Use JSON for SQLite tests, JSONB for PostgreSQL
-    if os.environ.get('TESTING', 'False').lower() == 'true':
-        return JSON
-    return JSONB
