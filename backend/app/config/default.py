@@ -34,7 +34,7 @@ class DefaultSettings(BaseSettings):
 
     # CORE SETTINGS
     PROJECT_NAME: str = 'RTL Services Support Chatbot API'
-    VERSION: str = '0.1.0'
+    VERSION: str = '1.0.0'
     API_V1_STR: str = '/api'
     SECRET_KEY: str = 'supersecretkey'
 
