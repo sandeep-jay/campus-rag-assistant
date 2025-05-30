@@ -33,6 +33,7 @@ from pathlib import Path
 from fastapi import FastAPI
 
 from backend.app.core.config_manager import settings
+from backend.app.utils.simple_tracer import get_client
 
 """Logging configuration for the backend application."""
 
@@ -45,23 +46,38 @@ LOGGERS_TO_CONFIGURE = [
     'boto3',
     'botocore',
     'sqlalchemy',
-    'langsmith',
+    # 'langsmith' is handled separately with a custom handler
 ]
 
 # Create the logger instance that will be exported
 logger = logging.getLogger('app')
-handler = None
 
 
-def _create_console_handler(level: int, fmt: str):
+class ThreadSafeHandler(logging.StreamHandler):
+    """A thread-safe handler that suppresses errors on closed streams during shutdown."""
+
+    def emit(self, record):
+        # Emit a record handling closed file errors during shutdown.
+        try:
+            super().emit(record)
+        except ValueError as e:
+            # Check if this is a closed file error during shutdown
+            if 'I/O operation on closed file' in str(e):
+                # Silently ignore I/O errors on closed files
+                return
+            # Re-raise other ValueErrors
+            raise
+
+
+def _create_console_handler(level: int, fmt: str) -> logging.Handler:
     # Create a console handler for logging.
-    handler = logging.StreamHandler(sys.stdout)
+    handler = ThreadSafeHandler(sys.stdout)
     handler.setLevel(level)
     handler.setFormatter(logging.Formatter(fmt))
     return handler
 
 
-def _create_file_handler(level: int, fmt: str):
+def _create_file_handler(level: int, fmt: str) -> logging.Handler | None:
     # Create a file handler for logging if enabled in settings.
     if not settings.LOG_TO_FILE:
         return None
@@ -70,7 +86,7 @@ def _create_file_handler(level: int, fmt: str):
         log_path.parent.mkdir(parents=True, exist_ok=True)
         handler = RotatingFileHandler(
             filename=settings.LOGGING_LOCATION,
-            maxBytes=104_857_600,  # 100MB
+            maxBytes=10_485_760,  # 10MB
             backupCount=20,
             encoding='utf-8',
         )
@@ -83,8 +99,27 @@ def _create_file_handler(level: int, fmt: str):
         return None
 
 
-def initialize_logger(app: FastAPI | None = None):
+def _configure_langsmith_logger(level: int) -> None:
+    # Configure the LangSmith logger with thread-safe handlers.
+    langsmith_logger = logging.getLogger('langsmith')
+    langsmith_logger.handlers.clear()
+    langsmith_logger.setLevel(level)
+
+    # Use thread-safe handler for LangSmith
+    handler = ThreadSafeHandler(sys.stdout)
+    handler.setLevel(level)
+    handler.setFormatter(logging.Formatter(settings.LOGGING_FORMAT))
+    langsmith_logger.addHandler(handler)
+
+    # Also configure urllib3 logger which is used by LangSmith
+    urllib3_logger = logging.getLogger('urllib3')
+    urllib3_logger.handlers.clear()
+    urllib3_logger.addHandler(handler)
+
+
+def initialize_logger(app: FastAPI | None = None) -> None:
     # Initialize and configure backend logging.
+
     level = getattr(logging, settings.LOGGING_LEVEL.upper(), logging.INFO)
     fmt = settings.LOGGING_FORMAT
 
@@ -115,6 +150,9 @@ def initialize_logger(app: FastAPI | None = None):
     for logger_name in LOGGERS_TO_CONFIGURE:
         logging.getLogger(logger_name).setLevel(level)
 
+    # Special configuration for LangSmith logger
+    _configure_langsmith_logger(level)
+
     # Optionally configure FastAPI logger
     if app:
         fastapi_logger = logging.getLogger('fastapi')
@@ -127,7 +165,23 @@ def initialize_logger(app: FastAPI | None = None):
     logger.info(f'Logger initialized at level {logging.getLevelName(level)}')
 
 
-def cleanup_logging():
+def cleanup_logging() -> None:
+    """Close all handlers and cleanup LangSmith."""
+    # First cleanup LangSmith client if it exists
+    try:
+        # Disable langsmith logger to prevent logging after handlers are closed
+        logging.getLogger('langsmith').setLevel(logging.CRITICAL)
+        logging.getLogger('urllib3').setLevel(logging.CRITICAL)
+
+        client = get_client()
+        if client:
+            with contextlib.suppress(Exception):
+                client.session.close()
+    except Exception:  # noqa: S110
+        # Silent exception handling is intentional here
+        # We're in cleanup code and can't log errors as handlers may be closed
+        pass
+
     # Close all handlers
     root_logger = logging.getLogger()
     for handler in root_logger.handlers[:]:
@@ -137,8 +191,9 @@ def cleanup_logging():
             root_logger.removeHandler(handler)
 
 
-def get_logger(name: str):
+def get_logger(name: str) -> logging.Logger:
     # Get a configured logger.
+
     return logging.getLogger(name)
 
 
