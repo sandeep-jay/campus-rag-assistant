@@ -29,6 +29,7 @@ import uuid
 from typing import Any
 
 import streamlit as st
+
 from app.api import get_api_client
 from app.logger import logger
 
