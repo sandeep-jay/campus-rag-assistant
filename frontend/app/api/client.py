@@ -28,9 +28,10 @@ from __future__ import annotations
 from typing import Any
 
 import requests
+from requests.exceptions import RequestException
+
 from app.config import settings
 from app.logger import logger
-from requests.exceptions import RequestException
 
 """Client for interacting with the backend API."""
 
