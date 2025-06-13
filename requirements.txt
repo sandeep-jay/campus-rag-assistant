@@ -1,3 +1,7 @@
+# ============================================================
+# Core Dependencies
+# ============================================================
+
 # Core API Dependencies
 fastapi==0.109.2
 uvicorn==0.27.1
@@ -36,9 +40,26 @@ requests==2.31.0
 # Required by multiple packages - pinned to a compatible version
 packaging==23.2
 
-# Linting and Formatting
-ruff==0.5.0  # Replaces flake8
-pytest-ruff==0.2.1 # Replaces pytest-flake8
+# ============================================================
+# Development Dependencies (Required for testing and development)
+# ============================================================
 
 # Testing Tools
+pytest>=8.0.0
+pytest-cov==4.1.0
+coverage==7.3.2  # Pinned to avoid circular import issues
+pytest-asyncio==0.21.1
+pytest-mock==3.12.0
+httpx==0.24.1  # For testing FastAPI applications
 tox<4.25.0  # Downgrade tox to avoid packaging dependency conflict
+
+# Linting and Formatting
+ruff==0.5.0  # Replaces black, flake8, and mypy
+pytest-ruff==0.2.1  # Replaces pytest-flake8, pytest-black, pytest-mypy
+
+# Type checking
+types-requests==2.28.11  # Compatible with urllib3 < 2.0.0
+types-python-jose==3.3.4.20240106
+types-passlib==1.7.7.20240106
+types-python-dateutil==2.8.19.20240106
+types-PyJWT==1.7.1  # Updated to an available version
