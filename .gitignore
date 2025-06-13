@@ -35,6 +35,11 @@ ENV/
 *.sqlite3
 *.db
 test.db
+Thumbs.db
+
+# Front-end
+/dist
+node_modules
 
 # Environment variables
 .env
@@ -48,7 +53,11 @@ config/*-local.py
 config/build-summary.json
 
 # Testing
+.coverage
+htmlcov/
+.pytest_cache/
 .tox/
+.mypy_cache/
 .ruff_cache/
 
 # Logs
@@ -70,3 +79,10 @@ tmp/
 .DS_Store
 *.gz
 .cache
+.pytest_cache/
+coverage
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
