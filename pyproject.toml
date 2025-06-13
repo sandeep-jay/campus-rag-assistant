@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+# Ruff configuration is now in ruff.toml
+# This redirects the tool to use ruff.toml for its configuration
+src = ["backend", "frontend"]
+
+[tool.pytest.ini_options]
+pythonpath = [
+    "."
+]
+testpaths = [
+    "backend/tests"
+]
+python_files = [
+    "test_*.py"
+]
+# Base options without coverage to avoid warnings
+addopts = "-v" 
