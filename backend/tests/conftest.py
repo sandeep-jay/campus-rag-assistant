@@ -27,6 +27,7 @@ import os
 import subprocess
 import uuid
 from collections.abc import Generator
+from unittest.mock import MagicMock, patch
 
 import pytest
 from dotenv import load_dotenv
@@ -38,6 +39,7 @@ from backend.app.db.database import Base, get_db
 from backend.app.main import app
 from backend.app.models.user import User
 from backend.app.services.db import DatabaseService
+from backend.app.services.rag import RAGService
 
 # Load test environment variables from project root
 load_dotenv('../../.env.test')
@@ -177,3 +179,46 @@ def test_user_token(client: TestClient, db_test_user: User) -> str:
         data={'username': db_test_user.username, 'password': 'testpassword123'},
     )
     return response.json()['access_token']
+
+
+@pytest.fixture(autouse=True)
+def mock_rag_service():
+    """Mock the RAG service for all tests."""
+    with patch('backend.app.api.chat.get_rag_service') as mock_get_rag_service:
+        # Create a mock RAG service
+        mock_rag = MagicMock(spec=RAGService)
+        mock_rag.is_mock = True
+        mock_rag.process_query.return_value = {
+            'message': 'This is a mock response',
+            'metadata': {
+                'sources': [
+                    {
+                        'source': 'Test Source',
+                        'kb_url': 'https://example.com/test',
+                        'kb_number': 'KB-001',
+                        'kb_category': 'Test',
+                        'short_description': 'Test description',
+                        'project': 'Test Project',
+                        'ingestion_date': '2024-01-01',
+                        'score': 0.95,
+                    }
+                ],
+                'document_contents': [
+                    {
+                        'content': 'Test content',
+                        'metadata': {
+                            'source': 'Test Source',
+                            'kb_url': 'https://example.com/test',
+                            'kb_number': 'KB-001',
+                            'kb_category': 'Test',
+                            'short_description': 'Test description',
+                            'project': 'Test Project',
+                            'ingestion_date': '2024-01-01',
+                            'score': 0.95,
+                        },
+                    }
+                ],
+            },
+        }
+        mock_get_rag_service.return_value = mock_rag
+        yield mock_rag
