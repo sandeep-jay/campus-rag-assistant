@@ -28,14 +28,26 @@ ENHANCEMENTS, OR MODIFICATIONS.
 
 from .components import (
     display_auth_user_profile,
+    display_document_contents,
+    display_feedback_options,
+    display_message,
+    display_message_metadata,
     display_profile_section,
+    display_source_documents,
+    display_sources,
     get_profile_pic,
 )
 from .styles import load_all_styles
 
 __all__ = [
     'display_auth_user_profile',
+    'display_document_contents',
+    'display_feedback_options',
+    'display_message',
+    'display_message_metadata',
     'display_profile_section',
+    'display_source_documents',
+    'display_sources',
     'get_profile_pic',
     'load_all_styles',
 ]

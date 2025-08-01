@@ -226,3 +226,159 @@ class APIClient:
             return self._make_request('GET', '/api/auth/me')
         except APIError:
             return {'username': 'User'}  # Default if we can't get the user info
+
+    def get_chat_sessions(self) -> list[dict[str, Any]]:
+        # Get all chat sessions for the current user.
+        try:
+            response = self._make_request('GET', '/api/chat/sessions')
+            # Extract items if wrapped in a dict, otherwise return empty list
+            if 'items' in response and isinstance(response['items'], list):
+                return response['items']
+            return []
+        except APIError:
+            return []
+
+    def get_session_messages(self, session_id: int) -> list[dict[str, Any]]:
+        # Get messages from a specific chat session.
+        try:
+            logger.info(f'Fetching messages for session ID: {session_id}')
+            response = self._make_request('GET', f'/api/chat/sessions/{session_id}')
+
+            if isinstance(response, dict) and 'messages' in response:
+                logger.info(
+                    f'Successfully fetched messages for session ID: {session_id}',
+                )
+                return response.get('messages', [])
+
+            return []
+        except APIError as e:
+            logger.error(f'Error fetching messages for session ID {session_id}: {e!s}')
+            return []
+
+    def send_message(
+        self,
+        message: str,
+        session_id: int | None = None,
+    ) -> dict[str, Any]:
+        # Send a message to the chat.
+        try:
+            logger.info(f'Sending message to session ID: {session_id}')
+            response = self._make_request(
+                'POST',
+                '/api/chat/chat',
+                json={'content': message, 'session_id': session_id},
+            )
+            logger.info(f'Message sent successfully to session ID: {session_id}')
+            return response
+        except APIError as e:
+            logger.error(f'Error sending message: {e!s}')
+            return {'error': str(e)}
+
+    def submit_feedback(
+        self,
+        message_id: int,
+        feedback_type: str,
+        rating: int | None = None,
+        comment: str | None = None,
+    ) -> dict[str, Any]:
+        # Submit feedback for a message.
+        try:
+            logger.info(
+                f'Submitting feedback for message ID: {message_id}, type: {feedback_type}',
+            )
+
+            feedback_data = {
+                'message_id': message_id,
+                'feedback_type': feedback_type,
+            }
+
+            if rating is not None:
+                feedback_data['rating'] = rating
+
+            if comment:
+                feedback_data['comment'] = comment
+
+            logger.debug(f'Sending feedback data to API: {feedback_data}')
+
+            # Use the standard _make_request function instead of direct request
+            # This ensures proper handling of cookies and tokens
+            response = self._make_request(
+                'POST',
+                '/api/chat/feedback',
+                json=feedback_data,
+            )
+
+            logger.debug(f'Feedback API response: {response}')
+            return response
+
+        except APIError as e:
+            logger.exception(f'API Error submitting feedback: {e!s}')
+            return {'error': str(e)}
+        except Exception as e:
+            logger.exception(f'Unexpected error submitting feedback: {e!s}')
+            return {'error': str(e)}
+
+    def delete_chat_session(self, session_id: int) -> bool:
+        # Delete a chat session.
+        try:
+            self._make_request('DELETE', f'/api/chat/sessions/{session_id}')
+            return True
+        except APIError:
+            return False
+
+    def test_connection(self) -> dict[str, Any]:
+        # Test the API connection by calling the health endpoint.
+        try:
+            logger.info('Testing API connection')
+            result = {'status': 'initialized'}
+            result['api_url'] = self.base_url
+
+            # Test health endpoint
+            try:
+                health_data = self._make_request('GET', '/api/health', timeout=5)
+                result['health_check'] = health_data
+                result['health_status'] = 'success'
+            except Exception as e:
+                logger.error(f'Health check failed: {e}')
+                result['health_status'] = 'failed'
+                result['health_error'] = str(e)
+
+            # Test authentication status
+            try:
+                user_info = self.get_user_info()
+                # If we get valid user info, the user is authenticated (via token or cookie)
+                is_authenticated = 'id' in user_info and 'username' in user_info
+                result['has_auth'] = is_authenticated
+                result['auth_type'] = 'token' if self.token else 'cookie' if is_authenticated else 'none'
+
+                if is_authenticated:
+                    result['user_info'] = user_info
+                    result['user_info_status'] = 'success'
+                else:
+                    result['user_info_status'] = 'not_authenticated'
+            except Exception as e:
+                logger.error(f'Authentication check failed: {e}')
+                result['has_auth'] = False
+                result['auth_type'] = 'none'
+                result['user_info_status'] = 'failed'
+                result['user_info_error'] = str(e)
+
+            # Test if the server accepts POST requests to the feedback endpoint
+            try:
+                # Don't actually submit feedback, just check if the endpoint exists and accepts POST
+                # Use a HEAD request which should return 405 Method Not Allowed if endpoint exists
+                response = self.session.head(f'{self.base_url}/api/chat/feedback', timeout=5)
+                result['feedback_endpoint_status'] = response.status_code
+                # 405 means Method Not Allowed which is normal for HEAD on a POST-only endpoint
+                # This shows the endpoint exists
+                result['feedback_endpoint_check'] = 'success'
+            except Exception as e:
+                logger.error(f'Feedback endpoint check failed: {e}')
+                result['feedback_endpoint_check'] = 'failed'
+                result['feedback_endpoint_error'] = str(e)
+
+            result['status'] = 'completed'
+            return result
+        except Exception as e:
+            logger.exception(f'API connection test failed: {e}')
+            return {'status': 'error', 'error': str(e)}
