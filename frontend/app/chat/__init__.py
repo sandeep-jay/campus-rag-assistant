@@ -23,26 +23,22 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
-# UI components package initialization.
-
-from .feedback import display_feedback_options
-from .message_display import (
-    display_document_contents,
-    display_message,
-    display_message_metadata,
-    display_source_documents,
-    display_sources,
+from .chat_service import (
+    clear_all_chat_history,
+    delete_chat_session,
+    get_chat_sessions,
+    get_session_messages,
+    send_message,
+    submit_message_feedback,
 )
-from .profile import display_auth_user_profile, display_profile_section, get_profile_pic
+
+"""Chat package initialization."""
 
 __all__ = [
-    'display_auth_user_profile',
-    'display_document_contents',
-    'display_feedback_options',
-    'display_message',
-    'display_message_metadata',
-    'display_profile_section',
-    'display_source_documents',
-    'display_sources',
-    'get_profile_pic',
+    'clear_all_chat_history',
+    'delete_chat_session',
+    'get_chat_sessions',
+    'get_session_messages',
+    'send_message',
+    'submit_message_feedback',
 ]
