@@ -25,11 +25,15 @@ ENHANCEMENTS, OR MODIFICATIONS.
 
 # Styles package initialization.
 
+from .feedback import load_feedback_styles
 from .main import load_main_styles
 from .profile import load_profile_styles
+from .sources import load_sources_styles
 
 
 def load_all_styles() -> None:
     # Load all UI styles for the application.
     load_main_styles()
+    load_feedback_styles()
+    load_sources_styles()
     load_profile_styles()
