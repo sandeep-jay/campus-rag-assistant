@@ -4,8 +4,17 @@ set -e
 # Activate virtual environment
 source /var/app/venv/*/bin/activate
 
-# Start FastAPI
-uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 &
+WORKERS="${API_WORKERS:-${UVICORN_WORKERS:-2}}"
+HOST="${API_HOST:-0.0.0.0}"
+PORT="${API_PORT:-8000}"
+UVICORN_ARGS=(backend.app.main:app --host "$HOST" --port "$PORT")
+
+# Start FastAPI (multi-worker by default for concurrent auth + chat)
+if [ "${WORKERS}" = "1" ]; then
+  uvicorn "${UVICORN_ARGS[@]}" &
+else
+  uvicorn "${UVICORN_ARGS[@]}" --workers "${WORKERS}" &
+fi
 
 # Start Streamlit
 streamlit run frontend-streamlit/app/main.py --server.port 8501 --server.address 0.0.0.0 &

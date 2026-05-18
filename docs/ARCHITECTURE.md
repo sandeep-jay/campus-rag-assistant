@@ -29,7 +29,7 @@ Original Berkeley ETS Chabot architecture (Streamlit-only UI, LangChain → Open
 | **Retrieval (Azure)** | — | **Azure AI Search** hybrid + Azure OpenAI embeddings |
 | **LLM** | Bedrock only | **Bedrock** or **Azure OpenAI** or **mock** via `LLM_PROVIDER` |
 | **DB** | PostgreSQL | PostgreSQL + **Alembic** (no `create_all` in production) |
-| **Ops** | LangSmith | LangSmith + **Prometheus** (`/api/metrics`, pool snapshot) |
+| **Ops** | LangSmith | LangSmith + **Prometheus** (`/api/metrics`, pool snapshot, first-token histogram); chat history capped via `CHAT_HISTORY_MAX_MESSAGES` — [PERFORMANCE.md](./PERFORMANCE.md) |
 | **Quality** | — | **RAGAS** harness (`backend/tests/eval/`), k6 load tests |
 | **Deploy** | EB + Nginx + Terraform | Same pattern; `run_services.sh` starts API (+ Streamlit on EB); Vue often hosted separately (CDN/static) with `FRONTEND_URL` / CORS |
 

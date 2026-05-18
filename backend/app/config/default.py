@@ -119,6 +119,12 @@ class DefaultSettings(BaseSettings):
     RATE_LIMIT_REGISTER_PER_MINUTE: int = 5
     RATE_LIMIT_CHAT_PER_MINUTE: int = 30
     REDIS_URL: str | None = None
+    # Performance / chat context
+    CHAT_HISTORY_MAX_MESSAGES: int = 40  # Max messages passed to RAG (0 = unlimited)
+    STREAM_ARTIFICIAL_DELAY_MS: int = 0  # Demo-only delay between streamed tokens; 0 = off
+    SQLALCHEMY_POOL_SIZE: int = 5
+    SQLALCHEMY_MAX_OVERFLOW: int = 10
+
 
     # Azure OpenAI (optional — for LLM_PROVIDER=azure)
     AZURE_OPENAI_ENDPOINT: str | None = None

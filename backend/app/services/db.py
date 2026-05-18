@@ -200,9 +200,18 @@ class DatabaseService:
         logger.debug(f'Getting message with ID: {message_id}')
         return self.db.query(ChatMessage).filter(ChatMessage.id == message_id).first()
 
-    def get_session_messages(self, session_id: int) -> list[ChatMessage]:
-        logger.debug(f'Getting messages for session {session_id}')
-        messages = self.db.query(ChatMessage).filter(ChatMessage.session_id == session_id).order_by(ChatMessage.created_at).all()
+    def get_session_messages(
+        self,
+        session_id: int,
+        max_messages: int | None = None,
+    ) -> list[ChatMessage]:
+        logger.debug(f'Getting messages for session {session_id} (max_messages={max_messages})')
+        query = self.db.query(ChatMessage).filter(ChatMessage.session_id == session_id)
+        if max_messages is not None and max_messages > 0:
+            rows = query.order_by(ChatMessage.created_at.desc()).limit(max_messages).all()
+            messages = list(reversed(rows))
+        else:
+            messages = query.order_by(ChatMessage.created_at).all()
         logger.debug(f'Found {len(messages)} messages for session {session_id}')
         return messages
 

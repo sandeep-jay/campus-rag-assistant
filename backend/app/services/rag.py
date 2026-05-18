@@ -48,6 +48,14 @@ from backend.app.utils.simple_tracer import trace_rag
 # Configure logging
 logger = logging.getLogger(__name__)
 
+
+def _stream_artificial_delay() -> None:
+    """Optional demo delay between streamed tokens (STREAM_ARTIFICIAL_DELAY_MS)."""
+    delay_ms = int(getattr(settings, 'STREAM_ARTIFICIAL_DELAY_MS', 0) or 0)
+    if delay_ms > 0:
+        time.sleep(delay_ms / 1000.0)
+
+
 # Directory where template files are stored
 TEMPLATES_DIR = Path(__file__).parent.parent / 'templates'
 
@@ -341,7 +349,7 @@ Standalone Question (one line only, no labels):""")
             )
             for chunk in self._chunk_for_stream(message, size=12):
                 yield {'type': 'token', 'token': chunk}
-                time.sleep(0.02)
+                _stream_artificial_delay()
             yield {'type': 'done', 'metadata': mock['metadata']}
             return
 
@@ -372,7 +380,7 @@ Standalone Question (one line only, no labels):""")
                     if len(delta) > 80:
                         for piece in self._chunk_for_stream(delta, size=12):
                             yield {'type': 'token', 'token': piece}
-                            time.sleep(0.02)
+                            _stream_artificial_delay()
                     else:
                         yield {'type': 'token', 'token': delta}
 
@@ -390,7 +398,7 @@ Standalone Question (one line only, no labels):""")
             result = self.process_query(query, chat_history)
             for chunk in self._chunk_for_stream(result['message'], size=12):
                 yield {'type': 'token', 'token': chunk}
-                time.sleep(0.02)
+                _stream_artificial_delay()
             yield {'type': 'done', 'metadata': result['metadata']}
 
     def _create_mock_response(self, query: str):
