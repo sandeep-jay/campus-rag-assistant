@@ -15,9 +15,16 @@ from backend.app.db.database import Base, engine
 
 # Configure logging before other subsystems emit logs.
 initialize_logger()
-logger.info('Initializing database tables')
-Base.metadata.create_all(bind=engine)
-logger.info('Database tables initialized successfully')
+
+_env = (getattr(settings, 'APP_ENV', None) or settings.ENVIRONMENT or '').lower()
+if _env in ('development', 'test', 'testing'):
+    logger.info('Creating database tables via metadata.create_all (dev/test only)')
+    Base.metadata.create_all(bind=engine)
+else:
+    logger.info(
+        'Skipping metadata.create_all in %s; run alembic upgrade head before serving traffic',
+        _env or 'production',
+    )
 
 security_scheme = HTTPBearer(auto_error=True)
 
