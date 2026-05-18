@@ -86,11 +86,9 @@ coverage
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
-# Changelog: running log is CHANGELOG.md; tracked archive + README under changelog/
-changelog/*
-!changelog/README.md
-!changelog/archive/
-!changelog/archive/**
+# Local scratch only (canonical changelog is CHANGELOG.md at repo root)
+changelog/
+
 
 # frontend-vue (generated artifacts and secrets; see also frontend-vue/.gitignore)
 frontend-vue/node_modules/

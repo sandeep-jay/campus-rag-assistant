@@ -3,38 +3,33 @@
 Notable changes to this **portfolio fork** of the UC Berkeley ETS Chabot platform
 ([multicloud-rag-chatbot](https://github.com/sandeep-jay/multicloud-rag-chatbot)).
 
-Format: [Keep a Changelog](https://keepachangelog.com/).  
+[Keep a Changelog](https://keepachangelog.com/) format.  
 Attribution and license: [README](README.md#license).
 
-**Running log:** edit `[Unreleased]` below. When you merge a milestone, rename it to `## [YYYY-MM-DD] — title` and open a new `[Unreleased]`.
-
-**Detailed session history:** [changelog/archive/](changelog/archive/) (frozen notes). Policy: [changelog/README.md](changelog/README.md).
+Edit **`[Unreleased]`** as you work. When you merge a milestone, rename that section to
+`## [YYYY-MM-DD] — short title` and start a new empty `[Unreleased]`.
 
 ---
 
 ## [Unreleased]
 
-### Added
-
-- **changelog/archive/** — tracked copies of 2026-05-01 session notes; [changelog/README.md](changelog/README.md) documents workflow.
-
 ### Changed
 
 - Documentation: attribution under README License; removed `PORTFOLIO.md`, `EXECUTION_PLAN.md`, `DOC_AUDIT.md`; trimmed `ARCHITECTURE.md`.
-- Pre-commit hook reminds to update **CHANGELOG.md** only.
+- **CHANGELOG.md** is the only project changelog (no separate `changelog/` tree on git).
 
 ### Removed
 
-- `scripts/new-changelog.sh` (use **CHANGELOG.md** + optional `changelog/archive/` instead).
+- `scripts/new-changelog.sh` and tracked files under `changelog/` (local `changelog/` remains gitignored for scratch).
 
 ---
 
-## [2026-05-18] — Test harness
+## [2026-05-18] — Test harness (PR #9)
 
 ### Added
 
 - **tox** `frontend-vue` env: `npm ci`, typecheck, ESLint, Vitest (Node 20 via `.nvmrc`).
-- **requirements.txt**: `langchain-openai`, Azure SDKs; `bcrypt<4.1` pin for passlib in fresh tox envs.
+- **requirements.txt**: `langchain-openai`, Azure SDKs; `bcrypt>=4.0.1,<4.1.0` pin for passlib in fresh tox envs.
 - Lazy Azure provider imports in `backend/app/services/providers/__init__.py`.
 
 ### Changed
@@ -45,53 +40,85 @@ Attribution and license: [README](README.md#license).
 
 ---
 
-## [2026-05-17] — Portfolio publish on `main`
+## [2026-05-17] — Portfolio publish on `main` (PRs #1–#8)
 
-Merged PRs #1–#8. Consolidated from May 2026 development sessions (providers, Vue, platform, logging, eval).
+GitHub: [multicloud-rag-chatbot](https://github.com/sandeep-jay/multicloud-rag-chatbot).  
+Below consolidates May 2026 development sessions (platform, Vue, logging, eval).
 
-### Added
+### Added — shipped on `main`
 
-- **Vue 3 SPA** (`frontend-vue/`): TypeScript, Vite, Pinia, Vue Router, Vitest (124 tests), Playwright e2e, MSW mocks, API interceptors.
-- **Streamlit client** (`frontend-streamlit/`).
-- **Provider registry** (`backend/app/services/providers/`): `aws`, `azure`, `mock`; wired in `rag.py`; `RAG_FORCE_MOCK`.
-- **Request context**: `RequestContextMiddleware`, `X-Request-ID`, `RequestIdFilter`, `backend/tests/core/test_request_context.py`.
-- **Observability**: Prometheus metrics (`/api/metrics`); optional `LOG_JSON` structured logs.
-- **Rate limiting**: Redis sliding window with fakeredis fallback (`backend/app/core/rate_limit.py`).
-- **Dev routes** gated by environment (`dev_routes.py`).
-- **Alembic** initial migration `0001_initial_schema.py`.
-- **RAGAS eval** (`backend/tests/eval/`, `golden_dataset.json`).
+- **Vue 3 SPA** (`frontend-vue/`): TypeScript, Vite, Pinia, Vue Router; chat, auth, sessions, sources, feedback, dark mode; Vitest (124 tests); Playwright e2e scaffolding; MSW mocks; `frontend-vue/src/api/interceptors.ts` sends `X-Request-ID` per request.
+- **Streamlit client** (`frontend-streamlit/`) — same REST API as Vue.
+- **Provider registry** (`backend/app/services/providers/`): `BaseLlmProvider`, `BaseRetrieverProvider`, AWS/Azure/mock; `create_or_mock()`; wired in `rag.py`; `RAG_FORCE_MOCK`, `LLM_PROVIDER`, `RETRIEVER_PROVIDER`.
+- **Redis-backed rate limiter** (`backend/app/core/rate_limit.py`): sliding window on Redis sorted sets; `fakeredis` when `REDIS_URL` unset.
+- **Request context** (`backend/app/core/request_context.py`): `RequestContextMiddleware`, `RequestIdFilter`, contextvar; tests in `backend/tests/core/test_request_context.py`.
+- **Prometheus metrics** (`backend/app/core/metrics.py`): middleware + `/api/metrics`.
+- **Dev routes** (`backend/app/core/dev_routes.py`): non-production only.
+- **Alembic** (`backend/alembic/`, `0001_initial_schema.py`): tenant, user, chat_session, chat_message, feedback.
+- **RAGAS eval** (`backend/tests/eval/`, `golden_dataset.json`, `test_rag_quality.py`); gates via `RAGAS_QUALITY_GATE=1`; `slow` pytest marker.
 - **k6 load tests** (`load-tests/`, seed script).
-- **Scripts**: `run-backend-venv.sh`, `run-frontend-vue.sh`, `kill-dev-servers.sh`, `install-hooks.sh`, load-test helpers.
+- **Logging**: `LOG_JSON` + `JsonFormatter`; `scripts/kill-dev-servers.sh` (ports 8000/5173).
+- **Scripts / hooks**: `run-backend-venv.sh`, `run-frontend-vue.sh`, `install-hooks.sh`, load-test helpers.
 - **Docs**: architecture, operations, E2E, evaluation, portfolio roadmap, LangGraph design.
 
-### Changed
+### Added — described in session notes but **not** on `main`
 
-- **README** and **`.env.example`**: portfolio quick start, mock defaults.
-- **`run_services.sh` / tox**: `frontend-streamlit/` after duplicate `frontend/` removal.
-- **Logging**: request ID in log format; auth routine logs at DEBUG; INFO for auth outcomes only.
-- **`main.py`**: `create_all` only in dev/test; Alembic for production.
-- **Registration**: password strength validation (8+ chars, upper, lower, digit).
+- **`POST /api/chat/stream` (SSE)** — `StreamingResponse`, token/done events; MSW handler in Vue; **not implemented** on backend today.
+- **FlashRank reranking** — `RERANK_ENABLED` / `_wrap_with_reranker` in session `rag.py`; **not** in current `rag.py`.
+- **tox** `eval`, `backend-api`, `frontend-typecheck`, `load-smoke`, `load-stress` — partial; use `pytest backend/tests/eval/ -m slow` instead of `tox -e eval`.
 
-### Removed
+### Changed — shipped
 
-- Duplicate **`frontend/`** tree.
-- Root **`root-open-k6.js`** and empty root **`package-lock.json`**.
+- **`rag.py`**: provider-based retriever/LLM (not Bedrock-only).
+- **`bedrock.py`**: `_base_llm_kwargs()` helper.
+- **`backend/app/api/chat.py`**: session helper refactor; generic 500 messages (no raw exception strings).
+- **`backend/app/config/default.py`**: `REDIS_URL`, provider switches, `LOG_JSON`, logging format with `request_id`; removed unused `LOGGING_PROPAGATION_LEVEL`.
+- **`backend/app/core/logger.py`**: idempotent setup, `RequestIdFilter`, no duplicate handlers on `app` logger.
+- **`backend/app/main.py`**: `initialize_logger()` before/after app; `RequestContextMiddleware` after CORS; `expose_headers=['X-Request-ID']`; **`create_all` only in dev/test**.
+- **`backend/app/core/security.py`**: JWT/token detail at DEBUG; INFO for auth outcomes only.
+- **`backend/app/schemas/user.py`**: password strength (8+, upper, lower, digit); username validation.
+- **`.env.example`**, **`.env.test`**, **README**: portfolio quick start, mock defaults.
+- **`run_services.sh` / tox**: `frontend-streamlit/` after duplicate `frontend/` removed.
+- **`.ebextensions/00_ami.config`**: `/api/health` proxies to FastAPI (not static 200).
+- **`requirements.txt`**: `redis`, `fakeredis`, `ragas`, `langchain-openai`, `prometheus-client`, `alembic`, etc.
+- **`pyproject.toml`**: merged duplicate pytest sections; `slow` marker.
+- **`ruff.toml`**: `PLC0415`, per-file ignores extended.
 
-### Security
+### Fixed — shipped
 
-- Shared rate limits on auth/chat when `REDIS_URL` is set.
-- Generic 500 responses on chat errors.
+- `MessageBubble.vue`: `v-if`/`v-else` chain for streaming UI state.
+- Test passwords updated to `Testpassword1`; `test_register_weak_password_rejected`.
+- `rag.py`: duplicate imports removed; provider ruff fixes.
+- `test_rag_quality.py`: fixture/marker/annotation fixes.
+- `backend/app/config/default.py`: restored truncated RAG/provider tail after edit accident.
+- `tox -e lint`: security comment wrap, pytest fixture style, ruff format.
 
-### Planned but not shipped
+### Removed — shipped
 
-Session notes once described these; they are **not** on `main`:
+- Duplicate **`frontend/`** tree (content lives in `frontend-streamlit/`).
+- Root **`root-open-k6.js`**, empty root **`package-lock.json`**.
 
-| Item | Notes |
-|------|--------|
-| `POST /api/chat/stream` (SSE) | Buffered JSON chat only |
-| FlashRank / `RERANK_*` | Not in `rag.py` |
-| `tox -e eval` | Use `pytest backend/tests/eval/ -m slow` |
-| LangGraph | [docs/roadmap/LANGGRAPH.md](docs/roadmap/LANGGRAPH.md) |
+### Security — shipped
+
+- Rate limits on auth/chat (shared across workers when `REDIS_URL` set).
+- Password strength on registration.
+- Auth logs no longer dump full JWT payloads at INFO.
+- Generic 500s on chat errors.
+
+### Performance — shipped
+
+- Redis rate limiter shared across Gunicorn workers (vs per-process memory limits).
+
+### Testing — snapshot at publish
+
+- Backend pytest + Vue Vitest green; portfolio publish used incremental PRs #1–#8.
+
+### Follow-ups (still open)
+
+- Replace placeholder RAGAS golden dataset with real domain Q&A before strict CI gates.
+- Set `REDIS_URL` for production multi-instance rate limits.
+- Run `alembic upgrade head` on fresh databases.
+- LangGraph, SSE, rerank: see [docs/roadmap/LANGGRAPH.md](docs/roadmap/LANGGRAPH.md) and README known gaps.
 
 ---
 
