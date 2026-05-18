@@ -7,11 +7,11 @@ Notable changes to this **portfolio fork** of the UC Berkeley ETS Chabot platfor
 Attribution and license: [README](README.md#license).
 
 **Author & maintainer:** [sandeep-jay](https://github.com/sandeep-jay) — primary developer on the
-Berkeley ETS Chabot codebase and author of this **independent portfolio fork** (multicloud providers,
-Vue SPA, Alembic, tox/CI, eval harness, and related work logged below). Not an official UC Berkeley product.
+Berkeley ETS Chabot codebase and author of this **independent portfolio fork**. Not an official
+UC Berkeley product.
 
-**Convention:** sections use **session dates** (when the work was done). GitHub PR merge
-dates appear only in short **milestone** notes where that matters for the public repo story.
+**Convention:** sections use **session dates** (when work happened). GitHub PR numbers are noted
+where the public merge story matters.
 
 Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 `## [YYYY-MM-DD] — short title` and open a new `[Unreleased]`.
@@ -23,17 +23,17 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 ### Changed
 
 - Documentation: attribution under README License; removed `PORTFOLIO.md`, `EXECUTION_PLAN.md`, `DOC_AUDIT.md`; trimmed `ARCHITECTURE.md`.
-- **CHANGELOG.md** only — session-based running log; `changelog/` gitignored.
+- **CHANGELOG.md** — session-based running log (all sessions, not only 2026-05-01).
 
 ### Removed
 
-- `scripts/new-changelog.sh` and any tracked `changelog/` files.
+- `scripts/new-changelog.sh` and tracked `changelog/` files (`changelog/` gitignored).
 
 ---
 
-## [2026-05-18] — tox and Vue in CI
+## [2026-05-17] — tox and Vue in CI
 
-*Merged to `main` as PR #9.*
+*Merged as PR #9.*
 
 ### Added
 
@@ -49,170 +49,183 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ---
 
-## [2026-05-17] — Portfolio publish (GitHub milestone)
+## [2026-05-17] — Portfolio publish to GitHub
 
-*PRs #1–#8 merged to [multicloud-rag-chatbot](https://github.com/sandeep-jay/multicloud-rag-chatbot) `main`.*
-*Implementation detail is in the **2026-05-01** sessions below.*
+*PRs #1–#8 → [multicloud-rag-chatbot](https://github.com/sandeep-jay/multicloud-rag-chatbot) `main`.*
+*Packages work from May 2026 dev sessions into reviewable commits.*
 
-### Added
+### PR #1 — Dev tooling
 
-- Portfolio **README** and mock-first **`.env.example`**.
-- **Docs** pack (architecture, operations, E2E, evaluation, roadmap, LangGraph design).
-- **k6** load tests on `main` (`load-tests/`, seed script).
+- `.githooks/pre-commit`, `scripts/install-hooks.sh`, `run-backend-venv.sh`, `run-frontend-vue.sh`, `kill-dev-servers.sh`, load-test helpers.
+- `.gitignore` portfolio hygiene.
 
-### Changed
+### PR #2 — Alembic
 
-- **`run_services.sh` / tox** → `frontend-streamlit/` after duplicate tree removed.
-- **`main.py`**: `create_all` only in dev/test (PR #8 follow-up).
-- **`requirements.txt`**: `alembic`, `redis` deps for deploy.
+- `alembic.ini`, `backend/alembic/`, `0001_initial_schema.py`.
 
-### Removed
+### PR #3 — Platform middleware
 
-- Duplicate **`frontend/`** directory (same as `frontend-streamlit/`).
-- Root **`root-open-k6.js`**, empty root **`package-lock.json`**.
+- `request_context.py`, `metrics.py`, `rate_limit.py`, `dev_routes.py`; wired in `main.py`, `auth.py`, `chat.py`.
+
+### PR #4 — Providers, RAG, eval
+
+- `backend/app/services/providers/` (AWS / Azure / mock); `rag.py` registry wiring.
+- `backend/tests/eval/` RAGAS golden harness.
+
+### PR #5 — Vue 3 SPA
+
+- `frontend-vue/` scaffold, API/auth, chat UI, sessions, sources, Vitest + Playwright scaffolding.
+
+### PR #6 — Streamlit client
+
+- `frontend-streamlit/` (auth, chat services, UI components, pytest).
+
+### PR #7 — Load tests
+
+- `load-tests/` k6 smoke + auth-chat-session; user seed script.
+
+### PR #8 — Docs and README
+
+- `docs/` architecture, operations, E2E, evaluation, roadmaps, LangGraph design.
+- Portfolio **README**, mock **`.env.example`**.
+
+### Post-publish cleanup (PR #7–#8 follow-ups)
+
+- Removed duplicate **`frontend/`** tree; **`run_services.sh` / tox** → `frontend-streamlit/`.
+- **`main.py`**: `create_all` only in dev/test; **`requirements.txt`**: `alembic`, `redis`.
+- Removed root **`root-open-k6.js`**, empty root **`package-lock.json`**.
 
 ---
 
-## [2026-05-01] — RAG platform, Vue, providers, eval
+## [2026-05-01] — RAG platform, Vue, providers (dev session)
 
-*Development session. Shipped on `main` via publish PRs; some items below were planned in notes but not merged.*
+*Implementation work; landed on `main` via 2026-05-17 PRs above. Some session notes describe features not merged.*
 
 ### Added — on `main`
 
-- **Vue 3 SPA** (`frontend-vue/`): TypeScript, Vite, Pinia, Vue Router; chat, auth, sessions, sources, feedback, dark mode; Vitest (124 tests); Playwright e2e; MSW mocks.
-- **Streamlit client** (`frontend-streamlit/`).
-- **Provider registry** (`backend/app/services/providers/`): AWS / Azure / mock; wired in `rag.py`; `RAG_FORCE_MOCK`.
-- **Redis rate limiter** (`backend/app/core/rate_limit.py`); fakeredis when `REDIS_URL` unset.
-- **Prometheus metrics** (`backend/app/core/metrics.py`).
-- **Dev routes** (`backend/app/core/dev_routes.py`).
-- **Alembic** `0001_initial_schema.py`.
-- **RAGAS eval** (`backend/tests/eval/`).
-- **Scripts**: `run-backend-venv.sh`, `run-frontend-vue.sh`, `install-hooks.sh`.
+- **Vue 3 SPA**, **Streamlit** tree, **provider registry**, **Redis rate limiter**, **Prometheus metrics**, **dev routes**, **RAGAS eval**, core **scripts**.
 
 ### Added — session plan only (**not** on `main`)
 
-- **`POST /api/chat/stream` (SSE)** and MSW stream handler — backend route not implemented.
-- **FlashRank** reranking (`RERANK_*` in session `rag.py`) — not in current `rag.py`.
-- Extra tox envs (`eval`, `backend-api`, `load-smoke`, …) — only partly adopted; use `pytest -m slow` for RAGAS.
+- **`POST /api/chat/stream` (SSE)**; **FlashRank** `RERANK_*`; extra tox envs (`eval`, `load-smoke`, …).
 
-### Changed
+### Changed / fixed / security
 
-- **`rag.py`**, **`bedrock.py`**, **`chat.py`**, **`user` schemas**, **`.env.example`**, **`requirements.txt`**, **`ruff.toml`**, **`pyproject.toml`**.
-- **`.ebextensions`**: health check proxies to FastAPI.
-
-### Fixed
-
-- `MessageBubble.vue` streaming `v-if` chain; test passwords; `rag.py` / RAGAS test lint issues; config tail restore.
-
-### Security
-
-- Password strength validation; generic chat 500s; shared rate limits when Redis configured.
-
-### Performance
-
-- Redis rate limit shared across Gunicorn workers.
+- **`rag.py`**, **`chat.py`**, schemas, **`.env.example`**, **requirements**, **ruff** / **pytest**; password rules; `MessageBubble.vue`; generic chat 500s; EB health proxy.
 
 ### Follow-ups
 
-- Real RAGAS golden Q&A; production `REDIS_URL`; `alembic upgrade head` on new DBs; LangGraph / SSE / rerank — [docs/roadmap/LANGGRAPH.md](docs/roadmap/LANGGRAPH.md).
+- RAGAS golden Q&A; production `REDIS_URL`; LangGraph / SSE / rerank — [docs/roadmap/LANGGRAPH.md](docs/roadmap/LANGGRAPH.md).
 
 ---
 
-## [2026-05-01] — Logging and request correlation
-
-*Development session (same day as RAG/Vue work; separate focus).*
+## [2026-05-01] — Logging and request correlation (dev session)
 
 ### Summary
 
-One **request id** per HTTP request in logs and as **`X-Request-ID`**; optional **JSON** log lines; quieter **auth** logs (no JWT dumps at INFO).
+One **request id** per HTTP request (`X-Request-ID`); optional **JSON** logs; quieter **auth** logs.
 
 ### Added
 
-- **`backend/app/core/request_context.py`**: middleware, `RequestIdFilter`, `normalize_request_id`.
-- **`LOG_JSON`** + `JsonFormatter` in config/logger.
-- **`backend/tests/core/test_request_context.py`**.
-- **`scripts/kill-dev-servers.sh`** (ports 8000 / 5173).
-- **`frontend-vue/src/api/interceptors.ts`**: `X-Request-ID` on API calls.
+- `request_context.py`, `LOG_JSON`, tests, `kill-dev-servers.sh`, Vue `interceptors.ts` for `X-Request-ID`.
 
-### Changed
+### Changed / removed / security
 
-- **`logger.py`**, **`main.py`** (middleware order, CORS expose header), **`security.py`** (DEBUG vs INFO policy), **`config` / `.env.example`**.
-
-### Removed
-
-- **`LOGGING_PROPAGATION_LEVEL`** (unused).
-
-### Security
-
-- No full JWT payload logging at INFO.
-
-### Fixed
-
-- Lint/format on logging paths; restored truncated `default.py` provider section.
+- `logger.py`, `main.py`, `security.py`, config; removed unused `LOGGING_PROPAGATION_LEVEL`; no JWT dumps at INFO.
 
 ---
 
-## [Earlier] — Berkeley ETS Chabot baseline (~2025)
+## Berkeley ETS Chabot (baseline)
 
-**Chabot** was built for **UC Berkeley Educational Technology Services (ETS)** as a campus RAG
-chatbot over AWS Bedrock. Upstream: [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot).
-© The Regents of the University of California — [LICENSE](LICENSE) (educational/research use;
-commercial licensing via [UC OTL](http://ipira.berkeley.edu/industry-info)).
+**Chabot** — campus RAG chatbot for **UC Berkeley ETS** over AWS Bedrock.  
+Upstream: [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot).  
+© The Regents of the University of California — [LICENSE](LICENSE).
 
-**[sandeep-jay](https://github.com/sandeep-jay)** led implementation of the baseline
-(features below, CBO-tracked PRs on upstream). This portfolio fork retains Regents copyright headers on
-derived files; session entries from **2026-05-01** onward document fork-specific continuation work.
+**[sandeep-jay](https://github.com/sandeep-jay)** led implementation (CBO-tracked PRs below). Regents headers remain on derived files in this fork.
 
-### Platform
+---
 
-- **FastAPI** API with layered config (`pydantic-settings`, `.env` / `.env.{APP_ENV}`).
-- **PostgreSQL** via SQLAlchemy; multi-tenant model (`tenant`, `user`, `chat_session`,
-  `chat_message`, `feedback`).
-- **Schema bootstrap** via `Base.metadata.create_all()` at startup (Alembic added later in this fork).
-- **Modular logging**; **ruff** + **tox** for lint and backend tests.
-- **Travis CI** (`.travis.yml`) for linters; deploy sketches for **AWS Elastic Beanstalk**
-  (`.ebextensions`, Nginx proxy to API + Streamlit).
+## [2025-08-01] — Streamlit UX and frontend tests
 
-### Authentication
+### Added
 
-- **JWT** access tokens; register, login (`/token`), and cookie-based login for browser clients.
-- Password hashing (passlib/bcrypt); user registration and session identity on chat routes.
+- Streamlit refactor: chat interface, message display, feedback UI and stylesheets ([CBO-86]).
+- Frontend test suite covering auth, chat, and message modules ([CBO-89]).
 
-### RAG and AWS (baseline scope)
+---
 
-- **AWS Bedrock** + **LangChain** conversational retrieval chain in `rag.py`.
-- **Bedrock Knowledge Base** retrieval; few-shot prompt templates under `backend/app/templates/`.
-- **`POST /api/chat/chat`** — buffered JSON responses with source citations metadata.
-- **LangSmith** tracing hooks (`simple_tracer`, dev `test_langsmith` route).
-- **Mock RAG path** for local/test without live Bedrock calls.
+## [2025-06-13] — Backend and API test suites
 
-### Chat API
+### Added
 
-- **Sessions**: create, list, get, delete.
-- **Messages**: post to a session; RAG-backed assistant replies persisted with sources.
-- **Feedback** on messages; **GET** message sources for UI citation panels.
+- Pytest for RAG workflow, AWS/Bedrock/LangSmith, auth, DB/models/services ([CBO-69], [CBO-71], [CBO-72], [CBO-84]).
+- Chat API interaction tests: CRUD, feedback, sources, mocks ([CBO-70]).
+- **`pyproject.toml`** tool config; tox/travis alignment ([CBO-72]).
 
-### Streamlit client (Berkeley era)
+---
 
-- **Streamlit** UI calling the REST API (login, chat, message display, feedback components).
-- Evolved from a minimal `/chat` demo to a refactored module layout (auth, chat services, styled UI).
-- Later copied to `frontend-streamlit/` in this fork; primary UI became Vue in **2026-05-01**.
+## [2025-06-05] — Streamlit cleanup
 
-### Testing (baseline)
+### Changed
 
-- Pytest suites for auth, chat API, RAG service, AWS/Bedrock client, DB layer, and Streamlit modules.
-- API interaction tests with RAG mocks; tox env for backend lint + tests.
+- Removed basic Streamlit prototype in favor of modular refactor ([CBO-99]).
 
-### Not in the Berkeley baseline (added in this fork)
+---
 
-| Area | Fork addition |
-|------|----------------|
-| LLM/retriever providers | AWS / Azure / mock registry |
-| Vue 3 SPA | `frontend-vue/` |
-| Alembic migrations | Versioned DDL |
-| Prometheus metrics | `/api/metrics` |
-| Redis rate limiting | Shared limits across workers |
-| Request ID / JSON logs | **2026-05-01** logging session |
-| RAGAS golden eval | `backend/tests/eval/` |
-| k6 load tests | `load-tests/` |
-| Portfolio publish | **2026-05-17** on multicloud-rag-chatbot |
+## [2025-05-30] — Chat API and Streamlit auth
+
+### Added
+
+- Chat endpoints: sessions, messages, feedback, `test_langsmith` ([CBO-45]–[CBO-47]).
+- Streamlit login, auth module, client services ([CBO-65], [CBO-66], [CBO-80], [CBO-81]).
+
+---
+
+## [2025-05-29] — JWT auth and advanced RAG
+
+### Added
+
+- JWT authentication module and auth endpoints ([CBO-74], [CBO-75]).
+- Advanced RAG with Bedrock integration ([CBO-85]).
+
+---
+
+## [2025-05-28] — Elastic Beanstalk deploy sketch
+
+### Added
+
+- `.ebextensions` and Nginx config for FastAPI + Streamlit ([CBO-63]).
+
+---
+
+## [2025-05-12] — Bedrock RAG and first UI
+
+### Added
+
+- AWS, LangChain, Bedrock; simple RAG and `/chat` integration; prompt templates ([CBO-31], [CBO-34], [CBO-36], [CBO-41]).
+- Basic Streamlit chat UI + LangSmith tracing ([CBO-36], [CBO-42]).
+- **ruff** and **tox** ([CBO-67]).
+
+---
+
+## [2025-05-05] — FastAPI foundation
+
+### Added
+
+- FastAPI boilerplate (`/`, `/health`) ([CBO-30]).
+- Pydantic-settings config manager ([CBO-32]).
+- Modular logger ([CBO-35]).
+- SQLAlchemy + chatbot table design ([CBO-49]).
+
+---
+
+## [2025-05-13] — CI and README
+
+### Added
+
+- Travis CI linters ([CBO-82]).
+- README instructions ([CBO-82]).
+
+### Changed
+
+- `.gitignore` for `.tox` and `.ruff*` ([NOJIRA]).
