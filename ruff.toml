@@ -74,6 +74,8 @@ multiline-quotes = "double"
 docstring-quotes = "double"
 
 [lint.per-file-ignores]
+"backend/tests/services/test_rag.py" = ["SLF001"]
 # Ignore specific issues in test files
-"**/tests/**/*.py" = ["PT009", "S106", "S105"]  # Ignore unittest-style assertions and hardcoded password warnings in test files
+"**/tests/**/*.py" = ["PT009", "S106", "S105"]
+"backend/app/main.py" = ["D200"]  # Ignore unittest-style assertions and hardcoded password warnings in test files
 "**/backend/app/services/rag_service.py" = ["C901"]  # Ignore complexity in rag_service.py

@@ -39,7 +39,7 @@ Review of portfolio docs against **`main` on [multicloud-rag-chatbot](https://gi
 | [EXECUTION_PLAN.md](./EXECUTION_PLAN.md) “pending untracked” section | **Stale** — historical; see “Publish status” below |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) CSRF, refresh token, circuit breaker | **Not implemented** — aspirational or Berkeley-era |
 | `AwsLlmProvider.get_streaming_llm` | Calls missing `BedrockService.get_streaming_llm` until SSE PR |
-| `tox.ini` | `frontend-streamlit` env only — no `frontend-vue` / `eval` envs |
+| `tox.ini` | `frontend-vue` env runs typecheck, ESLint, Vitest; no `eval` env yet |
 | `tox -e eval` | **Not defined** — use `PYTHONPATH=. pytest backend/tests/eval/` |
 
 ---

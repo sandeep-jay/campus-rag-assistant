@@ -15,7 +15,7 @@ from backend.app.core.request_context import (
 from backend.app.main import app
 
 
-@pytest.fixture
+@pytest.fixture()
 def client() -> TestClient:
     return TestClient(app)
 

@@ -81,24 +81,30 @@ Configure real providers in `.env` (see [docs/OPERATIONS.md](docs/OPERATIONS.md)
 
 ## Testing
 
+From the repo root (recommended — matches CI):
+
+```bash
+tox -e lint,backend,frontend-streamlit,frontend-vue
+```
+
+Or run suites individually:
+
+```bash
+tox -e lint              # ruff (backend + Streamlit)
+tox -e backend           # pytest; excludes slow RAGAS eval
+tox -e frontend-streamlit
+tox -e frontend-vue      # Node 20+; uses frontend-vue/.nvmrc via nvm when installed
+```
+
+Manual equivalents:
+
 ```bash
 source venv/bin/activate
 export PYTHONPATH=.
-
-# Backend
-pytest backend/tests/
-
-# Vue unit tests
-cd frontend-vue && npm ci && npm test
-
-# Streamlit
+pytest backend/tests/ -m "not slow"
+cd frontend-vue && npm ci && npm run ci
 pytest frontend-streamlit/tests/
-
-# RAGAS eval (slow; needs judge LLM — see docs/EVALUATION.md)
-pytest backend/tests/eval/ -m slow
-
-# Lint (repo root)
-tox -e lint
+pytest backend/tests/eval/ -m slow   # optional; see docs/EVALUATION.md
 ```
 
 Load tests: [docs/LOAD_TESTING.md](docs/LOAD_TESTING.md).
