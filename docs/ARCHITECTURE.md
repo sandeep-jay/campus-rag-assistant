@@ -6,90 +6,22 @@ Evolution from upstream [ets-berkeley-edu/chabot](https://github.com/ets-berkele
 
 ## System architecture
 
-```mermaid
-flowchart LR
-  subgraph User["User"]
-    U((User))
-  end
+Diagrams live in [`docs/assets/`](./assets/). The **v2 overview** is in the root [README](../README.md#architecture). Below: **detailed v2**, then **v1** (upstream [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot)) for comparison.
 
-  subgraph Frontend["Frontend"]
-    Vue["Vue 3 SPA<br/>Pinia · SSE client"]
-    ST["Streamlit UI<br/>(optional)"]
-  end
+### Detailed (v2)
 
-  subgraph Infra["Infrastructure"]
-    NGX["Nginx reverse proxy"]
-    EB["AWS Elastic Beanstalk"]
-  end
+![Campus RAG Assistant — detailed architecture](./assets/architecture_detailed_v2.png)
 
-  subgraph IAC["IaC"]
-    TF["Terraform<br/>(deploy infra)"]
-  end
+### Upstream reference (v1)
 
-  subgraph Backend["Backend services"]
-    API["FastAPI<br/>/api/auth · /api/chat"]
-    RAG["RAGService<br/>LangChain chain"]
-    REG["Provider registry<br/>LLM + retriever"]
-    PG[("PostgreSQL<br/>users · sessions · messages")]
-    ALE["Alembic migrations"]
-  end
+Original Berkeley ETS Chabot architecture (Streamlit-only UI, LangChain → OpenSearch + Bedrock directly):
 
-  subgraph AWS["AWS (LLM_PROVIDER / RETRIEVER_PROVIDER = aws)"]
-    BKB["Bedrock Knowledge Base<br/>vector retrieval API"]
-    BLLM["Bedrock LLM<br/>Claude via Converse"]
-    OSnote["OpenSearch Serverless<br/>(managed by KB — not app-direct)"]
-  end
-
-  subgraph Azure["Azure (provider = azure)"]
-    AOAI["Azure OpenAI<br/>chat + embeddings"]
-    AIS["Azure AI Search<br/>hybrid vector index"]
-  end
-
-  subgraph Mock["Local / CI (mock)"]
-    MOCK["Mock LLM + retriever"]
-  end
-
-  subgraph Obs["Observability & quality"]
-    LS["LangSmith<br/>tracing"]
-    PROM["Prometheus<br/>GET /api/metrics"]
-    RAGAS["RAGAS eval harness<br/>(offline CI)"]
-  end
-
-  U -->|"start chat"| Vue
-  U -.->|"legacy / dev"| ST
-  Vue -->|"REST + SSE<br/>JWT cookies"| NGX
-  ST -.->|"REST"| NGX
-  NGX --> EB
-  EB --> API
-  TF -.->|"provision"| Infra
-
-  API -->|"sessions · auth · feedback"| PG
-  ALE -.-> PG
-  API -->|"stream_query / query"| RAG
-  RAG --> REG
-  REG -->|"retrieve"| BKB
-  REG -->|"retrieve"| AIS
-  REG -->|"retrieve"| MOCK
-  REG -->|"generate / stream"| BLLM
-  REG -->|"generate / stream"| AOAI
-  REG -->|"generate"| MOCK
-  BKB -.-> OSnote
-  BKB -->|"documents + metadata"| RAG
-  AIS -->|"documents + metadata"| RAG
-  BLLM -->|"tokens"| RAG
-  AOAI -->|"tokens"| RAG
-  RAG -->|"SSE or JSON"| API
-
-  API --> LS
-  RAG --> LS
-  API --> PROM
-  RAGAS -.->|"golden dataset"| RAG
-```
+![Upstream chabot architecture (v1)](./assets/architecture_v1.png)
 
 ### Diagram notes
 
-| Area | Upstream chabot | Campus RAG Assistant (this repo) |
-|------|-----------------|----------------------------------|
+| Area | Upstream chabot (v1) | Campus RAG Assistant (v2) |
+|------|----------------------|---------------------------|
 | **UI** | Streamlit only | **Vue 3 SPA** (primary); Streamlit optional, same API |
 | **API** | Chat endpoints | **SSE** `POST /api/chat/stream`, sessions CRUD, feedback, sources |
 | **Auth** | — | **JWT** in HTTP-only cookies (`/api/auth/*`) |
@@ -100,6 +32,12 @@ flowchart LR
 | **Ops** | LangSmith | LangSmith + **Prometheus** (`/api/metrics`, pool snapshot) |
 | **Quality** | — | **RAGAS** harness (`backend/tests/eval/`), k6 load tests |
 | **Deploy** | EB + Nginx + Terraform | Same pattern; `run_services.sh` starts API (+ Streamlit on EB); Vue often hosted separately (CDN/static) with `FRONTEND_URL` / CORS |
+
+| Asset | Description |
+|-------|-------------|
+| [`architecture_v2.png`](./assets/architecture_v2.png) | High-level overview — shown in [README](../README.md#architecture) |
+| [`architecture_detailed_v2.png`](./assets/architecture_detailed_v2.png) | Current architecture with component detail |
+| [`architecture_v1.png`](./assets/architecture_v1.png) | Upstream chabot (historical reference) |
 
 ## Chat request flow
 
