@@ -6,6 +6,10 @@ Notable changes to this **portfolio fork** of the UC Berkeley ETS Chabot platfor
 [Keep a Changelog](https://keepachangelog.com/) format.  
 Attribution and license: [README](README.md#license).
 
+**Author & maintainer:** [sandeep-jay](https://github.com/sandeep-jay) — primary developer on the
+Berkeley ETS Chabot codebase and author of this **independent portfolio fork** (multicloud providers,
+Vue SPA, Alembic, tox/CI, eval harness, and related work logged below). Not an official UC Berkeley product.
+
 **Convention:** sections use **session dates** (when the work was done). GitHub PR merge
 dates appear only in short **milestone** notes where that matters for the public repo story.
 
@@ -155,8 +159,9 @@ chatbot over AWS Bedrock. Upstream: [ets-berkeley-edu/chabot](https://github.com
 © The Regents of the University of California — [LICENSE](LICENSE) (educational/research use;
 commercial licensing via [UC OTL](http://ipira.berkeley.edu/industry-info)).
 
-This portfolio fork retains that codebase and Regents headers on derived files; everything in
-**2026-05-01** and later sections above is independent continuation work.
+**[sandeep-jay](https://github.com/sandeep-jay)** led implementation of the baseline
+(features below, CBO-tracked PRs on upstream). This portfolio fork retains Regents copyright headers on
+derived files; session entries from **2026-05-01** onward document fork-specific continuation work.
 
 ### Platform
 
