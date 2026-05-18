@@ -6,9 +6,15 @@ Ask questions in natural language; the app retrieves relevant docs, streams a ci
 
 ## Architecture
 
-![Campus RAG Assistant — system architecture (v2)](docs/assets/architecture_v2.png)
+<p align="center">
+  <img
+    src="https://raw.githubusercontent.com/sandeep-jay/campus-rag-assistant/main/docs/assets/architecture_v2.png"
+    alt="Campus RAG Assistant system architecture (v2)"
+    width="900"
+  />
+</p>
 
-Component-level diagram, upstream v1 comparison, and chat/SSE flow: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+<p align="center"><em>High-level v2 overview.</em> Detailed diagram and upstream v1: <a href="docs/ARCHITECTURE.md">docs/ARCHITECTURE.md</a></p>
 
 
 ## Chatbot features
