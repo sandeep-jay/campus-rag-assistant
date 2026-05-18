@@ -22,6 +22,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Added
 
+- **`docs/assets/`** — architecture diagrams v1 (upstream chabot), v2 overview, and v2 detailed; v2 overview in README, detailed + v1 in `docs/ARCHITECTURE.md`.
 - **`POST /api/chat/stream`** — SSE token streaming; Vue consumer with fallback to `POST /api/chat/chat`.
 - **Answer formatting** — generic Markdown prompt template; light sanitization (`_sanitize_answer_text`, `_promote_bold_headings`).
 - **`tox -e eval`** — RAGAS golden-dataset suite (`ragas>=0.2` in eval env).
@@ -33,6 +34,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 - Provider resolution: explicit `LLM_PROVIDER` / `RETRIEVER_PROVIDER` override `RAG_PROVIDER`.
 - **README** — balanced product + technical overview; restored License/Attribution.
 - **docs/** — architecture chat flow, evaluation/E2E tox commands, roadmap SSE status.
+- **Architecture docs** — static PNG diagrams replace Mermaid system flowchart; `docs/README.md` indexes diagram placement.
 - Tests and ruff formatting aligned with no inline References footer in answers.
 
 ---
