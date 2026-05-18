@@ -74,8 +74,9 @@ class DefaultSettings(BaseSettings):
     AWS_REGION: str = 'us-east-1'
     AWS_ROLE_ARN: str | None = None
     AWS_PROFILE_NAME: str | None = None  # Deprecated: Use instance profiles on EC2 instead
-    BEDROCK_MODEL_ID: str = 'anthropic.claude-instant-v1'
+    BEDROCK_MODEL_ID: str = 'us.anthropic.claude-3-5-haiku-20241022-v1:0'
     BEDROCK_KNOWLEDGE_BASE_ID: str | None = None
+    BEDROCK_EMBEDDING_MODEL_ID: str = 'amazon.titan-embed-text-v1'
 
     # LangSmith settings
     LANGCHAIN_TRACING_V2: bool = False
@@ -118,6 +119,18 @@ class DefaultSettings(BaseSettings):
     RATE_LIMIT_REGISTER_PER_MINUTE: int = 5
     RATE_LIMIT_CHAT_PER_MINUTE: int = 30
     REDIS_URL: str | None = None
+
+    # Azure OpenAI (optional — for LLM_PROVIDER=azure)
+    AZURE_OPENAI_ENDPOINT: str | None = None
+    AZURE_OPENAI_API_KEY: str | None = None
+    AZURE_OPENAI_DEPLOYMENT: str | None = None
+    AZURE_OPENAI_API_VERSION: str = '2024-02-01'
+    AZURE_EMBEDDING_DEPLOYMENT: str | None = None
+
+    # Azure AI Search (optional — for RETRIEVER_PROVIDER=azure)
+    AZURE_SEARCH_SERVICE_NAME: str | None = None
+    AZURE_SEARCH_KEY: str | None = None
+    AZURE_SEARCH_INDEX: str | None = None
 
     model_config = {
         'extra': 'allow',
