@@ -86,3 +86,15 @@ coverage
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+# Session / local changelog notes (not shipped to remote)
+changelog/
+
+# frontend-vue (generated artifacts and secrets; see also frontend-vue/.gitignore)
+frontend-vue/node_modules/
+frontend-vue/dist/
+frontend-vue/.env.local
+frontend-vue/.env.*.local
+frontend-vue/coverage/
+frontend-vue/playwright-report/
+frontend-vue/test-results/
+frontend-vue/e2e/.auth/
