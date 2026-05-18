@@ -1,10 +1,10 @@
 # Portfolio phased roadmap
 
-**Last updated:** 2026-05-17  
+**Last updated:** 2026-05-18  
 **Audience:** Independent continuation of the RAG chatbot (portfolio edition).  
 **Supersedes for portfolio work:** execution order and priorities here; campus-scale items remain in [PHASED_IMPROVEMENT_ROADMAP.md](./PHASED_IMPROVEMENT_ROADMAP.md).
 
-This roadmap reflects: **standalone GitHub repo** (not a fork badge), **logical commits** before push, **mock-first demo**, **RAGAS quality gates**, **LangGraph as deterministic orchestration** (not multi-agent by default), and **optional bounded agentic** only after metrics are stable.
+**Publish and platform wiring are complete** on [`main`](https://github.com/sandeep-jay/multicloud-rag-chatbot). Remaining work: **RAGAS gates**, **LangGraph**, retrieval quality, optional SSE/agentic.
 
 ---
 
@@ -33,87 +33,25 @@ flowchart LR
   P0 --> P1 --> P2 --> P3 --> P4 --> P5 --> P6
 ```
 
-| Phase | Focus | High ROI? |
-|-------|--------|-----------|
-| **0** | Repo hygiene, detach fork, rename, LICENSE/NOTICE | **Yes** — do first |
-| **1** | Commit pending work; mock demo; README/video | **Yes** |
-| **2** | Wire platform middleware; providers + `rag.py` | **Yes** |
-| **3** | RAGAS golden set; LangSmith; metrics/SLOs sketch | **Yes** |
-| **4** | LangGraph parity graph (`RAG_ENGINE`); per-node traces | **High** for AI-leaning roles |
-| **5** | Retrieval quality nodes (multi-query, rerank, filters) | **High** for answer quality |
-| **6** | Bounded agentic graph; streaming SSE | **Medium** — after RAGAS stable |
+| Phase | Focus | Status |
+|-------|--------|--------|
+| **0–2** | Publish repo, logical PR history, platform + providers + tox | **Done** (PR1–#9 on `main`) |
+| **3** | RAGAS golden set; LangSmith; metrics/SLOs sketch | **Next** |
+| **4** | LangGraph parity graph (`RAG_ENGINE`); per-node traces | Planned |
+| **5** | Retrieval quality nodes (multi-query, rerank, filters) | Planned |
+| **6** | Bounded agentic graph; streaming SSE | Optional — after RAGAS stable |
 
 Campus production concerns (Redis HA, tenant budgets, Elastic Beanstalk) stay in [PHASED_IMPROVEMENT_ROADMAP.md](./PHASED_IMPROVEMENT_ROADMAP.md) Phases 1–4 org track.
 
 ---
 
-## Phase 0 — Publish as standalone portfolio repo
+## Completed on `main` (phases 0–2)
 
-**Goal:** No "forked from" badge; clear attribution; safe public tree.
-
-### 0a. GitHub repository
-
-- Create repo via **New repository** — **do not** use Fork.
-- Or: existing fork → **Settings → Danger zone → Leave fork network**.
-- See [PORTFOLIO.md](../PORTFOLIO.md) for copy-vs-detach steps.
-
-### 0b. Naming and README
-
-- Rename project in README (e.g. *Campus RAG Assistant*).
-- State: built for UC Berkeley ETS; **independent portfolio continuation**; not endorsed by UC.
-- Keep root `LICENSE` and Regents copyright headers in existing files.
-
-### 0c. Hygiene (before any `git add`)
-
-Exclude secrets and generated artifacts (see [PR_PLAN.md](../EXECUTION_PLAN.md#hygiene-before-staging)):
-
-- `frontend-vue/.env.local`, coverage, playwright-report, test-results, `e2e/.auth/`
-- Root `.env` with real keys
-
-Commit `.env.example` / `frontend-vue/.env.test` only.
-
----
-
-## Phase 1 — Land pending work and demo
-
-**Goal:** All untracked work committed in dependency order; reviewers can run the app.
-
-### 1a. Logical commits
-
-Follow [EXECUTION_PLAN.md](../EXECUTION_PLAN.md) commits **1–13** (tooling → Alembic → platform+wiring → providers/RAG → eval → Vue → Streamlit → load-tests → docs).
-
-**Critical:** Platform commit must **wire** `main.py`, `auth.py`, `chat.py`. Provider commit must **wire** `rag.py` to `get_llm_provider()` / `get_retriever_provider()`.
-
-### 1b. Mock-first demo
-
-- `RAG_FORCE_MOCK=true` or `LLM_PROVIDER=mock` / `RETRIEVER_PROVIDER=mock`
-- One **hero question** in README with expected sources behavior
-- Optional: 30–60s screen recording
-
-### 1c. Resume / portfolio bullets
-
-- Full-stack RAG chatbot (FastAPI, Vue 3, sessions, cited sources)
-- Provider abstraction (AWS / Azure / mock)
-- RAGAS evaluation harness
-
----
-
-## Phase 2 — Verify platform + provider integration
-
-**Goal:** Confirm commits 4–8 from [EXECUTION_PLAN.md](../EXECUTION_PLAN.md) are wired and green. Most work lands in **Phase 1 commits**; this phase is validation and any follow-up fixes.
-
-| Deliverable | Paths / notes |
-|-------------|----------------|
-| Request context | `request_context.py` + tests + middleware |
-| Metrics | `metrics.py` + Prometheus endpoint |
-| Rate limiting | `rate_limit.py` on auth/chat routers |
-| Dev routes | `dev_routes.py` behind env flag |
-| Provider registry | `backend/app/services/providers/` |
-| RAG wiring | `rag.py` uses registry, not direct Bedrock only |
-
-**Exit criteria:** `tox` / pytest green; API tests pass with mocked RAG.
-
-Maps to [PR_PLAN](../EXECUTION_PLAN.md) PR3 + PR4a.
+- **Repo:** [multicloud-rag-chatbot](https://github.com/sandeep-jay/multicloud-rag-chatbot); README attribution under [License](../../README.md#license); Regents `LICENSE` retained.
+- **Platform:** request context, Prometheus metrics, rate limits, dev-only routes.
+- **RAG:** provider registry wired in `rag.py` (AWS / Azure / mock); RAGAS harness under `backend/tests/eval/`.
+- **Clients:** Vue 3 SPA, Streamlit; Alembic migrations; k6 load tests.
+- **CI locally:** `tox -e lint,backend,frontend-streamlit,frontend-vue`.
 
 ---
 
@@ -182,7 +120,7 @@ RAG_ENGINE=langgraph
 
 Detail: [LANGGRAPH.md](./LANGGRAPH.md).
 
-Maps to PR4b–4c in [PR_PLAN](../EXECUTION_PLAN.md).
+See [LANGGRAPH.md](./LANGGRAPH.md) for rollout detail.
 
 ---
 
@@ -262,17 +200,15 @@ route_query → condense → retrieve → grade_documents
 
 | Weeks | Focus |
 |-------|--------|
-| 1 | Phase 0–1: repo + commits + mock demo README |
-| 2 | Phase 2–3: verify wiring; RAGAS + LangSmith |
-| 3 | Phase 4: LangGraph parity + eval gate |
-| 4+ | Phase 5–6 as needed for target roles |
+| 1 | Phase 3: RAGAS baseline + LangSmith trace in README |
+| 2 | Phase 4: LangGraph parity + eval gate |
+| 3+ | Phase 5–6 as needed for target roles |
 
 ---
 
 ## Related docs
 
-- [PR_PLAN.md](../EXECUTION_PLAN.md) — commit order, PR slices, remotes
-- [PORTFOLIO.md](../PORTFOLIO.md) — fork detach, copy workflow
 - [EVALUATION.md](../EVALUATION.md) — RAGAS vs LangSmith
 - [LANGGRAPH.md](./LANGGRAPH.md) — graph design and flags
 - [PHASED_IMPROVEMENT_ROADMAP.md](./PHASED_IMPROVEMENT_ROADMAP.md) — campus / scale track
+- [README.md](../../README.md) — quick start and attribution

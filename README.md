@@ -2,8 +2,6 @@
 
 Portfolio continuation of the UC Berkeley ETS **Chabot** platform: a multi-tenant RAG chat API with swappable LLM/retriever providers (AWS Bedrock, Azure OpenAI, mock), a Vue 3 SPA, and a Streamlit client.
 
-> **Attribution:** Original Chabot software and documentation are © The Regents of the University of California. See [LICENSE](LICENSE). This repository is an **independent portfolio project** by [sandeep-jay](https://github.com/sandeep-jay) and is not an official or endorsed UC Berkeley product. Upstream: [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot).
-
 ## Features
 
 - **FastAPI** backend with JWT auth, chat sessions, feedback, and Prometheus metrics
@@ -14,7 +12,7 @@ Portfolio continuation of the UC Berkeley ETS **Chabot** platform: a multi-tenan
 
 ## Known gaps (roadmap)
 
-- **`POST /api/chat/stream` (SSE)** — not implemented; chat is buffered JSON only. Vue may fake-stream in the UI; see [docs/roadmap/LANGGRAPH.md](docs/roadmap/LANGGRAPH.md) and [docs/DOC_AUDIT.md](docs/DOC_AUDIT.md).
+- **`POST /api/chat/stream` (SSE)** — not implemented; chat is buffered JSON only. Vue may fake-stream in the UI; see [docs/roadmap/LANGGRAPH.md](docs/roadmap/LANGGRAPH.md).
 - **LangGraph** orchestration — designed, not merged (see roadmap).
 
 ## Prerequisites
@@ -117,9 +115,13 @@ Load tests: [docs/LOAD_TESTING.md](docs/LOAD_TESTING.md).
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System overview |
 | [docs/OPERATIONS.md](docs/OPERATIONS.md) | Runbooks, metrics, migrations |
 | [docs/EVALUATION.md](docs/EVALUATION.md) | RAGAS quality gates |
-| [docs/PORTFOLIO.md](docs/PORTFOLIO.md) | Publishing this repo |
-| [docs/EXECUTION_PLAN.md](docs/EXECUTION_PLAN.md) | Commit/PR history map |
+| [docs/roadmap/PORTFOLIO_PHASED_ROADMAP.md](docs/roadmap/PORTFOLIO_PHASED_ROADMAP.md) | Roadmap (RAGAS, LangGraph, retrieval) |
 
 ## License
 
-Regents of the University of California — see [LICENSE](LICENSE). Use for educational and research purposes per license terms; commercial use requires UC OTL agreement.
+Software in this repository is licensed under the [Regents of the University of California](LICENSE) terms (educational/research use; commercial use requires an agreement with [UC OTL](http://ipira.berkeley.edu/industry-info)).
+
+### Attribution
+
+- **Original Chabot** — © The Regents of the University of California. Upstream: [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot).
+- **Author & maintainer** — [sandeep-jay](https://github.com/sandeep-jay) developed on the Berkeley ETS Chabot codebase and authored this **independent portfolio fork** (multicloud providers, Vue SPA, Alembic, tox/CI, eval harness, and related extensions). This repo is **not** an official or endorsed UC Berkeley product.
