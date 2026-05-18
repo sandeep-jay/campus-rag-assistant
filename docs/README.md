@@ -25,6 +25,7 @@ Narrative, chat/SSE flow, and API surface: [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 | Doc | Description |
 |-----|-------------|
+| [RELEASE.md](./RELEASE.md) | `main` → `qa` → `release` promotion, tags, CI/CD branches |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | System design, chat/SSE flow, API surface |
 | [OPERATIONS.md](./OPERATIONS.md) | Runbooks, metrics, migrations |
 | [LOAD_TESTING.md](./LOAD_TESTING.md) | k6 load tests |
