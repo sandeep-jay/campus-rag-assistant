@@ -8,7 +8,7 @@ source /var/app/venv/*/bin/activate
 uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 &
 
 # Start Streamlit
-streamlit run frontend/app/main.py --server.port 8501 --server.address 0.0.0.0 &
+streamlit run frontend-streamlit/app/main.py --server.port 8501 --server.address 0.0.0.0 &
 
 # Wait for any process to exit
 wait -n
