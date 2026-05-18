@@ -6,7 +6,9 @@ Notable changes to this **portfolio fork** of the UC Berkeley ETS Chabot platfor
 Format: [Keep a Changelog](https://keepachangelog.com/).  
 Attribution and license: [README](README.md#license).
 
-**This file is the only changelog.** Edit `[Unreleased]` as you work; when you merge a milestone, rename that section to `## [YYYY-MM-DD] — short title` and open a new empty `[Unreleased]`.
+**Running log:** edit `[Unreleased]` below. When you merge a milestone, rename it to `## [YYYY-MM-DD] — title` and open a new `[Unreleased]`.
+
+**Detailed session history:** [changelog/archive/](changelog/archive/) (frozen notes). Policy: [changelog/README.md](changelog/README.md).
 
 ---
 
@@ -14,7 +16,7 @@ Attribution and license: [README](README.md#license).
 
 ### Added
 
-- Root **CHANGELOG.md** as the single running log (replaces gitignored `changelog/` session files).
+- **changelog/archive/** — tracked copies of 2026-05-01 session notes; [changelog/README.md](changelog/README.md) documents workflow.
 
 ### Changed
 
@@ -23,7 +25,7 @@ Attribution and license: [README](README.md#license).
 
 ### Removed
 
-- `scripts/new-changelog.sh` and tracked `changelog/` templates (folder stays gitignored for local scraps).
+- `scripts/new-changelog.sh` (use **CHANGELOG.md** + optional `changelog/archive/` instead).
 
 ---
 
