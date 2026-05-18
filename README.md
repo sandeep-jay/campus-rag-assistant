@@ -4,6 +4,13 @@ Production-style **retrieval-augmented chat** over campus support FAQs and knowl
 
 Ask questions in natural language; the app retrieves relevant docs, streams a cited answer, and keeps conversation history per user.
 
+## Architecture
+
+![Campus RAG Assistant — system architecture (v2)](docs/assets/architecture_v2.png)
+
+Component-level diagram, upstream v1 comparison, and chat/SSE flow: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+
 ## Chatbot features
 
 - **RAG answers** — retrieval + generation from your KB (not open-web search)
@@ -107,7 +114,7 @@ Load tests: [docs/LOAD_TESTING.md](docs/LOAD_TESTING.md).
 | Doc | Description |
 |-----|-------------|
 | [docs/README.md](docs/README.md) | Index |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System overview, chat/SSE flow |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System overview, diagrams ([v2](./docs/assets/architecture_v2.png)), chat/SSE flow |
 | [docs/OPERATIONS.md](docs/OPERATIONS.md) | Runbooks, metrics, migrations |
 | [docs/EVALUATION.md](docs/EVALUATION.md) | RAGAS quality gates |
 | [changelog/CHANGELOG.md](changelog/CHANGELOG.md) | Release history |
