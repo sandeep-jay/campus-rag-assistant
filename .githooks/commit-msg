@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+MSG_FILE="${1:-}"
+if [[ -z "$MSG_FILE" || ! -f "$MSG_FILE" ]]; then
+  exit 0
+fi
+
+# Remove Cursor co-author trailer if present.
+# Keep other Co-authored-by lines intact.
+python3 - "$MSG_FILE" <<'PY'
+from pathlib import Path
+import sys
+
+p = Path(sys.argv[1])
+lines = p.read_text().splitlines(keepends=True)
+filtered = []
+for line in lines:
+    low = line.strip().lower()
+    if low == 'co-authored-by: cursor <cursoragent@cursor.com>':
+        continue
+    filtered.append(line)
+p.write_text(''.join(filtered))
+PY
