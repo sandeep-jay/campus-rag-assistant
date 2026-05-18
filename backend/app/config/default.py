@@ -33,7 +33,7 @@ class DefaultSettings(BaseSettings):
     """Default application settings."""
 
     # CORE SETTINGS
-    PROJECT_NAME: str = 'RTL Services Support Chatbot API'
+    PROJECT_NAME: str = 'EdTech RAG Assistant API'
     VERSION: str = '1.0.0'
     API_V1_STR: str = '/api'
     SECRET_KEY: str = 'supersecretkey'
@@ -119,6 +119,17 @@ class DefaultSettings(BaseSettings):
     RATE_LIMIT_REGISTER_PER_MINUTE: int = 5
     RATE_LIMIT_CHAT_PER_MINUTE: int = 30
     REDIS_URL: str | None = None
+
+    # Tenant / assistant branding (defaults when user has no tenant or tenant.rag_config)
+    ASSISTANT_NAME: str = 'EdTech Support Assistant'
+    SUPPORTED_TOPICS: str = (
+        'your learning platform, course tools, integrations, and support documentation'
+    )
+    OUT_OF_SCOPE_MESSAGE: str = (
+        'I can only answer questions covered by the knowledge base for '
+        '{{supported_topics}}. Please ask a question related to those topics.'
+    )
+
     # Performance / chat context
     CHAT_HISTORY_MAX_MESSAGES: int = 40  # Max messages passed to RAG (0 = unlimited)
     STREAM_ARTIFICIAL_DELAY_MS: int = 0  # Demo-only delay between streamed tokens; 0 = off

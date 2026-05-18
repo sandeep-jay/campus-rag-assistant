@@ -40,6 +40,25 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 ---
 
 
+
+## [2026-05-18] — Generic tenant-hydrated RAG prompts
+
+### Added
+
+- **`backend/app/services/tenant_rag_config.py`** — load branding from env + `tenant.rag_config` (JSONB).
+- **Alembic `0002`** — `tenant.rag_config` column.
+- **`docs/TENANT_CONFIG.md`** — config shape and resolution order.
+- **`samples/berkeley/tenant_rag_config.json`** — optional Berkeley RTL sample profile (not default).
+
+### Changed
+
+- **Prompt templates** — generic `prompt_prefix.txt` / `few_shot_examples.json` with `{{placeholders}}`.
+- **Chat + RAG** — hydrate prompts per request from the signed-in user's tenant.
+- **`PROJECT_NAME`** / **`.env.example`** — `ASSISTANT_NAME`, `SUPPORTED_TOPICS`, `OUT_OF_SCOPE_MESSAGE`.
+- **README** — bring-your-own KB + tenant config.
+
+---
+
 ## [2026-05-18] — Performance Phase 0 quick wins
 
 ### Added

@@ -234,7 +234,7 @@ def mock_rag_service():
             },
         }
 
-        def _default_stream(query, chat_history=None):
+        def _default_stream(query, chat_history=None, tenant_config=None):
             yield {'type': 'token', 'token': mock_rag.process_query.return_value['message']}
             yield {'type': 'done', 'metadata': mock_rag.process_query.return_value['metadata']}
 
