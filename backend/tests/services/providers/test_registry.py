@@ -36,9 +36,28 @@ def test_rag_force_mock_overrides():
         assert isinstance(get_retriever_provider(), MockRetrieverProvider)
 
 
-def test_rag_provider_shortcut_overrides_side_vars():
+def test_explicit_providers_override_rag_provider_shortcut():
+    """LLM_PROVIDER / RETRIEVER_PROVIDER win over RAG_PROVIDER when both are set."""
     with (
         _patch_settings(RAG_FORCE_MOCK=False, RAG_PROVIDER='azure', LLM_PROVIDER='aws', RETRIEVER_PROVIDER='aws'),
+        patch('backend.app.services.providers.llm.aws.AwsLlmProvider.create_or_mock') as m_llm,
+        patch('backend.app.services.providers.retriever.aws.AwsRetrieverProvider.create_or_mock') as m_ret,
+    ):
+        fake_llm = MagicMock()
+        fake_llm.is_mock = False
+        fake_llm.name = 'aws'
+        fake_ret = MagicMock()
+        fake_ret.is_mock = False
+        fake_ret.name = 'aws'
+        m_llm.return_value = fake_llm
+        m_ret.return_value = fake_ret
+        assert get_llm_provider() is fake_llm
+        assert get_retriever_provider() is fake_ret
+
+
+def test_rag_provider_shortcut_when_side_vars_unset():
+    with (
+        _patch_settings(RAG_FORCE_MOCK=False, RAG_PROVIDER='azure', LLM_PROVIDER=None, RETRIEVER_PROVIDER=None),
         patch('backend.app.services.providers.llm.azure.AzureLlmProvider.create_or_mock') as m_llm,
         patch(
             'backend.app.services.providers.retriever.azure.AzureRetrieverProvider.create_or_mock',

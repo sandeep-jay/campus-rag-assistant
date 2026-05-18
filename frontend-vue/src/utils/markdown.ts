@@ -1,4 +1,5 @@
 import MarkdownIt from 'markdown-it'
+import { normalizeAssistantContent } from './normalizeAssistantContent'
 import DOMPurify from 'dompurify'
 import hljs from 'highlight.js/lib/core'
 
@@ -53,7 +54,7 @@ const md = new MarkdownIt({
  * - LLM output MUST always pass through this function before being rendered.
  */
 export function renderMarkdown(raw: string): string {
-  const rendered = md.render(raw)
+  const rendered = md.render(normalizeAssistantContent(raw))
 
   return DOMPurify.sanitize(rendered, {
     ALLOWED_TAGS: [
@@ -63,11 +64,12 @@ export function renderMarkdown(raw: string): string {
       'blockquote',
       'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
       'br', 'hr',
-      'span', 'div',
+      'span', 'div', 'a',
       'table', 'thead', 'tbody', 'tr', 'th', 'td',
     ],
-    ALLOWED_ATTR: ['class'], // only class (for hljs syntax highlighting)
-    FORBID_ATTR: ['style', 'onerror', 'onclick', 'onload', 'href', 'src', 'action'],
+    ALLOWED_ATTR: ['class', 'href', 'rel', 'target'],
+    FORBID_ATTR: ['style', 'onerror', 'onclick', 'onload', 'src', 'action'],
     FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'link', 'meta'],
+    ALLOWED_URI_REGEXP: /^https?:/i,
   })
 }

@@ -31,11 +31,13 @@ def register_retriever(name: str, factory: Callable[[], BaseRetrieverProvider]) 
 def _resolve_name(side_default: str, side_var: str) -> str:
     if getattr(settings, 'RAG_FORCE_MOCK', False):
         return 'mock'
+    val = getattr(settings, side_var, None)
+    if val is not None and str(val).strip():
+        return str(val).strip().lower()
     shortcut = getattr(settings, 'RAG_PROVIDER', None)
     if shortcut is not None and str(shortcut).strip():
         return str(shortcut).strip().lower()
-    val = getattr(settings, side_var, None) or side_default
-    return str(val).strip().lower()
+    return side_default
 
 
 def get_llm_provider() -> BaseLlmProvider:

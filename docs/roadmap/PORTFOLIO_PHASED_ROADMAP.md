@@ -4,7 +4,7 @@
 **Audience:** Independent continuation of the RAG chatbot (portfolio edition).  
 **Supersedes for portfolio work:** execution order and priorities here; campus-scale items remain in [PHASED_IMPROVEMENT_ROADMAP.md](./PHASED_IMPROVEMENT_ROADMAP.md).
 
-**Publish and platform wiring are complete** on [`main`](https://github.com/sandeep-jay/campus-rag-assistant). Remaining work: **RAGAS gates**, **LangGraph**, retrieval quality, optional SSE/agentic.
+**Publish and platform wiring are complete** on [`main`](https://github.com/sandeep-jay/campus-rag-assistant). Remaining work: **RAGAS gates**, **LangGraph**, retrieval quality, optional LangGraph streaming/agentic.
 
 ---
 
@@ -39,7 +39,7 @@ flowchart LR
 | **3** | RAGAS golden set; LangSmith; metrics/SLOs sketch | **Next** |
 | **4** | LangGraph parity graph (`RAG_ENGINE`); per-node traces | Planned |
 | **5** | Retrieval quality nodes (multi-query, rerank, filters) | Planned |
-| **6** | Bounded agentic graph; streaming SSE | Optional — after RAGAS stable |
+| **6** | Bounded agentic graph; LangGraph SSE | Optional — after RAGAS stable |
 
 Campus production concerns (Redis HA, tenant budgets, Elastic Beanstalk) stay in [PHASED_IMPROVEMENT_ROADMAP.md](./PHASED_IMPROVEMENT_ROADMAP.md) Phases 1–4 org track.
 
@@ -147,12 +147,12 @@ Aligns with org roadmap Phase 2 in [PHASED_IMPROVEMENT_ROADMAP.md](./PHASED_IMPR
 
 **Only after Phase 5 RAGAS stable week-over-week.**
 
-### 6a. SSE streaming
+### 6a. LangGraph streaming
 
-> **Status:** `/api/chat/stream` is not in the codebase yet; org roadmap lists streaming as in-flight. Implement endpoint + Vue consumer before or with this phase.
+> **Status:** LangChain path already exposes `POST /api/chat/stream` (SSE) with Vue consumer and buffered fallback. Phase 6a wires the same contract to a LangGraph graph.
 
 - `graph.astream_events` + `get_streaming_llm()`
-- Align Vue / E2E with `/api/chat/stream` contract
+- Keep Vue / E2E aligned with existing `/api/chat/stream` event shape
 
 ### 6b. Bounded agentic (`RAG_AGENTIC_ENABLED=false` default)
 

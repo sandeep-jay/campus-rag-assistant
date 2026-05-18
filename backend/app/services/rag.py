@@ -25,6 +25,7 @@ ENHANCEMENTS, OR MODIFICATIONS.
 
 import json
 import logging
+import re
 import threading
 import time
 from pathlib import Path
@@ -33,7 +34,7 @@ from typing import Any
 from botocore.exceptions import NoCredentialsError, NoRegionError, ProfileNotFound
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
-from langchain.prompts import FewShotPromptTemplate, PromptTemplate
+from langchain.prompts import PromptTemplate
 from langchain.schema import AIMessage, HumanMessage
 
 from backend.app.core.config_manager import settings
@@ -159,39 +160,24 @@ class RAGService:
         return templates
 
     def _create_prompt_templates(self):
-        # Create the prompt templates for the RAG QA system
-        # Load templates
+        # Load templates — use a single QA prompt (few-shot examples removed from combine chain
+        # because they caused format leakage and garbled answers with ConversationalRetrievalChain).
         templates = self._load_templates()
-        # Create the regular QA prompt
-        if templates.get('few_shot_examples'):
-            # Create few-shot prompt if examples are available
-            example_template = """
-            Input: {input}
-            Output: {output}
-            """
-            example_prompt = PromptTemplate(input_variables=['input', 'output'], template=example_template)
-            qa_prompt = FewShotPromptTemplate(
-                examples=templates['few_shot_examples'],
-                example_prompt=example_prompt,
-                prefix=templates.get('prefix', ''),
-                suffix=templates.get('suffix', ''),
-                input_variables=['context', 'chat_history', 'question'],
-            )
-        else:
-            # Create simple prompt if no examples are available
-            qa_prompt = PromptTemplate(
-                input_variables=['context', 'chat_history', 'question'], template=templates.get('prefix', '') + templates.get('suffix', '')
-            )
-        # Create the condense question prompt for follow-up questions
+        prefix = templates.get('prefix', '')
+        suffix = templates.get('suffix', '')
+        qa_prompt = PromptTemplate(
+            input_variables=['context', 'question'],
+            template=prefix + suffix,
+        )
         condense_question_prompt = PromptTemplate.from_template("""
-        Given the following conversation and a follow up question, rephrase the follow up question
-        to be a standalone question, in its original language. Always respond in English unless the user explicitly asks for a different language.
+Rephrase the follow-up question into a standalone question in English.
 
-        Chat History:
-        {chat_history}
+Chat History:
+{chat_history}
 
-        Follow Up Input: {question}
-        Standalone Question:""")
+Follow Up Input: {question}
+
+Standalone Question (one line only, no labels):""")
         return qa_prompt, condense_question_prompt
 
     def _process_query_intent(self, query: str):
@@ -220,20 +206,192 @@ class RAGService:
             logger.warning(f'Query intent processing failed: {e!s}')
             return query
 
-    def _enhance_response(self, response, metadata_list):
-        # Enhance the response with proper formatting and citations
-        # Check if KB references are already in the response
-        kb_refs = [f"KB-{meta.get('kb_number')}" for meta in metadata_list if meta.get('kb_number') and meta.get('kb_number') != 'N/A']
-        has_refs = any(ref in response for ref in kb_refs)
-        # Add references if not already present
-        if kb_refs and not has_refs:
-            # Add up to 3 most relevant KB references
-            refs = list(set(kb_refs))[:3]
-            response += f"\n\nReferences: {', '.join(refs)}"
-        # Format lists consistently
-        if '1.' in response and '\n1.' not in response:
-            response = response.replace('1.', '\n1.')
+    def _extract_answer_text(self, answer: Any) -> str:
+        """Normalize LangChain/Bedrock answer objects to plain text."""
+        if answer is None:
+            return ''
+        if isinstance(answer, str):
+            return answer.strip()
+        content = getattr(answer, 'content', None)
+        if isinstance(content, str):
+            return content.strip()
+        if content is not None:
+            return str(content).strip()
+        return str(answer).strip()
+
+    def _build_memory(self, chat_history: list):
+        memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True, output_key='answer')
+        for i in range(0, len(chat_history), 2):
+            if i < len(chat_history):
+                human_msg = chat_history[i]
+                memory.chat_memory.add_message(HumanMessage(content=human_msg))
+                if i + 1 < len(chat_history):
+                    ai_msg = chat_history[i + 1]
+                    memory.chat_memory.add_message(AIMessage(content=ai_msg))
+        return memory
+
+    def _format_source_documents(self, source_documents: list) -> tuple[list, list]:
+        metadata_list = []
+        document_contents = []
+        for doc in source_documents:
+            source_meta = doc.metadata.get('source_metadata', {})
+            doc_metadata = {
+                'source': source_meta.get('source', doc.metadata.get('source', 'unknown')),
+                'kb_url': source_meta.get('kb_url', doc.metadata.get('kb_url', '#')),
+                'kb_number': source_meta.get('kb_number', doc.metadata.get('kb_number', 'N/A')),
+                'kb_category': source_meta.get('kb_category', doc.metadata.get('kb_category', '')),
+                'short_description': source_meta.get('short_description', doc.metadata.get('short_description', '')),
+                'project': source_meta.get('project', doc.metadata.get('project', '')),
+                'ingestion_date': source_meta.get('ingestion_date', doc.metadata.get('ingestion_date', '')),
+                'score': doc.metadata.get('score', None),
+            }
+            metadata_list.append(doc_metadata)
+            document_contents.append({'content': doc.page_content, 'metadata': doc_metadata})
+        return metadata_list, document_contents
+
+    def _sanitize_answer_text(self, text: str) -> str:
+        """Remove prompt leakage, inline citations, and broken lines from model output."""
+        if not text:
+            return text
+        text = self._extract_answer_text(text)
+        if text.startswith("content='") and 'additional_kwargs=' in text:
+            m = re.match(r"content='(.*)' additional_kwargs=", text, re.DOTALL)
+            if m:
+                text = m.group(1).encode().decode('unicode_escape')
+
+        drop_patterns = (
+            r'^\s*Human\b',
+            r'^\s*Assistant\b',
+            r'^\s*Question\s*:',
+            r'^\s*Standalone Question',
+            r'^\s*Input\s*:',
+            r'^\s*Output\s*:',
+            r'^\s*Human the\s*:',
+            r'^\s*kb_url\s*:',
+            r'^\s*kb_number\s*:',
+            r'^\s*References\s*:',
+            r'^\s*\*\*References',
+            r'^\s*\[URL:',
+            r'^\s*\*\*Article\s*:\*\*\s*KB',
+            r'^\s*Article\s*:\s*KB',
+        )
+        cleaned: list[str] = []
+        for line in text.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                cleaned.append('')
+                continue
+            if any(re.search(pat, stripped, re.IGNORECASE) for pat in drop_patterns):
+                continue
+            if re.match(r"^\[.*'.*'.*\]\s*$", stripped):
+                continue
+            if re.match(r"^\['", stripped) or re.match(r"^\[\s*'", stripped):
+                continue
+            cleaned.append(line.rstrip())
+        text = '\n'.join(cleaned)
+        text = re.sub(r'\n{3,}', '\n\n', text)
+        return text.strip()
+
+    def _promote_bold_headings(self, text: str) -> str:
+        """Convert standalone **Title** lines to ## Title (generic Markdown fix)."""
+        out: list[str] = []
+        for line in text.splitlines():
+            stripped = line.strip()
+            m = re.match(r'^\*\*(.+)\*\*\s*$', stripped)
+            if m:
+                inner = m.group(1).strip()
+                if inner.endswith(':'):
+                    out.append(line)
+                else:
+                    out.append(f'## {inner}')
+            else:
+                out.append(line)
+        return '\n'.join(out)
+
+    def _enhance_response(self, response: str, _metadata_list: list) -> str:
+        """Sources are shown in the UI; do not append duplicate reference footers."""
         return response
+
+    def _normalize_answer_formatting(self, text: str, metadata_list: list | None = None) -> str:
+        """Convert model plain-text output into readable markdown."""
+        if not text:
+            return text
+        metadata_list = metadata_list or []
+        text = self._sanitize_answer_text(text)
+
+        text = re.sub(r'(?<!\n)(\d+)\.\s+', r'\n\1. ', text)
+        text = self._promote_bold_headings(text.lstrip())
+        text = re.sub(r'\n{3,}', '\n\n', text)
+        return self._enhance_response(text.strip(), metadata_list)
+
+    def _chunk_for_stream(self, text: str, size: int = 16):
+        for i in range(0, len(text), size):
+            yield text[i : i + size]
+
+    def stream_query(self, query: str, chat_history: list | None = None):  # noqa: C901
+        """Yield SSE payload dicts: token events then a final done metadata event."""
+        if chat_history is None:
+            chat_history = []
+
+        if self.is_mock:
+            mock = self._create_mock_response(query)
+            message = self._normalize_answer_formatting(
+                mock['message'],
+                mock['metadata'].get('sources', []),
+            )
+            for chunk in self._chunk_for_stream(message, size=12):
+                yield {'type': 'token', 'token': chunk}
+                time.sleep(0.02)
+            yield {'type': 'done', 'metadata': mock['metadata']}
+            return
+
+        try:
+            memory = self._build_memory(chat_history)
+            streaming_llm = self.llm_provider.get_streaming_llm()
+            if streaming_llm is None:
+                streaming_llm = self.llm_provider.get_llm()
+            qa_chain = ConversationalRetrievalChain.from_llm(
+                llm=streaming_llm,
+                retriever=self.retriever,
+                return_source_documents=True,
+                memory=memory,
+                combine_docs_chain_kwargs={'prompt': self.qa_prompt},
+                condense_question_prompt=self.condense_question_prompt,
+            )
+            last_answer = ''
+            source_documents: list = []
+            for chunk in qa_chain.stream({'question': query}):
+                if chunk.get('source_documents'):
+                    source_documents = chunk['source_documents']
+                if 'answer' not in chunk or chunk['answer'] is None:
+                    continue
+                current = self._extract_answer_text(chunk['answer'])
+                delta = current[len(last_answer) :]
+                last_answer = current
+                if delta:
+                    if len(delta) > 80:
+                        for piece in self._chunk_for_stream(delta, size=12):
+                            yield {'type': 'token', 'token': piece}
+                            time.sleep(0.02)
+                    else:
+                        yield {'type': 'token', 'token': delta}
+
+            metadata_list, document_contents = self._format_source_documents(source_documents)
+            logger.info('Retrieved %s documents from knowledge base', len(source_documents))
+            yield {
+                'type': 'done',
+                'metadata': {
+                    'sources': metadata_list,
+                    'document_contents': document_contents,
+                },
+            }
+        except Exception as e:
+            logger.exception('Stream query failed, using buffered fallback: %s', e)
+            result = self.process_query(query, chat_history)
+            for chunk in self._chunk_for_stream(result['message'], size=12):
+                yield {'type': 'token', 'token': chunk}
+                time.sleep(0.02)
+            yield {'type': 'done', 'metadata': result['metadata']}
 
     def _create_mock_response(self, query: str):
         # Create an improved mock response using few-shot examples if available
@@ -318,25 +476,8 @@ class RAGService:
             return mock_response
 
         try:
-            # Format chat history for LangChain
-            memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True, output_key='answer')
-            # Process pairs of messages as human/AI interactions
-            # This assumes chat_history is a flat list of alternating human/AI messages
-            for i in range(0, len(chat_history), 2):
-                if i < len(chat_history):
-                    human_msg = chat_history[i]
-                    memory.chat_memory.add_message(HumanMessage(content=human_msg))
-                    # Add AI response if available
-                    if i + 1 < len(chat_history):
-                        ai_msg = chat_history[i + 1]
-                        memory.chat_memory.add_message(AIMessage(content=ai_msg))
-
-            """
-            # Process query intent if enabled
-            # Commented out for now - uncomment to enable
-            # improved_query = self._process_query_intent(query)
-            """
-            improved_query = query  # Use original query for now
+            memory = self._build_memory(chat_history)
+            improved_query = query
             # Initialize the conversational chain for each request
             qa_chain = ConversationalRetrievalChain.from_llm(
                 llm=self.llm,
@@ -357,36 +498,9 @@ class RAGService:
                 f'Retrieved {len(source_documents)} documents from knowledge base',
             )
 
-            # Format metadata from source documents
-            metadata_list = []
-            document_contents = []
-            for doc in source_documents:
-                # Get source_metadata if it exists, otherwise use the whole metadata
-                source_meta = doc.metadata.get('source_metadata', {})
-
-                # Map the metadata fields correctly
-                doc_metadata = {
-                    'source': source_meta.get('source', doc.metadata.get('source', 'unknown')),
-                    'kb_url': source_meta.get('kb_url', doc.metadata.get('kb_url', '#')),
-                    'kb_number': source_meta.get('kb_number', doc.metadata.get('kb_number', 'N/A')),
-                    'kb_category': source_meta.get('kb_category', doc.metadata.get('kb_category', '')),
-                    'short_description': source_meta.get('short_description', doc.metadata.get('short_description', '')),
-                    'project': source_meta.get('project', doc.metadata.get('project', '')),
-                    'ingestion_date': source_meta.get('ingestion_date', doc.metadata.get('ingestion_date', '')),
-                    'score': doc.metadata.get('score', None),  # Extract score if available
-                }
-                metadata_list.append(doc_metadata)
-
-                # Extract document content
-                document_contents.append(
-                    {'content': doc.page_content, 'metadata': doc_metadata},
-                )
-
-                logger.debug(f'Document metadata: {doc_metadata}')
-                logger.debug(f'Original metadata: {doc.metadata}')
-
-            # Enhance the response with proper formatting and citations
-            enhanced_answer = self._enhance_response(response['answer'], metadata_list)
+            metadata_list, document_contents = self._format_source_documents(source_documents)
+            answer_text = self._extract_answer_text(response.get('answer'))
+            enhanced_answer = self._normalize_answer_formatting(answer_text, metadata_list)
             # Log performance
             processing_time = time.time() - start_time
             logger.info(f'Query processed in {processing_time:.2f}s with {len(source_documents)} docs')
@@ -406,8 +520,12 @@ class RAGService:
                     fallback_prompt = f"""I'm an AI assistant for educational technology.
                     I'm having trouble accessing my knowledge base right now, but I'll try to help with: {query}"""
                     answer = self.llm.invoke(fallback_prompt)
+                    answer_text = self._extract_answer_text(answer)
                     return {
-                        'message': f'{answer}\n\n(Note: This response was generated without access to the knowledge base.)',
+                        'message': self._normalize_answer_formatting(
+                            f'{answer_text}\n\n(Note: This response was generated without access to the knowledge base.)',
+                            [],
+                        ),
                         'metadata': {'sources': [], 'document_contents': []},
                     }
             except Exception as fallback_error:
