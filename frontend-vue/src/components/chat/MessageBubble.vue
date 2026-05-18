@@ -78,7 +78,7 @@ function formatTime(dateStr: string): string {
         <!-- Assistant: sanitized markdown — ONLY place v-html is used -->
         <div
           v-if="isAssistant(message)"
-          class="prose prose-sm dark:prose-invert max-w-none [&_pre]:overflow-x-auto [&_code]:text-xs"
+          class="prose prose-sm dark:prose-invert max-w-none leading-relaxed [&_p]:mb-3 [&_h2]:mt-6 [&_h2]:mb-3 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:border-b [&_h2]:border-border [&_h2]:pb-1 [&_ul]:my-3 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-6 [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:space-y-2 [&_ol]:pl-6 [&_li]:leading-relaxed [&_strong]:font-semibold [&_pre]:overflow-x-auto [&_code]:text-xs"
           v-html="renderMarkdown(message.content)"
         />
         <!-- Streaming cursor — only visible while SSE is open -->

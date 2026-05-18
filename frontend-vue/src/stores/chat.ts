@@ -1,7 +1,8 @@
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { defineStore } from 'pinia'
 import * as chatApi from '@/api/chat'
 import type { ChatSession, DisplayMessage, OptimisticMessage, StreamingMessage } from '@/api/types'
+import { normalizeAssistantContent } from '@/utils/normalizeAssistantContent'
 
 function generateOptimisticId(): string {
   return `opt-${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -105,12 +106,13 @@ export const useChatStore = defineStore('chat', () => {
         await chatApi.streamMessage(
           content,
           activeSessionId.value,
-          (token) => {
+          async (token) => {
             if (streamingMessage.value) {
               streamingMessage.value = {
                 ...streamingMessage.value,
                 content: streamingMessage.value.content + token,
               }
+              await nextTick()
             }
           },
           (doneEvent) => {
@@ -120,7 +122,7 @@ export const useChatStore = defineStore('chat', () => {
               (m) => !('isOptimistic' in m) || (m as OptimisticMessage).id !== optimisticId,
             )
             // Build a real ChatMessage from the streamed content
-            const assistantContent = streamingMessage.value?.content ?? ''
+            const assistantContent = normalizeAssistantContent(streamingMessage.value?.content ?? '')
             messages.value = [
               ...messages.value,
               {
