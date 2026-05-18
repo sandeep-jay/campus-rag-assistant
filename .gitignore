@@ -86,8 +86,11 @@ coverage
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
-# Session / local changelog notes (not shipped to remote)
-changelog/
+# Changelog: track changelog/CHANGELOG.md only; ignore other files in changelog/
+changelog/*
+!changelog/CHANGELOG.md
+
+
 
 # frontend-vue (generated artifacts and secrets; see also frontend-vue/.gitignore)
 frontend-vue/node_modules/

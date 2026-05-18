@@ -94,4 +94,3 @@ Requires judge LLM: `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, or `RAGAS_LLM_PROV
 
 - [roadmap/PORTFOLIO_PHASED_ROADMAP.md](./roadmap/PORTFOLIO_PHASED_ROADMAP.md)
 - [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md)
-- [docs/EXECUTION_PLAN.md](../docs/EXECUTION_PLAN.md)

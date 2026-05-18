@@ -4,7 +4,7 @@ This repository is a **RAG chatbot** with a **FastAPI** backend and a **Vue 3** 
 
 ## Backend
 
-- **Entry**: [`backend/app/main.py`](../backend/app/main.py) builds the FastAPI app, runs SQLAlchemy `create_all`, configures CORS, and mounts routers under `/api/auth` and `/api/chat`.
+- **Entry**: [`backend/app/main.py`](../backend/app/main.py) builds the FastAPI app; runs SQLAlchemy `create_all` only in dev/test (production uses Alembic); configures CORS, and mounts routers under `/api/auth` and `/api/chat`.
 - **Configuration**: Pydantic settings in [`backend/app/config/default.py`](../backend/app/config/default.py), loaded via [`backend/app/core/config_manager.py`](../backend/app/core/config_manager.py) from layered `.env` files (`APP_ENV`, repo root `.env`, `.env.{APP_ENV}`).
 - **Auth**: JWT plus HTTP-only cookies (`/api/auth/login-json`, etc.). Cookie `Secure` and `SameSite` follow `AUTH_COOKIE_*` settings (see `.env.example`).
 - **RAG**: [`backend/app/services/rag.py`](../backend/app/services/rag.py) builds a LangChain conversational retrieval chain. **One shared instance** is returned by `get_rag_service()` (thread-safe singleton) for all chat handlers.
@@ -36,16 +36,6 @@ Override any of these explicitly in `.env` when needed.
 Integration tests mock RAG by patching **`backend.app.api.chat.get_rag_service`** (the name bound in the chat router module), not only `backend.app.services.rag.get_rag_service`, because the router imports that function by reference at load time.
 
 
-## Provider resilience
+## Rate limiting
 
-- RAG provider calls now run behind timeout and retry controls (`PROVIDER_*` settings).
-- Circuit breaker protection opens after repeated failures and cools down automatically.
-- Bulkhead limits cap concurrent provider calls per process to avoid cascading overload.
-- API metadata marks degraded responses (`degraded_mode`, `degraded_reason`) when fallback paths are used.
-
-
-## Security controls
-
-- **Rate limiter**: `backend/app/core/rate_limit.py` provides pragmatic process-local windows for auth/chat endpoints. For multi-instance deployments, replace with Redis-backed coordination.
-- **CSRF posture**: cookie-authenticated mutating routes enforce double-submit CSRF (`csrf_token` cookie + `X-CSRF-Token` header). Bearer-token requests are exempt.
-- **Session lifecycle**: auth responses include explicit `expires_in`; `/api/auth/refresh` rotates cookie session access tokens without re-entering credentials.
+- `backend/app/core/rate_limit.py` — process-local sliding windows on auth/chat (`RATE_LIMIT_ENABLED`). Use Redis-backed limits for multi-instance production.
