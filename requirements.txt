@@ -1,6 +1,8 @@
 # Observability
 prometheus-client>=0.20.0
 fakeredis>=2.21.0
+redis>=5.0
+alembic>=1.13
 
 # ============================================================
 # Core Dependencies
