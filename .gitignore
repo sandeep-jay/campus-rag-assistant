@@ -61,10 +61,12 @@ htmlcov/
 .ruff_cache/
 
 # Logs
-*.log
+*.log*
 logs/
-frontend_logs.log
-backend_logs.log
+frontend_logs.log*
+backend_logs.log*
+frontend_logs.test.log*
+backend_logs.test.log*
 log.txt
 
 # Data

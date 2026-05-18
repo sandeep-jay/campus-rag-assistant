@@ -20,6 +20,21 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ## [Unreleased]
 
+### Added
+
+- **`POST /api/chat/stream`** — SSE token streaming; Vue consumer with fallback to `POST /api/chat/chat`.
+- **Answer formatting** — generic Markdown prompt template; light sanitization (`_sanitize_answer_text`, `_promote_bold_headings`).
+- **`tox -e eval`** — RAGAS golden-dataset suite (`ragas>=0.2` in eval env).
+- **`tox -e e2e`** — Playwright (requires running API).
+- `backend/tests/services/test_answer_formatting.py`, `backend/tests/api/test_chat_stream.py`.
+
+### Changed
+
+- Provider resolution: explicit `LLM_PROVIDER` / `RETRIEVER_PROVIDER` override `RAG_PROVIDER`.
+- **README** — balanced product + technical overview; restored License/Attribution.
+- **docs/** — architecture chat flow, evaluation/E2E tox commands, roadmap SSE status.
+- Tests and ruff formatting aligned with no inline References footer in answers.
+
 ---
 
 ## [2026-05-18] — Docs cleanup and Campus RAG Assistant rebrand

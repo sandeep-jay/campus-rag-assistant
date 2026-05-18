@@ -6,7 +6,7 @@
 
 This document captures the recommended phased roadmap for evolving the RAG-based chatbot: AWS + Azure parity, portable architecture, measurable RAG quality, scalability, reliability, observability, and cost governance.
 
-Phase 0 lists foundations **in flight or planned** for the campus track (not all are merged or wired in `main` yet): SSE streaming for chat, Redis-backed sliding-window rate limiting (fakeredis locally), optional FlashRank reranking, provider abstraction for AWS Bedrock and Azure OpenAI / search, RAGAS harness + golden dataset, Alembic initial migration, Vue 3 SPA with Vitest, Prometheus hooks, and basic reliability hardening (health proxy, password rules, safer error responses). Adjust timelines to team capacity and release cadence.
+Phase 0 lists foundations **in flight or planned** for the campus track (not all are merged or wired in `main` yet): SSE streaming for chat (implemented on LangChain path), Redis-backed sliding-window rate limiting (fakeredis locally), optional FlashRank reranking, provider abstraction for AWS Bedrock and Azure OpenAI / search, RAGAS harness + golden dataset, Alembic initial migration, Vue 3 SPA with Vitest, Prometheus hooks, and basic reliability hardening (health proxy, password rules, safer error responses). Adjust timelines to team capacity and release cadence.
 
 ```mermaid
 flowchart LR
