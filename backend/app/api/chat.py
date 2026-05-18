@@ -34,6 +34,7 @@ from sqlalchemy.orm import Session
 from backend.app.core.config_manager import settings
 from backend.app.core.dev_routes import require_dev_api_routes
 from backend.app.core.logger import logger
+from backend.app.core.metrics import CHAT_FIRST_TOKEN_LATENCY_SECONDS
 from backend.app.core.rate_limit import limit_chat
 from backend.app.core.security import get_current_user
 from backend.app.db.database import get_db
@@ -50,6 +51,17 @@ router = APIRouter()
 def _sse_payload(event: dict) -> str:
     return f'data: {json.dumps(event)}\n\n'
 
+
+
+
+def _history_limit() -> int | None:
+    limit = int(getattr(settings, 'CHAT_HISTORY_MAX_MESSAGES', 0) or 0)
+    return limit if limit > 0 else None
+
+
+def _load_chat_history(db_service: DatabaseService, session_id: int) -> list:
+    session_messages = db_service.get_session_messages(session_id, max_messages=_history_limit())
+    return _format_chat_history(session_messages)
 
 def _format_chat_history(session_messages) -> list:
     chat_history = []
@@ -329,13 +341,7 @@ async def chat(
     )
 
     # Get chat history for context
-    chat_history = []
-    session_messages = db_service.get_session_messages(session_id)
-    # Format messages for LangChain
-    for msg in session_messages:
-        chat_history.append(
-            (msg.content, '') if msg.role == 'user' else ('', msg.content),
-        )
+    chat_history = _load_chat_history(db_service, session_id)
 
     # Initialize the RAG service for this request
     rag_service = get_rag_service()
@@ -396,18 +402,21 @@ async def chat_stream(
         content=message.content,
         role='user',
     )
-    session_messages = db_service.get_session_messages(session_id)
-    chat_history = _format_chat_history(session_messages)
+    chat_history = _load_chat_history(db_service, session_id)
     rag_service = get_rag_service()
 
     def streaming_body():
         assistant_chunks: list[str] = []
+        stream_started = time.perf_counter()
+        first_token_recorded = False
         try:
             for event in rag_service.stream_query(message.content, chat_history):
                 if event['type'] == 'token':
+                    if not first_token_recorded:
+                        first_token_recorded = True
+                        CHAT_FIRST_TOKEN_LATENCY_SECONDS.observe(time.perf_counter() - stream_started)
                     assistant_chunks.append(event['token'])
                     yield _sse_payload({'type': 'token', 'token': event['token']})
-                    time.sleep(0.02)
                 elif event['type'] == 'done':
                     metadata = event.get('metadata', {})
                     assistant_text = ''.join(assistant_chunks)

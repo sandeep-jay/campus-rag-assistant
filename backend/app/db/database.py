@@ -31,7 +31,12 @@ from sqlalchemy.orm import Session, declarative_base, sessionmaker
 from backend.app.core.config_manager import settings
 
 # Create SQLAlchemy engine
-engine = create_engine(settings.SQLALCHEMY_DATABASE_URI)
+engine = create_engine(
+    settings.SQLALCHEMY_DATABASE_URI,
+    pool_size=settings.SQLALCHEMY_POOL_SIZE,
+    max_overflow=settings.SQLALCHEMY_MAX_OVERFLOW,
+    pool_pre_ping=True,
+)
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

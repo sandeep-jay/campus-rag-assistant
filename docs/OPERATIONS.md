@@ -59,13 +59,17 @@ Included metrics:
 ### Suggested SLOs
 
 - API availability: `>= 99.9%` monthly (`5xx` responses considered failures).
-- Chat latency: `p95 < 1.2s`, `p99 < 2.5s` at steady load.
+- **Auth / session API** (no LLM): `p95 < 1.2s`, `p99 < 2.5s` at steady load.
+- **Chat with RAG** (live LLM + retrieval): use phase-aware targets — see [LOAD_TESTING.md](./LOAD_TESTING.md) (`K6_LATENCY_PROFILE=live` allows chat `p95` up to ~45s under ramp; `mock` profile targets sub-second HTTP).
+- **SSE time-to-first-token**: track `chatbot_chat_first_token_latency_seconds` (lower is better; dominated by condense + retrieve on live providers).
 - Error budget: `<= 0.1%` failed requests over 30 days.
 
 ### Alerts
 
 - **High 5xx rate**: `rate(chatbot_http_requests_total{status_code=~"5.."}[5m]) > 0.02`.
-- **Slow chat**: `histogram_quantile(0.95, sum(rate(chatbot_http_request_latency_seconds_bucket{path="/api/chat/chat"}[5m])) by (le)) > 1.2`.
+- **Slow auth/session**: same histogram on `/api/auth/*` and `/api/chat/sessions` with `> 1.2` threshold.
+- **Slow buffered chat**: `histogram_quantile(0.95, sum(rate(chatbot_http_request_latency_seconds_bucket{path="/api/chat/chat"}[5m])) by (le)) > 45` for live RAG, or `> 1.2` when using mock providers.
+- **Slow first token**: `histogram_quantile(0.95, rate(chatbot_chat_first_token_latency_seconds_bucket[5m])) > 30` (tune per provider).
 - **Provider failures spike**: `increase(chatbot_provider_errors_total[10m]) > 20`.
 - **DB pool pressure**: `avg_over_time(chatbot_db_pool_usage_ratio[5m]) > 0.85`.
 

@@ -42,6 +42,11 @@ DB_POOL_CHECKED_OUT = Gauge('chatbot_db_pool_checked_out', 'Checked out DB conne
 DB_POOL_CHECKED_IN = Gauge('chatbot_db_pool_checked_in', 'Checked in DB connections')
 DB_POOL_OVERFLOW = Gauge('chatbot_db_pool_overflow', 'DB pool overflow connections')
 DB_POOL_USAGE_RATIO = Gauge('chatbot_db_pool_usage_ratio', 'Checked out / max DB connections')
+CHAT_FIRST_TOKEN_LATENCY_SECONDS = Histogram(
+    'chatbot_chat_first_token_latency_seconds',
+    'Time from SSE stream open to first token event',
+    buckets=(0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 30, 60),
+)
 
 
 def normalized_path(request: Request) -> str:

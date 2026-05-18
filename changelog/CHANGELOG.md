@@ -39,6 +39,27 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ---
 
+
+## [2026-05-18] — Performance Phase 0 quick wins
+
+### Added
+
+- **`docs/PERFORMANCE.md`** — Phase 0 shipped tuning; documentation checklists for Phase 1–3.
+- **Config:** `CHAT_HISTORY_MAX_MESSAGES`, `STREAM_ARTIFICIAL_DELAY_MS`, `SQLALCHEMY_POOL_SIZE`, `SQLALCHEMY_MAX_OVERFLOW` (see `.env.example`).
+- **Prometheus:** `chatbot_chat_first_token_latency_seconds` (SSE time-to-first-token).
+- **Test:** `test_get_session_messages_respects_max_messages`.
+
+### Changed
+
+- **Streaming:** removed fixed `time.sleep` on SSE tokens; optional demo delay via `STREAM_ARTIFICIAL_DELAY_MS` in RAG only.
+- **Chat API:** `_load_chat_history()` caps messages passed to LangChain.
+- **DB:** SQLAlchemy engine uses configured pool + `pool_pre_ping`.
+- **`run_services.sh`:** multi-worker uvicorn via `API_WORKERS` / `UVICORN_WORKERS` (default 2).
+- **`docs/OPERATIONS.md`:** SLOs split for auth/session vs live RAG; first-token alert hint.
+- **`docs/roadmap/PHASED_IMPROVEMENT_ROADMAP.md`:** Phase 0 perf shipped note; FlashRank marked Phase 2 / not in `rag.py` yet.
+
+---
+
 ## [2026-05-18] — Docs cleanup and Campus RAG Assistant rebrand
 
 ### Changed

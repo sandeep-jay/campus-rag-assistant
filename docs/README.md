@@ -29,6 +29,7 @@ Narrative, chat/SSE flow, and API surface: [ARCHITECTURE.md](./ARCHITECTURE.md).
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | System design, chat/SSE flow, API surface |
 | [OPERATIONS.md](./OPERATIONS.md) | Runbooks, metrics, migrations |
 | [LOAD_TESTING.md](./LOAD_TESTING.md) | k6 load tests |
+| [PERFORMANCE.md](./PERFORMANCE.md) | Phase 0 tuning + Phase 1–3 doc checklists |
 | [E2E.md](./E2E.md) | Playwright E2E |
 
 ## Optional (campus / scale track)
