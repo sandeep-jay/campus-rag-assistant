@@ -20,9 +20,24 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ## [Unreleased]
 
+---
+
+## [2026-05-18] — Docs cleanup and Campus RAG Assistant rebrand
+
 ### Changed
 
-- Rebrand to **Campus RAG Assistant**; GitHub repo renamed to `campus-rag-assistant`.
+- README: product-first **Campus RAG Assistant** opening; license/attribution under License.
+- GitHub repo renamed to [**campus-rag-assistant**](https://github.com/sandeep-jay/campus-rag-assistant); About description updated.
+- **changelog/CHANGELOG.md** — single session-based log under `changelog/` (other files in folder gitignored).
+- Trimmed **ARCHITECTURE.md**; clarified known gaps (buffered chat vs SSE).
+
+### Removed
+
+- `docs/PORTFOLIO.md`, `docs/EXECUTION_PLAN.md`, `docs/DOC_AUDIT.md`, `scripts/new-changelog.sh`.
+
+### Added
+
+- Full session history in **changelog/CHANGELOG.md** (2025 Berkeley baseline + 2026 fork sessions).
 
 ---
 
