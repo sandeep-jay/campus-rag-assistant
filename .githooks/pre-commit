@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Soft changelog reminder: warns (but never blocks) when staged code has no CHANGELOG.md update.
+# Soft changelog reminder: warns (but never blocks) when staged code has no changelog update.
 #
 # Install: ./scripts/install-hooks.sh
 
@@ -11,16 +11,16 @@ cd "$REPO_ROOT"
 YELLOW='\033[0;33m'
 NC='\033[0m'
 
-STAGED_CHANGELOG=$(git diff --cached --name-only | grep -E '^CHANGELOG\.md$' || true)
+STAGED_CHANGELOG=$(git diff --cached --name-only | grep -E '^changelog/CHANGELOG\.md$' || true)
 if [[ -n "$STAGED_CHANGELOG" ]]; then
   exit 0
 fi
 
-STAGED_CODE=$(git diff --cached --name-only | grep -Ev '^(docs/|\.env\.example|README\.md|CHANGELOG\.md)$' || true)
+STAGED_CODE=$(git diff --cached --name-only | grep -Ev '^(docs/|\.env\.example|README\.md|changelog/CHANGELOG\.md)$' || true)
 if [[ -z "$STAGED_CODE" ]]; then
   exit 0
 fi
 
-printf "\n${YELLOW}[changelog] Reminder:${NC} Update CHANGELOG.md [Unreleased] for this change.\n"
+printf "\n${YELLOW}[changelog] Reminder:${NC} Update changelog/CHANGELOG.md [Unreleased] for this change.\n"
 printf "  Or commit with --no-verify to skip.\n\n"
 exit 0

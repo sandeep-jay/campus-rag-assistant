@@ -86,8 +86,10 @@ coverage
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
-# Local scratch only (canonical changelog is CHANGELOG.md at repo root)
-changelog/
+# Changelog: track changelog/CHANGELOG.md only; ignore other files in changelog/
+changelog/*
+!changelog/CHANGELOG.md
+
 
 
 # frontend-vue (generated artifacts and secrets; see also frontend-vue/.gitignore)
