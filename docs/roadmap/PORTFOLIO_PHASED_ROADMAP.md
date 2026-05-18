@@ -4,7 +4,7 @@
 **Audience:** Independent continuation of the RAG chatbot (portfolio edition).  
 **Supersedes for portfolio work:** execution order and priorities here; campus-scale items remain in [PHASED_IMPROVEMENT_ROADMAP.md](./PHASED_IMPROVEMENT_ROADMAP.md).
 
-**Publish and platform wiring are complete** on [`main`](https://github.com/sandeep-jay/multicloud-rag-chatbot). Remaining work: **RAGAS gates**, **LangGraph**, retrieval quality, optional SSE/agentic.
+**Publish and platform wiring are complete** on [`main`](https://github.com/sandeep-jay/campus-rag-assistant). Remaining work: **RAGAS gates**, **LangGraph**, retrieval quality, optional SSE/agentic.
 
 ---
 
@@ -47,7 +47,7 @@ Campus production concerns (Redis HA, tenant budgets, Elastic Beanstalk) stay in
 
 ## Completed on `main` (phases 0–2)
 
-- **Repo:** [multicloud-rag-chatbot](https://github.com/sandeep-jay/multicloud-rag-chatbot); README attribution under [License](../../README.md#license); Regents `LICENSE` retained.
+- **Repo:** [campus-rag-assistant](https://github.com/sandeep-jay/campus-rag-assistant); README attribution under [License](../../README.md#license); Regents `LICENSE` retained.
 - **Platform:** request context, Prometheus metrics, rate limits, dev-only routes.
 - **RAG:** provider registry wired in `rag.py` (AWS / Azure / mock); RAGAS harness under `backend/tests/eval/`.
 - **Clients:** Vue 3 SPA, Streamlit; Alembic migrations; k6 load tests.
