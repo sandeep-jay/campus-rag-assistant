@@ -4,7 +4,7 @@ Notable changes to this **portfolio fork** of the UC Berkeley ETS Chabot platfor
 ([multicloud-rag-chatbot](https://github.com/sandeep-jay/multicloud-rag-chatbot)).
 
 [Keep a Changelog](https://keepachangelog.com/) format.  
-Attribution and license: [README](README.md#license).
+Attribution and license: [README](../README.md#license).
 
 **Author & maintainer:** [sandeep-jay](https://github.com/sandeep-jay) — primary developer on the
 Berkeley ETS Chabot codebase and author of this **independent portfolio fork**. Not an official
@@ -23,11 +23,11 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 ### Changed
 
 - Documentation: attribution under README License; removed `PORTFOLIO.md`, `EXECUTION_PLAN.md`, `DOC_AUDIT.md`; trimmed `ARCHITECTURE.md`.
-- **CHANGELOG.md** — session-based running log (all sessions, not only 2026-05-01).
+- **changelog/CHANGELOG.md** — single session-based running log in `changelog/`.
 
 ### Removed
 
-- `scripts/new-changelog.sh` and tracked `changelog/` files (`changelog/` gitignored).
+- Retired root `CHANGELOG.md` and local session drafts; only `changelog/CHANGELOG.md` is tracked.
 
 ---
 
@@ -115,7 +115,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Follow-ups
 
-- RAGAS golden Q&A; production `REDIS_URL`; LangGraph / SSE / rerank — [docs/roadmap/LANGGRAPH.md](docs/roadmap/LANGGRAPH.md).
+- RAGAS golden Q&A; production `REDIS_URL`; LangGraph / SSE / rerank — [docs/roadmap/LANGGRAPH.md](../docs/roadmap/LANGGRAPH.md).
 
 ---
 
@@ -139,7 +139,7 @@ One **request id** per HTTP request (`X-Request-ID`); optional **JSON** logs; qu
 
 **Chabot** — campus RAG chatbot for **UC Berkeley ETS** over AWS Bedrock.  
 Upstream: [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot).  
-© The Regents of the University of California — [LICENSE](LICENSE).
+© The Regents of the University of California — [LICENSE](../LICENSE).
 
 **[sandeep-jay](https://github.com/sandeep-jay)** led implementation (CBO-tracked PRs below). Regents headers remain on derived files in this fork.
 
