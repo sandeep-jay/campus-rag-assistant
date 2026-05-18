@@ -148,6 +148,66 @@ One **request id** per HTTP request in logs and as **`X-Request-ID`**; optional 
 
 ---
 
-## [Earlier] — Berkeley ETS Chabot baseline
+## [Earlier] — Berkeley ETS Chabot baseline (~2025)
 
-Original Chabot for UC Berkeley ETS. © The Regents of the University of California — [LICENSE](LICENSE).
+**Chabot** was built for **UC Berkeley Educational Technology Services (ETS)** as a campus RAG
+chatbot over AWS Bedrock. Upstream: [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot).
+© The Regents of the University of California — [LICENSE](LICENSE) (educational/research use;
+commercial licensing via [UC OTL](http://ipira.berkeley.edu/industry-info)).
+
+This portfolio fork retains that codebase and Regents headers on derived files; everything in
+**2026-05-01** and later sections above is independent continuation work.
+
+### Platform
+
+- **FastAPI** API with layered config (`pydantic-settings`, `.env` / `.env.{APP_ENV}`).
+- **PostgreSQL** via SQLAlchemy; multi-tenant model (`tenant`, `user`, `chat_session`,
+  `chat_message`, `feedback`).
+- **Schema bootstrap** via `Base.metadata.create_all()` at startup (Alembic added later in this fork).
+- **Modular logging**; **ruff** + **tox** for lint and backend tests.
+- **Travis CI** (`.travis.yml`) for linters; deploy sketches for **AWS Elastic Beanstalk**
+  (`.ebextensions`, Nginx proxy to API + Streamlit).
+
+### Authentication
+
+- **JWT** access tokens; register, login (`/token`), and cookie-based login for browser clients.
+- Password hashing (passlib/bcrypt); user registration and session identity on chat routes.
+
+### RAG and AWS (baseline scope)
+
+- **AWS Bedrock** + **LangChain** conversational retrieval chain in `rag.py`.
+- **Bedrock Knowledge Base** retrieval; few-shot prompt templates under `backend/app/templates/`.
+- **`POST /api/chat/chat`** — buffered JSON responses with source citations metadata.
+- **LangSmith** tracing hooks (`simple_tracer`, dev `test_langsmith` route).
+- **Mock RAG path** for local/test without live Bedrock calls.
+
+### Chat API
+
+- **Sessions**: create, list, get, delete.
+- **Messages**: post to a session; RAG-backed assistant replies persisted with sources.
+- **Feedback** on messages; **GET** message sources for UI citation panels.
+
+### Streamlit client (Berkeley era)
+
+- **Streamlit** UI calling the REST API (login, chat, message display, feedback components).
+- Evolved from a minimal `/chat` demo to a refactored module layout (auth, chat services, styled UI).
+- Later copied to `frontend-streamlit/` in this fork; primary UI became Vue in **2026-05-01**.
+
+### Testing (baseline)
+
+- Pytest suites for auth, chat API, RAG service, AWS/Bedrock client, DB layer, and Streamlit modules.
+- API interaction tests with RAG mocks; tox env for backend lint + tests.
+
+### Not in the Berkeley baseline (added in this fork)
+
+| Area | Fork addition |
+|------|----------------|
+| LLM/retriever providers | AWS / Azure / mock registry |
+| Vue 3 SPA | `frontend-vue/` |
+| Alembic migrations | Versioned DDL |
+| Prometheus metrics | `/api/metrics` |
+| Redis rate limiting | Shared limits across workers |
+| Request ID / JSON logs | **2026-05-01** logging session |
+| RAGAS golden eval | `backend/tests/eval/` |
+| k6 load tests | `load-tests/` |
+| Portfolio publish | **2026-05-17** on multicloud-rag-chatbot |
