@@ -7,10 +7,8 @@ from typing import TYPE_CHECKING
 from backend.app.core.config_manager import settings
 
 from .llm.aws import AwsLlmProvider
-from .llm.azure import AzureLlmProvider
 from .llm.mock import MockLlmProvider
 from .retriever.aws import AwsRetrieverProvider
-from .retriever.azure import AzureRetrieverProvider
 from .retriever.mock import MockRetrieverProvider
 
 if TYPE_CHECKING:
@@ -56,10 +54,22 @@ def get_retriever_provider() -> BaseRetrieverProvider:
     return factory()
 
 
+def _azure_llm_factory() -> BaseLlmProvider:
+    from .llm.azure import AzureLlmProvider
+
+    return AzureLlmProvider.create_or_mock(MockLlmProvider)
+
+
+def _azure_retriever_factory() -> BaseRetrieverProvider:
+    from .retriever.azure import AzureRetrieverProvider
+
+    return AzureRetrieverProvider.create_or_mock(MockRetrieverProvider)
+
+
 register_llm('aws', lambda: AwsLlmProvider.create_or_mock(MockLlmProvider))
-register_llm('azure', lambda: AzureLlmProvider.create_or_mock(MockLlmProvider))
+register_llm('azure', _azure_llm_factory)
 register_llm('mock', MockLlmProvider)
 
 register_retriever('aws', lambda: AwsRetrieverProvider.create_or_mock(MockRetrieverProvider))
-register_retriever('azure', lambda: AzureRetrieverProvider.create_or_mock(MockRetrieverProvider))
+register_retriever('azure', _azure_retriever_factory)
 register_retriever('mock', MockRetrieverProvider)
