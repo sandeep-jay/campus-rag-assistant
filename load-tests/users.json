@@ -1,0 +1,14 @@
+{
+  "users": [
+    { "username": "load_user_01", "password": "LoadTestPass!123" },
+    { "username": "load_user_02", "password": "LoadTestPass!123" },
+    { "username": "load_user_03", "password": "LoadTestPass!123" },
+    { "username": "load_user_04", "password": "LoadTestPass!123" },
+    { "username": "load_user_05", "password": "LoadTestPass!123" },
+    { "username": "load_user_06", "password": "LoadTestPass!123" },
+    { "username": "load_user_07", "password": "LoadTestPass!123" },
+    { "username": "load_user_08", "password": "LoadTestPass!123" },
+    { "username": "load_user_09", "password": "LoadTestPass!123" },
+    { "username": "load_user_10", "password": "LoadTestPass!123" }
+  ]
+}
