@@ -177,13 +177,13 @@ def test_process_query_with_source_documents(rag_mocks):
     call_args = mock_chain_instance.invoke.call_args[0][0]
     assert call_args['question'] == 'What is the meaning of life?'
 
-    # Check the response is correct with KB references
     assert 'Test answer' in response['message']
-
-    # Check for KB references in any order (they might be in a different order)
-    assert 'References:' in response['message']
-    assert 'KB-KB-123' in response['message']
-    assert 'KB-KB-456' in response['message']
+    # Sources live in metadata for the UI; answer body has no References footer
+    assert 'References:' not in response['message']
+    assert len(response['metadata']['sources']) == 2
+    kb_numbers = {s['kb_number'] for s in response['metadata']['sources']}
+    assert 'KB-123' in kb_numbers
+    assert 'KB-456' in kb_numbers
 
 
 def test_rag_service_with_chat_history(rag_mocks):
