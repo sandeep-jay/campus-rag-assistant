@@ -16,7 +16,7 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 CHANGELOG_DIR="$REPO_ROOT/changelog"
 
 # ── Check whether any changelog/*.md (excluding _template.md) is staged ─────
-STAGED_CHANGELOG=$(git diff --cached --name-only | grep -E '^changelog/[^_].*\.md$' || true)
+STAGED_CHANGELOG=$(git diff --cached --name-only | grep -E '^(CHANGELOG\.md|changelog/[^_].*\.md)$' || true)
 
 if [[ -n "$STAGED_CHANGELOG" ]]; then
   # A changelog entry is part of this commit — all good
@@ -35,7 +35,7 @@ fi
 YELLOW='\033[0;33m'
 NC='\033[0m'
 printf "\n${YELLOW}[changelog] Reminder:${NC} No changelog entry is included in this commit.\n"
-printf "  Run  ./scripts/new-changelog.sh  to generate a draft.\n"
+printf "  Update CHANGELOG.md or run  ./scripts/new-changelog.sh  for a draft.\n"
 printf "  Or use  git commit --no-verify  to skip this check.\n\n"
 
 # Exit 0 so the commit is NOT blocked

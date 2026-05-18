@@ -111,6 +111,7 @@ Load tests: [docs/LOAD_TESTING.md](docs/LOAD_TESTING.md).
 
 | Doc | Description |
 |-----|-------------|
+| [CHANGELOG.md](CHANGELOG.md) | Release history |
 | [docs/README.md](docs/README.md) | Documentation index |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System overview |
 | [docs/OPERATIONS.md](docs/OPERATIONS.md) | Runbooks, metrics, migrations |
