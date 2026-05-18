@@ -23,14 +23,30 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Load env before any backend import (settings reads os.environ at import time)
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(_PROJECT_ROOT / '.env.test')
+load_dotenv(_PROJECT_ROOT / '.env', override=True)
+
 import os
+
+# tox -e eval sets RAGAS_EVAL=1 — avoid LangSmith + Bedrock stream teardown noise
+if os.environ.get('RAGAS_EVAL', '').lower() in ('1', 'true', 'yes'):
+    os.environ['LANGCHAIN_TRACING_V2'] = 'false'
+    os.environ['LANGSMITH_TRACING'] = 'false'
+    os.environ['LANGCHAIN_API_KEY'] = ''  # skip LangSmith HTTP during eval
+
+
 import subprocess
 import uuid
 from collections.abc import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
-from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -40,9 +56,6 @@ from backend.app.main import app
 from backend.app.models.user import User
 from backend.app.services.db import DatabaseService
 from backend.app.services.rag import RAGService
-
-# Load test environment variables from project root
-load_dotenv('../../.env.test')
 
 
 @pytest.fixture(scope='session')
@@ -220,5 +233,12 @@ def mock_rag_service():
                 ],
             },
         }
+
+        def _default_stream(query, chat_history=None):
+            yield {'type': 'token', 'token': mock_rag.process_query.return_value['message']}
+            yield {'type': 'done', 'metadata': mock_rag.process_query.return_value['metadata']}
+
+        mock_rag.stream_query.side_effect = _default_stream
+        mock_rag._normalize_answer_formatting.side_effect = lambda text, _sources=None: text  # noqa: SLF001
         mock_get_rag_service.return_value = mock_rag
         yield mock_rag

@@ -33,6 +33,7 @@ from langchain_aws import BedrockLLM, ChatBedrock
 
 from backend.app.core.config_manager import settings
 from backend.app.services.aws_client import AWSClientService
+from backend.app.services.bedrock_model_id import resolve_bedrock_model_id
 from backend.app.utils.simple_tracer import get_client
 
 logger = logging.getLogger(__name__)
@@ -42,8 +43,11 @@ class BedrockService:
     """Unified service for interacting with AWS Bedrock"""
 
     def __init__(self, model_id=None, aws_client=None, bedrock_client=None, region_name=None, role_arn=None):
-        self.model_id = model_id or settings.BEDROCK_MODEL_ID
         self.region_name = region_name or settings.AWS_REGION
+        raw_model_id = model_id or settings.BEDROCK_MODEL_ID
+        self.model_id = resolve_bedrock_model_id(raw_model_id, self.region_name)
+        if self.model_id != raw_model_id:
+            logger.info('Bedrock inference profile %s (configured as %s)', self.model_id, raw_model_id)
         self.role_arn = role_arn or getattr(settings, 'AWS_ROLE_ARN', None)
 
         # Get the LangSmith client
@@ -190,3 +194,24 @@ class BedrockService:
             return ChatBedrock(**llm_kwargs)
         else:
             return BedrockLLM(**llm_kwargs)
+
+    def get_streaming_llm(self, callbacks=None, **model_kwargs):
+        """LangChain Bedrock client with token streaming enabled."""
+        params = {
+            'temperature': settings.TEMPERATURE,
+            'top_k': settings.TOP_K,
+            'max_tokens': settings.MAX_TOKENS,
+        }
+        params.update(model_kwargs)
+        llm_kwargs = {
+            'model_id': self.model_id,
+            'model_kwargs': params,
+            'region_name': self.region_name,
+            'client': self.client,
+            'streaming': True,
+        }
+        if callbacks:
+            llm_kwargs['callbacks'] = callbacks
+        if 'claude-3' in self.model_id:
+            return ChatBedrock(**llm_kwargs)
+        return BedrockLLM(**llm_kwargs)

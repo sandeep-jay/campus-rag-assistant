@@ -31,10 +31,12 @@ Env overrides: `RAGAS_FAITHFULNESS_MIN`, `RAGAS_ANSWER_RELEVANCY_MIN`, etc.
 
 ### Run locally
 
+
+**Runtime:** The first metric test builds the dataset with **one live RAG call per golden question** (8 questions ≈ several minutes on AWS). RAGAS scoring then calls the judge LLM per row. Use `pytest -v -s` (enabled in `tox -e eval`) to see progress logs; it is usually not hung.
+
 ```bash
-pytest backend/tests/eval/test_rag_quality.py -v
-# from repo root: PYTHONPATH=. pytest backend/tests/eval/ -v
-# Note: tox.ini has no [testenv:eval] yet — use pytest or add tox env later
+tox -e eval
+# or: PYTHONPATH=. pytest backend/tests/eval/ -v -m slow
 ```
 
 Requires judge LLM: `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, or `RAGAS_LLM_PROVIDER`.

@@ -74,18 +74,14 @@ class ConfigManager:
             if local_env_specific_file.exists():
                 env_files.append(str(local_env_specific_file))
 
-        # Then check root directory (chatbot-poc/) if files weren't found in APP_LOCAL_CONFIGS
-        if not env_files or len(env_files) < 2:
-            # Check for .env in root directory
-            root_env_file = self.root_dir / '.env'
-            if root_env_file.exists():
-                env_files.append(str(root_env_file))
-
-            # Check for .env.{APP_ENV} in root directory if not already found
-            env_specific_pattern = f'.env.{self.app_env}'
-            root_env_specific_file = self.root_dir / env_specific_pattern
-            if root_env_specific_file.exists():
-                env_files.append(str(root_env_specific_file))
+        # Root env files: load test defaults first, then .env so local overrides win
+        env_specific_pattern = f'.env.{self.app_env}'
+        root_env_specific_file = self.root_dir / env_specific_pattern
+        root_env_file = self.root_dir / '.env'
+        if root_env_specific_file.exists():
+            env_files.append(str(root_env_specific_file))
+        if root_env_file.exists():
+            env_files.append(str(root_env_file))
 
         return env_files
 
@@ -122,6 +118,10 @@ class Settings:
         # Set all attributes from the config settings
         for key, value in config_settings.model_dump().items():
             setattr(self, key, value)
+        extra = getattr(config_settings, '__pydantic_extra__', None) or {}
+        for key, value in extra.items():
+            if not hasattr(self, key):
+                setattr(self, key, value)
 
 
 # Create settings instance
