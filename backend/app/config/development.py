@@ -38,3 +38,5 @@ class DevelopmentSettings(DefaultSettings):
 
     # Development-specific settings
     DEBUG: bool = True
+    ENABLE_DEV_API_ROUTES: bool = True
+    ENABLE_OPENAPI_DOCS: bool = True
