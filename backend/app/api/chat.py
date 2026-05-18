@@ -30,8 +30,8 @@ from sqlalchemy.orm import Session
 
 from backend.app.core.config_manager import settings
 from backend.app.core.dev_routes import require_dev_api_routes
-from backend.app.core.rate_limit import limit_chat
 from backend.app.core.logger import logger
+from backend.app.core.rate_limit import limit_chat
 from backend.app.core.security import get_current_user
 from backend.app.db.database import get_db
 from backend.app.models.user import User

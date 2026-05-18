@@ -35,6 +35,7 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import FewShotPromptTemplate, PromptTemplate
 from langchain.schema import AIMessage, HumanMessage
+
 from backend.app.core.config_manager import settings
 from backend.app.services.providers import get_llm_provider, get_retriever_provider
 from backend.app.services.providers.llm.aws import AwsLlmProvider
@@ -96,8 +97,9 @@ class RAGService:
                 settings.BEDROCK_MODEL_ID,
             )
 
-            if hasattr(self.llm_provider, '_bedrock'):
-                self.bedrock_service = self.llm_provider._bedrock
+            _bedrock = getattr(self.llm_provider, '_bedrock', None)
+            if _bedrock is not None:
+                self.bedrock_service = _bedrock
                 self.bedrock_client = self.bedrock_service.client
             elif bedrock_service is not None:
                 self.bedrock_service = bedrock_service

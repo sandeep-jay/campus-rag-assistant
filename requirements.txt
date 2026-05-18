@@ -15,6 +15,7 @@ gunicorn==21.2.0
 python-multipart==0.0.9
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+bcrypt>=4.0.1,<4.1.0
 PyJWT==2.10.1
 email-validator==2.1.0.post1
 python-dotenv==1.0.1
@@ -34,6 +35,9 @@ botocore>=1.27.0
 langchain==0.3.20
 langchain-aws>=0.2.15
 langchain-community==0.3
+langchain-openai>=0.2
+azure-core>=1.29
+azure-search-documents>=11.4
 langsmith>=0.0.77
 s3transfer>=0.10.0
 urllib3>=1.26.16,<2.0.0

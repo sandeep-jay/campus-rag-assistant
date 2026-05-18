@@ -18,4 +18,7 @@ python_files = [
     "test_*.py"
 ]
 # Base options without coverage to avoid warnings
+markers = [
+    "slow: RAGAS eval tests (optional ragas install)",
+]
 addopts = "-v" 

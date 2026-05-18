@@ -159,8 +159,6 @@ async def get_current_user(
     return user
 
 
-
-
 async def get_current_user_optional(
     token: str | None = Depends(get_token_from_request),
     db: Session = Depends(get_db),
@@ -172,6 +170,8 @@ async def get_current_user_optional(
         return await get_current_user(token=token, db=db)
     except HTTPException:
         return None
+
+
 async def get_current_user_from_cookie(
     access_token: str | None = Cookie(None, alias='access_token'),
     db: Session = Depends(get_db),
