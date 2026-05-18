@@ -89,7 +89,7 @@ class DefaultSettings(BaseSettings):
 
     # Logging settings
     LOG_TO_FILE: bool = True
-    LOGGING_FORMAT: str = '[%(asctime)s] - %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+    LOGGING_FORMAT: str = '[%(asctime)s] req=%(request_id)s - %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
     LOGGING_LOCATION: str = 'fastapi.log'
     LOGGING_LEVEL: str = 'INFO'  # Default to INFO level
     LOGGING_PROPAGATION_LEVEL: str = 'INFO'
@@ -100,6 +100,19 @@ class DefaultSettings(BaseSettings):
     RETRIEVER_NUMBER_OF_RESULTS: int = 3  # Default number of docs to retrieve
     RETRIEVER_SEARCH_TYPE: str = 'HYBRID'  # Default search type for retriever
     TEMPERATURE: float = 0.1  # Default temperature for LLM
+
+
+    # Observability and platform
+    LOG_JSON: bool = False
+    ENABLE_DEV_API_ROUTES: bool = False
+    ENABLE_OPENAPI_DOCS: bool = False
+
+    # Rate limiting (Redis optional; fakeredis used when REDIS_URL unset)
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_LOGIN_PER_MINUTE: int = 10
+    RATE_LIMIT_REGISTER_PER_MINUTE: int = 5
+    RATE_LIMIT_CHAT_PER_MINUTE: int = 30
+    REDIS_URL: str | None = None
 
     model_config = {
         'extra': 'allow',

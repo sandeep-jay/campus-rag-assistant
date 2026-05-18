@@ -29,6 +29,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from backend.app.core.config_manager import settings
+from backend.app.core.dev_routes import require_dev_api_routes
+from backend.app.core.rate_limit import limit_chat
 from backend.app.core.logger import logger
 from backend.app.core.security import get_current_user
 from backend.app.db.database import get_db
@@ -247,7 +249,7 @@ async def delete_chat_session(
     return {'message': 'Chat session deleted successfully'}
 
 
-@router.post('/chat')
+@router.post('/chat', dependencies=[Depends(limit_chat)])
 async def chat(
     message: ChatMessageCreate,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -397,7 +399,7 @@ async def submit_feedback(
         )
 
 
-@router.post('/test_langsmith')
+@router.post('/test_langsmith', dependencies=[Depends(require_dev_api_routes)])
 async def test_langsmith() -> dict[str, Any]:
     # Test endpoint for LangSmith tracing with trace_rag.
     # Check if LangSmith tracing is enabled

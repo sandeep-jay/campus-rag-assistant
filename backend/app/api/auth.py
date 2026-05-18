@@ -32,6 +32,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from backend.app.core.config_manager import settings
+from backend.app.core.dev_routes import require_dev_api_routes
+from backend.app.core.rate_limit import limit_login, limit_register
 from backend.app.core.security import create_access_token, get_current_user, verify_token
 from backend.app.db.database import get_db
 from backend.app.models.user import User
@@ -41,7 +43,7 @@ from backend.app.services.db import DatabaseService
 router = APIRouter()
 
 
-@router.post('/register')
+@router.post('/register', dependencies=[Depends(limit_register)])
 async def register(
     user: UserCreate,
     db: Annotated[Session, Depends(get_db)],
@@ -74,7 +76,7 @@ async def register(
     return {'message': 'User registered successfully'}
 
 
-@router.post('/token')
+@router.post('/token', dependencies=[Depends(limit_login)])
 async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[Session, Depends(get_db)],
@@ -104,7 +106,7 @@ async def login(
     }
 
 
-@router.post('/login')
+@router.post('/login', dependencies=[Depends(limit_login)])
 async def login_with_cookie(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     response: Response,
@@ -144,7 +146,7 @@ async def login_with_cookie(
     }
 
 
-@router.post('/login-json')
+@router.post('/login-json', dependencies=[Depends(limit_login)])
 async def login_with_json(
     user_data: UserLogin,
     response: Response,
@@ -216,7 +218,7 @@ async def get_current_user_info(
     }
 
 
-@router.get('/debug-auth')
+@router.get('/debug-auth', dependencies=[Depends(require_dev_api_routes)])
 async def debug_auth(
     access_token: str | None = Cookie(None, alias='access_token'),
     auth_header: str | None = None,
