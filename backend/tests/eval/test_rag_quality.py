@@ -4,7 +4,7 @@ RAGAS evaluation harness for the RAG pipeline.
 Run via:
     tox -e eval
 
-Or directly (requires RAGAS_LLM_PROVIDER and appropriate API keys):
+Or directly (requires LLM_PROVIDER=aws|azure and cloud credentials in .env):
     pytest backend/tests/eval/test_rag_quality.py -v
 
 This suite measures:
@@ -58,22 +58,28 @@ def _skip_if_no_ragas():
         pytest.skip('ragas not installed — run: pip install ragas>=0.2')
 
 
-def _skip_if_no_llm_for_eval():
-    """RAGAS LLM-based metrics require an LLM to act as judge."""
-    provider = os.environ.get('RAGAS_LLM_PROVIDER', '')
-    has_openai = bool(os.environ.get('OPENAI_API_KEY') or os.environ.get('AZURE_OPENAI_API_KEY'))
-    if not provider and not has_openai:
-        pytest.skip('No LLM available for RAGAS evaluation. Set OPENAI_API_KEY, AZURE_OPENAI_API_KEY, or RAGAS_LLM_PROVIDER.')
+def _skip_if_no_judge_for_eval():
+    from backend.app.services.eval.ragas_judge import judge_provider_configured, resolve_judge_provider
+
+    if not judge_provider_configured():
+        provider = resolve_judge_provider()
+        pytest.skip(
+            f'RAGAS judge not configured for provider {provider!r}. '
+            'Set LLM_PROVIDER=aws or azure (or RAGAS_LLM_PROVIDER) and credentials in .env.',
+        )
 
 
 def _build_ragas_dataset(golden: list[dict], rag_service):  # type: ignore[return]
     """Run each golden question through the RAG service and collect answers + contexts."""
     from ragas.dataset_schema import EvaluationDataset, SingleTurnSample
 
+    n = len(golden)
+    logger.info('RAGAS dataset: running %d live RAG queries (Bedrock KB + LLM per question)...', n)
     samples = []
-    for item in golden:
+    for i, item in enumerate(golden, start=1):
         question = item['question']
         ground_truth = item['ground_truth']
+        logger.info('  [%d/%d] RAG query: %s', i, n, question[:70])
 
         try:
             result = rag_service.process_query(question, chat_history=[])
@@ -96,6 +102,7 @@ def _build_ragas_dataset(golden: list[dict], rag_service):  # type: ignore[retur
             )
         )
 
+    logger.info('RAGAS dataset: RAG phase complete (%d samples)', len(samples))
     return EvaluationDataset(samples=samples)
 
 
@@ -105,6 +112,12 @@ def rag_service_for_eval():
     from backend.app.services.rag import RAGService
 
     return RAGService()
+
+
+@pytest.fixture(scope='module')
+def golden_ragas_dataset(rag_service_for_eval):
+    """Build EvaluationDataset once per module (8 live RAG calls — slow)."""
+    return _build_ragas_dataset(_load_golden_dataset(), rag_service_for_eval)
 
 
 @pytest.mark.slow()
@@ -124,17 +137,17 @@ class TestRAGQuality:
             assert 'contexts' in item
             assert len(item['contexts']) >= 1
 
-    def test_faithfulness(self, rag_service_for_eval):
+    def test_faithfulness(self, golden_ragas_dataset):
         """Answers should be grounded in retrieved context (no hallucination)."""
         _skip_if_no_ragas()
-        _skip_if_no_llm_for_eval()
-        from ragas import evaluate
+        _skip_if_no_judge_for_eval()
         from ragas.metrics import faithfulness
 
-        golden = _load_golden_dataset()
-        dataset = _build_ragas_dataset(golden, rag_service_for_eval)
-        results = evaluate(dataset, metrics=[faithfulness])
-        score = results['faithfulness']
+        from backend.app.services.eval.ragas_judge import metric_score, run_ragas_evaluate
+
+        dataset = golden_ragas_dataset
+        results = run_ragas_evaluate(dataset, [faithfulness])
+        score = metric_score(results, 'faithfulness')
         logger.info('faithfulness score: %.3f (threshold: %.2f)', score, FAITHFULNESS_MIN)
 
         if QUALITY_GATE_ENABLED:
@@ -142,17 +155,17 @@ class TestRAGQuality:
                 score >= FAITHFULNESS_MIN
             ), f'Faithfulness {score:.3f} below threshold {FAITHFULNESS_MIN}. Check for hallucinations in LLM responses or improve context quality.'
 
-    def test_answer_relevancy(self, rag_service_for_eval):
+    def test_answer_relevancy(self, golden_ragas_dataset):
         """Answers should address the question being asked."""
         _skip_if_no_ragas()
-        _skip_if_no_llm_for_eval()
-        from ragas import evaluate
+        _skip_if_no_judge_for_eval()
         from ragas.metrics import answer_relevancy
 
-        golden = _load_golden_dataset()
-        dataset = _build_ragas_dataset(golden, rag_service_for_eval)
-        results = evaluate(dataset, metrics=[answer_relevancy])
-        score = results['answer_relevancy']
+        from backend.app.services.eval.ragas_judge import metric_score, run_ragas_evaluate
+
+        dataset = golden_ragas_dataset
+        results = run_ragas_evaluate(dataset, [answer_relevancy])
+        score = metric_score(results, 'answer_relevancy')
         logger.info('answer_relevancy score: %.3f (threshold: %.2f)', score, ANSWER_RELEVANCY_MIN)
 
         if QUALITY_GATE_ENABLED:
@@ -160,17 +173,17 @@ class TestRAGQuality:
                 score >= ANSWER_RELEVANCY_MIN
             ), f'Answer relevancy {score:.3f} below threshold {ANSWER_RELEVANCY_MIN}. Review prompt templates and ensure retrieval stays on-domain.'
 
-    def test_context_recall(self, rag_service_for_eval):
+    def test_context_recall(self, golden_ragas_dataset):
         """Retrieved context should cover the information needed to answer correctly."""
         _skip_if_no_ragas()
-        _skip_if_no_llm_for_eval()
-        from ragas import evaluate
+        _skip_if_no_judge_for_eval()
         from ragas.metrics import context_recall
 
-        golden = _load_golden_dataset()
-        dataset = _build_ragas_dataset(golden, rag_service_for_eval)
-        results = evaluate(dataset, metrics=[context_recall])
-        score = results['context_recall']
+        from backend.app.services.eval.ragas_judge import metric_score, run_ragas_evaluate
+
+        dataset = golden_ragas_dataset
+        results = run_ragas_evaluate(dataset, [context_recall])
+        score = metric_score(results, 'context_recall')
         logger.info('context_recall score: %.3f (threshold: %.2f)', score, CONTEXT_RECALL_MIN)
 
         if QUALITY_GATE_ENABLED:
@@ -179,17 +192,17 @@ class TestRAGQuality:
                 'Consider enabling multi-query retrieval or increasing RETRIEVER_NUMBER_OF_RESULTS.'
             )
 
-    def test_context_precision(self, rag_service_for_eval):
+    def test_context_precision(self, golden_ragas_dataset):
         """Retrieved chunks should be relevant, not noisy."""
         _skip_if_no_ragas()
-        _skip_if_no_llm_for_eval()
-        from ragas import evaluate
+        _skip_if_no_judge_for_eval()
         from ragas.metrics import context_precision
 
-        golden = _load_golden_dataset()
-        dataset = _build_ragas_dataset(golden, rag_service_for_eval)
-        results = evaluate(dataset, metrics=[context_precision])
-        score = results['context_precision']
+        from backend.app.services.eval.ragas_judge import metric_score, run_ragas_evaluate
+
+        dataset = golden_ragas_dataset
+        results = run_ragas_evaluate(dataset, [context_precision])
+        score = metric_score(results, 'context_precision')
         logger.info('context_precision score: %.3f (threshold: %.2f)', score, CONTEXT_PRECISION_MIN)
 
         if QUALITY_GATE_ENABLED:
@@ -198,29 +211,35 @@ class TestRAGQuality:
                 'Enable reranking (RERANK_ENABLED=true) or reduce RETRIEVER_NUMBER_OF_RESULTS.'
             )
 
-    def test_full_suite_report(self, rag_service_for_eval):
+    def test_full_suite_report(self, golden_ragas_dataset):
         """Run all four metrics together and print a summary report."""
         _skip_if_no_ragas()
-        _skip_if_no_llm_for_eval()
-        from ragas import evaluate
+        _skip_if_no_judge_for_eval()
         from ragas.metrics import answer_relevancy, context_precision, context_recall, faithfulness
 
-        golden = _load_golden_dataset()
-        dataset = _build_ragas_dataset(golden, rag_service_for_eval)
-        results = evaluate(
+        from backend.app.services.eval.ragas_judge import metric_score, run_ragas_evaluate
+
+        dataset = golden_ragas_dataset
+        results = run_ragas_evaluate(
             dataset,
-            metrics=[faithfulness, answer_relevancy, context_recall, context_precision],
+            [faithfulness, answer_relevancy, context_recall, context_precision],
         )
+
+        def _fmt(metric: str) -> str:
+            try:
+                return f'{metric_score(results, metric):.3f}'
+            except (KeyError, ValueError) as exc:
+                return f'failed ({exc})'
 
         report_lines = [
             '',
             '=' * 60,
             'RAGAS Evaluation Report',
             '=' * 60,
-            f'  faithfulness       : {results.get("faithfulness", "n/a"):.3f}  (min {FAITHFULNESS_MIN})',
-            f'  answer_relevancy   : {results.get("answer_relevancy", "n/a"):.3f}  (min {ANSWER_RELEVANCY_MIN})',
-            f'  context_recall     : {results.get("context_recall", "n/a"):.3f}  (min {CONTEXT_RECALL_MIN})',
-            f'  context_precision  : {results.get("context_precision", "n/a"):.3f}  (min {CONTEXT_PRECISION_MIN})',
+            f'  faithfulness       : {_fmt("faithfulness")}  (min {FAITHFULNESS_MIN})',
+            f'  answer_relevancy   : {_fmt("answer_relevancy")}  (min {ANSWER_RELEVANCY_MIN})',
+            f'  context_recall     : {_fmt("context_recall")}  (min {CONTEXT_RECALL_MIN})',
+            f'  context_precision  : {_fmt("context_precision")}  (min {CONTEXT_PRECISION_MIN})',
             '=' * 60,
         ]
         print('\n'.join(report_lines))
