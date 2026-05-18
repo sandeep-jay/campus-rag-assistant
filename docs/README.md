@@ -4,6 +4,7 @@
 
 | Doc | Description |
 |-----|-------------|
+| [../CHANGELOG.md](../CHANGELOG.md) | Release history |
 | [roadmap/PORTFOLIO_PHASED_ROADMAP.md](./roadmap/PORTFOLIO_PHASED_ROADMAP.md) | **Primary roadmap** — RAGAS, LangGraph, retrieval (publish complete on `main`) |
 | [EVALUATION.md](./EVALUATION.md) | RAGAS vs LangSmith; quality scorecard |
 | [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md) | LangGraph design (planned) |

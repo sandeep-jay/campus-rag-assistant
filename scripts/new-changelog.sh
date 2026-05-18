@@ -97,7 +97,8 @@ echo ""
 echo "Next steps:"
 echo "  1. Fill in the Summary and relevant sections"
 echo "  2. Delete any sections that do not apply"
-echo "  3. Commit alongside your code changes"
+echo "  3. Fold the summary into CHANGELOG.md [Unreleased]"
+echo "  4. Commit CHANGELOG.md alongside your code changes"
 echo ""
 
 # Open in editor if available
