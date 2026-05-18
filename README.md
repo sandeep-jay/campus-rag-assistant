@@ -12,8 +12,8 @@ Portfolio continuation of the UC Berkeley ETS **Chabot** platform: a multi-tenan
 
 ## Known gaps (roadmap)
 
-- **`POST /api/chat/stream` (SSE)** — not implemented; chat is buffered JSON only. Vue may fake-stream in the UI; see [docs/roadmap/LANGGRAPH.md](docs/roadmap/LANGGRAPH.md).
-- **LangGraph** orchestration — designed, not merged (see roadmap).
+- **`POST /api/chat/stream` (SSE)** — **not implemented on the backend.** Chat uses buffered **`POST /api/chat/chat`** (works with Azure/AWS/mock). The Vue app tries SSE first, then **falls back** to `/api/chat/chat`, so Azure tests succeed but responses are not token-streamed from the server.
+- **LangGraph** — **not implemented** (design only: [docs/roadmap/LANGGRAPH.md](docs/roadmap/LANGGRAPH.md)). RAG today is the LangChain chain in `rag.py`.
 
 ## Prerequisites
 
