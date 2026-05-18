@@ -1,0 +1,66 @@
+[
+  {
+    "question": "How do I embed Kaltura media in bCourses using the Rich Content Editor?",
+    "ground_truth": "Open the Rich Content Editor, click 'Embed Kaltura Media', select the media from My Media or a Media Gallery tab, then click the Embed button next to the media you want to embed.",
+    "contexts": [
+      "To embed Kaltura media in bCourses, open your course page and launch the Rich Content Editor. Click the 'Embed Kaltura Media' button in the toolbar. A window will open showing your My Media and Media Gallery tabs. Navigate to the appropriate tab to find the media you want. Once you locate the media, click the </> Embed button next to it. The media will be inserted into the editor at the cursor position. If you want custom embed settings such as a specific player size, click the gear icon before embedding.",
+      "Kaltura is integrated with bCourses to allow instructors and students to embed videos directly into course content. The Rich Content Editor in bCourses provides a dedicated Kaltura embed button. Media must first be uploaded to Kaltura My Media before it can be embedded. Students can embed from their own My Media library as well."
+    ]
+  },
+  {
+    "question": "What are the steps to create a Gradescope assignment linked to bCourses?",
+    "ground_truth": "Create a bCourses assignment with submission type 'External Tool', select Gradescope, set points and save. The Gradescope interface will appear where you can create and configure the assignment. After grading in Gradescope, sync scores back to the bCourses gradebook.",
+    "contexts": [
+      "Gradescope is a grading tool integrated with bCourses. To create a linked assignment: (1) Go to Assignments in your bCourses course and click +Assignment. (2) Set the submission type to 'External Tool', click 'Find', and select 'Gradescope'. (3) Enter a point value and click Save and Publish. (4) The Gradescope assignment creation interface will load embedded in the page. (5) Configure the Gradescope assignment settings (assignment type, rubric, etc.). (6) After grading, use the 'Sync to bCourses' button in Gradescope to push grades to the bCourses gradebook.",
+      "Gradescope supports multiple assignment types including homework, exams, bubble sheets, and programming assignments. Each must be linked to a bCourses gradebook item to allow grade sync. The bCourses LTI integration requires the assignment to be created from bCourses first before configuring it in Gradescope."
+    ]
+  },
+  {
+    "question": "How do I enable the Ally Course Accessibility Report in bCourses?",
+    "ground_truth": "Go to Settings in your bCourses course navigation, click the Navigation tab, find 'Ally Course Accessibility Report' in the list, enable it via the three-dot menu, and save. The report will then appear in the course navigation.",
+    "contexts": [
+      "Ally is an accessibility tool integrated with bCourses that scans course files and content for accessibility issues. The Ally Course Accessibility Report provides instructors with a dashboard showing overall course accessibility scores and guidance for improvement. To enable it: navigate to Settings in the course left navigation, click the 'Navigation' tab at the top of the Settings page, find 'Ally Course Accessibility Report' in the list of available tools, click the three vertical dots at the end of the row, select 'Enable', and click the Save button at the bottom of the page.",
+      "Once the Ally Course Accessibility Report is enabled, it will appear as a link in the course navigation. Instructors can click it to see a report of all files and pages with their accessibility scores. Ally assigns scores from 0-100%; low scores indicate content that may be inaccessible to students with disabilities. Common issues include missing alt text on images and untagged PDFs."
+    ]
+  },
+  {
+    "question": "How can I automatically publish Course Capture recordings to my bCourses site?",
+    "ground_truth": "Log into Course Capture, select your course, edit the Recording Placement setting, choose 'Publish to the Media Gallery', select your bCourses site from the dropdown, and save.",
+    "contexts": [
+      "Course Capture is a lecture recording service available to UC Berkeley instructors. Recordings can be auto-published to a bCourses Media Gallery. To configure this: (1) Log into the Course Capture scheduling website. (2) Click on the course you want to configure. (3) Under the 'Recording Placement' section, click 'Edit'. (4) Select 'Publish to the Media Gallery' from the options. (5) A dropdown will show your current semester bCourses course and any project sites. Select the desired site and click 'Add'. (6) Repeat to add multiple sites if needed. (7) Click 'Save'.",
+      "Auto-publishing Course Capture recordings ensures students can access recordings immediately after they are processed, typically within a few hours of the class ending. Recordings can be published to multiple sites simultaneously. If auto-publish is not enabled, instructors must manually publish each recording from the Course Capture portal."
+    ]
+  },
+  {
+    "question": "How do I submit an assignment in bCourses?",
+    "ground_truth": "Open the assignment from Assignments or Modules, click 'Submit Assignment', choose the submission type (File Upload, Text Entry, Website URL, or Media), add your work, and click Submit Assignment. Verify the confirmation timestamp.",
+    "contexts": [
+      "To submit an assignment in bCourses: (1) Open your bCourses course and navigate to Assignments in the left menu, or open the assignment from the Modules page. (2) Click on the assignment title to open it. (3) Click the 'Start Assignment' or 'Submit Assignment' button on the right side. (4) Select the submission type your instructor requires. Common types are: File Upload (attach files from your computer or Google Drive), Text Entry (type directly in an editor), Website URL (submit a link), and Media (record or upload a video). (5) Add your work according to the submission type. (6) Click 'Submit Assignment'. (7) Check for the green confirmation banner and submission timestamp to confirm your submission was received.",
+      "If an assignment submission fails, try refreshing the page once and submitting again. Check whether there are file size limits (typically 500MB per file). Some instructors restrict submission types or allow only one submission attempt. If the deadline has passed, contact your instructor about late submission policies."
+    ]
+  },
+  {
+    "question": "What is SuiteC and what tools does it include?",
+    "ground_truth": "SuiteC is a suite of engagement and collaboration tools integrated with bCourses, including Asset Library (for sharing course assets), Whiteboards (for collaborative visual work), and Engagement Index (for tracking participation).",
+    "contexts": [
+      "SuiteC is a set of learning engagement tools developed at UC Berkeley and integrated with bCourses. It includes three main tools: (1) Asset Library — a shared repository where students and instructors can upload, discover, and comment on course assets like images, documents, and links. (2) Whiteboards — a collaborative visual workspace where students can work together in real time on a shared canvas, adding images, links, and text. (3) Engagement Index — a leaderboard-style tool that tracks student participation across SuiteC activities. SuiteC tools are added to bCourses courses through course navigation settings.",
+      "SuiteC tools promote active learning and student engagement. The Asset Library supports peer-to-peer learning through commenting and liking assets. Whiteboards can be used for brainstorming, group projects, and creative assignments. Instructors can enable or disable individual SuiteC tools from the bCourses course navigation settings page."
+    ]
+  },
+  {
+    "question": "Why is my bCourses quiz not showing up for students?",
+    "ground_truth": "The quiz is likely unpublished or has availability dates set that restrict student access. Check that the quiz is published (green indicator), verify the Available From and Until dates, and ensure it is not hidden in Modules.",
+    "contexts": [
+      "There are several reasons a bCourses quiz may not be visible to students: (1) The quiz is unpublished — a gray dot indicates an unpublished item; click it to turn it green (published). (2) Availability dates — the quiz has an 'Available From' date that is in the future, or an 'Until' date that has already passed. Students cannot see quizzes outside their availability window. (3) The quiz is in a locked Module — if the quiz is inside a Module with prerequisites or dates that restrict access, students will be locked out. (4) The quiz was assigned only to specific students or sections and the student you are checking is not in the assigned group.",
+      "To troubleshoot quiz visibility: navigate to Quizzes in your course, check the status icon next to each quiz. Click the quiz title and then 'Edit' to review the availability dates and assignment settings. Use 'Student View' (the person icon at the top right of the course) to see what students see. Remember that Instructor and TA views always show all content regardless of publication status."
+    ]
+  },
+  {
+    "question": "How do I set up academic integrity tools in bCourses assignments?",
+    "ground_truth": "Academic integrity tools like Turnitin can be enabled within a bCourses assignment by setting the submission type to Online, selecting the appropriate plagiarism review tool in the Plagiarism Review section, and configuring the originality report settings before saving.",
+    "contexts": [
+      "bCourses integrates with academic integrity tools such as Turnitin to check student submissions for potential plagiarism. To enable an academic integrity tool on an assignment: (1) Open or create an assignment in bCourses. (2) Set the Submission Type to 'Online' and check 'File Uploads' or 'Text Entry'. (3) Scroll to the 'Plagiarism Review' section. (4) Select the desired tool from the dropdown (e.g., Turnitin). (5) Configure settings such as when the originality report is visible to students, whether the report stores submissions in the repository, and the similarity threshold. (6) Save the assignment. Students will see a notice that their submission will be reviewed for originality.",
+      "Academic integrity tools generate originality reports that compare submitted text against a database of web content, published works, and previously submitted papers. Instructors can view these reports from the SpeedGrader or the Grades area. It is recommended to inform students in the syllabus that academic integrity tools are in use. Some assignment types, such as media-only submissions, are not compatible with these tools."
+    ]
+  }
+]

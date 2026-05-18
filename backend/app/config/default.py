@@ -101,6 +101,11 @@ class DefaultSettings(BaseSettings):
     RETRIEVER_SEARCH_TYPE: str = 'HYBRID'  # Default search type for retriever
     TEMPERATURE: float = 0.1  # Default temperature for LLM
 
+    # Provider selection (mock | aws | azure); RAG_FORCE_MOCK overrides all
+    RAG_FORCE_MOCK: bool = False
+    RAG_PROVIDER: str | None = None  # single shortcut for both LLM and retriever
+    LLM_PROVIDER: str = 'mock'
+    RETRIEVER_PROVIDER: str = 'mock'
 
     # Observability and platform
     LOG_JSON: bool = False
