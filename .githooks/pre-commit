@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# .githooks/pre-commit
+#
+# Soft changelog reminder: warns (but never blocks) when staged changes don't
+# include a new or updated changelog entry.
+#
+# Install once per clone:
+#   git config core.hooksPath .githooks
+#
+# To skip for a specific commit (e.g. chore/typo fix):
+#   git commit --no-verify
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+CHANGELOG_DIR="$REPO_ROOT/changelog"
+
+# ── Check whether any changelog/*.md (excluding _template.md) is staged ─────
+STAGED_CHANGELOG=$(git diff --cached --name-only | grep -E '^changelog/[^_].*\.md$' || true)
+
+if [[ -n "$STAGED_CHANGELOG" ]]; then
+  # A changelog entry is part of this commit — all good
+  exit 0
+fi
+
+# ── Check if there are substantive staged changes (not just config/docs) ─────
+STAGED_CODE=$(git diff --cached --name-only | grep -Ev '^(changelog/|docs/|\.env\.example|README)' || true)
+
+if [[ -z "$STAGED_CODE" ]]; then
+  # Only docs/config changes — no reminder needed
+  exit 0
+fi
+
+# ── Reminder ─────────────────────────────────────────────────────────────────
+YELLOW='\033[0;33m'
+NC='\033[0m'
+printf "\n${YELLOW}[changelog] Reminder:${NC} No changelog entry is included in this commit.\n"
+printf "  Run  ./scripts/new-changelog.sh  to generate a draft.\n"
+printf "  Or use  git commit --no-verify  to skip this check.\n\n"
+
+# Exit 0 so the commit is NOT blocked
+exit 0
