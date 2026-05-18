@@ -86,10 +86,8 @@ coverage
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
-# Session changelog drafts (canonical: CHANGELOG.md at repo root)
-changelog/*
-!changelog/_template.md
-!changelog/README.md
+# Local scratch only — canonical history is CHANGELOG.md at repo root
+changelog/
 
 # frontend-vue (generated artifacts and secrets; see also frontend-vue/.gitignore)
 frontend-vue/node_modules/
