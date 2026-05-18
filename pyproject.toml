@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [tool.ruff]
 # Ruff configuration is now in ruff.toml
 # This redirects the tool to use ruff.toml for its configuration
-src = ["backend", "frontend"]
+src = ["backend", "frontend-streamlit"]
 
 [tool.pytest.ini_options]
 pythonpath = [
