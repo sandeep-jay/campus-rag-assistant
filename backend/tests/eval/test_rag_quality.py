@@ -107,7 +107,7 @@ def rag_service_for_eval():
     return RAGService()
 
 
-@pytest.mark.slow
+@pytest.mark.slow()
 class TestRAGQuality:
     """End-to-end quality evaluation of the RAG pipeline against a golden dataset.
 
@@ -138,9 +138,9 @@ class TestRAGQuality:
         logger.info('faithfulness score: %.3f (threshold: %.2f)', score, FAITHFULNESS_MIN)
 
         if QUALITY_GATE_ENABLED:
-            assert score >= FAITHFULNESS_MIN, (
-                f'Faithfulness {score:.3f} below threshold {FAITHFULNESS_MIN}. Check for hallucinations in LLM responses or improve context quality.'
-            )
+            assert (
+                score >= FAITHFULNESS_MIN
+            ), f'Faithfulness {score:.3f} below threshold {FAITHFULNESS_MIN}. Check for hallucinations in LLM responses or improve context quality.'
 
     def test_answer_relevancy(self, rag_service_for_eval):
         """Answers should address the question being asked."""
@@ -156,9 +156,9 @@ class TestRAGQuality:
         logger.info('answer_relevancy score: %.3f (threshold: %.2f)', score, ANSWER_RELEVANCY_MIN)
 
         if QUALITY_GATE_ENABLED:
-            assert score >= ANSWER_RELEVANCY_MIN, (
-                f'Answer relevancy {score:.3f} below threshold {ANSWER_RELEVANCY_MIN}. Review prompt templates and ensure retrieval stays on-domain.'
-            )
+            assert (
+                score >= ANSWER_RELEVANCY_MIN
+            ), f'Answer relevancy {score:.3f} below threshold {ANSWER_RELEVANCY_MIN}. Review prompt templates and ensure retrieval stays on-domain.'
 
     def test_context_recall(self, rag_service_for_eval):
         """Retrieved context should cover the information needed to answer correctly."""

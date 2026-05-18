@@ -23,7 +23,7 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -99,9 +99,12 @@ def test_initialize_rag_service_with_bedrock_service(rag_mocks):
 def test_initialize_with_provided_client(rag_mocks):
     """Test initialization of RAGService with injected Bedrock service."""
     bedrock = rag_mocks[7]
-    with patch('backend.app.services.rag.AwsLlmProvider.create_or_mock', return_value=rag_mocks[5]), patch(
-        'backend.app.services.rag.AwsRetrieverProvider.create_or_mock',
-        return_value=rag_mocks[6],
+    with (
+        patch('backend.app.services.rag.AwsLlmProvider.create_or_mock', return_value=rag_mocks[5]),
+        patch(
+            'backend.app.services.rag.AwsRetrieverProvider.create_or_mock',
+            return_value=rag_mocks[6],
+        ),
     ):
         service = RAGService(bedrock_service=bedrock)
     assert not service.is_mock
@@ -262,9 +265,12 @@ def test_fallback_to_mock_implementation(rag_mocks):
 def test_rag_and_bedrock_service_compatibility(rag_mocks):
     """Test that injected Bedrock service works with RAGService."""
     bedrock = rag_mocks[7]
-    with patch('backend.app.services.rag.AwsLlmProvider.create_or_mock', return_value=rag_mocks[5]), patch(
-        'backend.app.services.rag.AwsRetrieverProvider.create_or_mock',
-        return_value=rag_mocks[6],
+    with (
+        patch('backend.app.services.rag.AwsLlmProvider.create_or_mock', return_value=rag_mocks[5]),
+        patch(
+            'backend.app.services.rag.AwsRetrieverProvider.create_or_mock',
+            return_value=rag_mocks[6],
+        ),
     ):
         service = RAGService(bedrock_service=bedrock)
     assert not service.is_mock
