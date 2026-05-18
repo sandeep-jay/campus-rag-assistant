@@ -3,20 +3,27 @@
 Notable changes to this **portfolio fork** of the UC Berkeley ETS Chabot platform
 ([multicloud-rag-chatbot](https://github.com/sandeep-jay/multicloud-rag-chatbot)).
 
-Format follows [Keep a Changelog](https://keepachangelog.com/).  
+Format: [Keep a Changelog](https://keepachangelog.com/).  
 Attribution and license: [README](README.md#license).
 
-Session working drafts (more detail, some planned items) were consolidated from
-`changelog/2026-05-01-*.md` — see [changelog/README.md](changelog/README.md).
+**This file is the only changelog.** Edit `[Unreleased]` as you work; when you merge a milestone, rename that section to `## [YYYY-MM-DD] — short title` and open a new empty `[Unreleased]`.
 
 ---
 
 ## [Unreleased]
 
+### Added
+
+- Root **CHANGELOG.md** as the single running log (replaces gitignored `changelog/` session files).
+
 ### Changed
 
-- Documentation: attribution under README License; removed publish-era docs
-  (`PORTFOLIO.md`, `EXECUTION_PLAN.md`, `DOC_AUDIT.md`); trimmed `ARCHITECTURE.md`.
+- Documentation: attribution under README License; removed `PORTFOLIO.md`, `EXECUTION_PLAN.md`, `DOC_AUDIT.md`; trimmed `ARCHITECTURE.md`.
+- Pre-commit hook reminds to update **CHANGELOG.md** only.
+
+### Removed
+
+- `scripts/new-changelog.sh` and tracked `changelog/` templates (folder stays gitignored for local scraps).
 
 ---
 
@@ -31,65 +38,61 @@ Session working drafts (more detail, some planned items) were consolidated from
 ### Changed
 
 - **tox** `backend`: `RATE_LIMIT_ENABLED=false`, exclude `slow` (RAGAS) tests by default.
-- **README** Testing section documents unified `tox -e lint,backend,frontend-streamlit,frontend-vue`.
+- **README** Testing: `tox -e lint,backend,frontend-streamlit,frontend-vue`.
 - Ruff/pytest marker cleanups.
 
 ---
 
 ## [2026-05-17] — Portfolio publish on `main`
 
-Summary of merged PRs #1–#8 on [multicloud-rag-chatbot](https://github.com/sandeep-jay/multicloud-rag-chatbot).
-Consolidated from portfolio execution plan and 2026-05-01 session notes.
+Merged PRs #1–#8. Consolidated from May 2026 development sessions (providers, Vue, platform, logging, eval).
 
 ### Added
 
-- **Vue 3 SPA** (`frontend-vue/`): TypeScript, Vite, Pinia, Vue Router, Vitest (124 tests), Playwright e2e scaffolding, MSW mocks.
-- **Streamlit client** (`frontend-streamlit/`): same REST API as Vue.
-- **Provider registry** (`backend/app/services/providers/`): LLM and retriever for `aws`, `azure`, `mock`; wired in `rag.py`; `RAG_FORCE_MOCK` for zero-cloud demos.
-- **Platform middleware**: `RequestContextMiddleware` + `X-Request-ID`; Prometheus metrics; Redis/fakeredis rate limits on auth/chat; dev-only routes.
-- **Alembic** (`backend/alembic/`, `0001_initial_schema.py`); production expects `alembic upgrade head`.
-- **RAGAS eval** (`backend/tests/eval/`, `golden_dataset.json`); see [docs/EVALUATION.md](docs/EVALUATION.md).
-- **k6 load tests** (`load-tests/`); [docs/LOAD_TESTING.md](docs/LOAD_TESTING.md).
-- **Dev tooling**: `.githooks/pre-commit`, `scripts/` (venv, Vue, loadtest, hooks).
-- **Docs**: architecture, operations, E2E, evaluation, roadmap, LangGraph design.
+- **Vue 3 SPA** (`frontend-vue/`): TypeScript, Vite, Pinia, Vue Router, Vitest (124 tests), Playwright e2e, MSW mocks, API interceptors.
+- **Streamlit client** (`frontend-streamlit/`).
+- **Provider registry** (`backend/app/services/providers/`): `aws`, `azure`, `mock`; wired in `rag.py`; `RAG_FORCE_MOCK`.
+- **Request context**: `RequestContextMiddleware`, `X-Request-ID`, `RequestIdFilter`, `backend/tests/core/test_request_context.py`.
+- **Observability**: Prometheus metrics (`/api/metrics`); optional `LOG_JSON` structured logs.
+- **Rate limiting**: Redis sliding window with fakeredis fallback (`backend/app/core/rate_limit.py`).
+- **Dev routes** gated by environment (`dev_routes.py`).
+- **Alembic** initial migration `0001_initial_schema.py`.
+- **RAGAS eval** (`backend/tests/eval/`, `golden_dataset.json`).
+- **k6 load tests** (`load-tests/`, seed script).
+- **Scripts**: `run-backend-venv.sh`, `run-frontend-vue.sh`, `kill-dev-servers.sh`, `install-hooks.sh`, load-test helpers.
+- **Docs**: architecture, operations, E2E, evaluation, portfolio roadmap, LangGraph design.
 
 ### Changed
 
-- **README**: portfolio quick start, mock RAG, feature list, upstream link.
-- **`.env.example`**: mock-friendly defaults.
-- **`run_services.sh` / tox**: `frontend-streamlit/` path after duplicate tree removal.
-- **Logging**: `LOG_JSON`, request ID in logs, quieter auth INFO logs.
-- **`main.py`**: `create_all` only in dev/test.
-- **Password rules** on registration; tests updated.
+- **README** and **`.env.example`**: portfolio quick start, mock defaults.
+- **`run_services.sh` / tox**: `frontend-streamlit/` after duplicate `frontend/` removal.
+- **Logging**: request ID in log format; auth routine logs at DEBUG; INFO for auth outcomes only.
+- **`main.py`**: `create_all` only in dev/test; Alembic for production.
+- **Registration**: password strength validation (8+ chars, upper, lower, digit).
 
 ### Removed
 
-- Duplicate **`frontend/`** tree (same as `frontend-streamlit/`).
+- Duplicate **`frontend/`** tree.
 - Root **`root-open-k6.js`** and empty root **`package-lock.json`**.
 
 ### Security
 
-- Rate limiting on auth and chat (shared Redis when `REDIS_URL` set).
-- Generic 500 messages on chat errors.
+- Shared rate limits on auth/chat when `REDIS_URL` is set.
+- Generic 500 responses on chat errors.
 
-### Known gaps (planned in session notes, not on `main`)
+### Planned but not shipped
 
-| Item | Status |
+Session notes once described these; they are **not** on `main`:
+
+| Item | Notes |
 |------|--------|
-| `POST /api/chat/stream` (SSE) | Not implemented |
-| FlashRank / `RERANK_*` in `rag.py` | Not implemented |
+| `POST /api/chat/stream` (SSE) | Buffered JSON chat only |
+| FlashRank / `RERANK_*` | Not in `rag.py` |
 | `tox -e eval` | Use `pytest backend/tests/eval/ -m slow` |
-| LangGraph | Design only — [docs/roadmap/LANGGRAPH.md](docs/roadmap/LANGGRAPH.md) |
+| LangGraph | [docs/roadmap/LANGGRAPH.md](docs/roadmap/LANGGRAPH.md) |
 
 ---
 
 ## [Earlier] — Berkeley ETS Chabot baseline
 
-Original Chabot developed for UC Berkeley ETS. © The Regents of the University of California — [LICENSE](LICENSE).
-
----
-
-## How to update
-
-1. Edit **[Unreleased]**, then move entries under a dated section when merging a milestone.
-2. Optional draft: `./scripts/new-changelog.sh <slug>` → fold summary into this file before push.
+Original Chabot for UC Berkeley ETS. © The Regents of the University of California — [LICENSE](LICENSE).
