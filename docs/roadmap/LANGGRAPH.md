@@ -95,4 +95,3 @@ Org roadmap "graph-augmented retrieval" = knowledge **graph** (entities), not La
 
 - [EVALUATION.md](../EVALUATION.md)
 - [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md)
-- [changelog/PR_PLAN.md](../EXECUTION_PLAN.md)
