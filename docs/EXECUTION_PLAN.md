@@ -1,6 +1,6 @@
 # Master plan — commits, PRs, and portfolio publish
 
-**Last updated:** 2026-05-17  
+**Last updated:** 2026-05-18  
 **Canonical doc** for staging uncommitted work (public copy in `docs/`). The matching file under `changelog/PR_PLAN.md` is gitignored locally. Supersedes the Cursor plan `logical_commit_breakdown_e582d942` (kept as a pointer only).
 
 | Doc | Purpose |
@@ -41,26 +41,34 @@ Do **not** commit secrets or generated artifacts (extend [`.gitignore`](../.giti
 
 ---
 
-## What is pending (current tree)
+## Publish status (2026-05-18)
 
-Almost all new work is **untracked** (~150 paths): `.githooks/`, `alembic.ini`, `backend/alembic/`, `backend/app/core/{dev_routes,metrics,rate_limit,request_context}.py`, `backend/app/services/providers/`, tests (`backend/tests/core/`, `eval/`, `services/providers/`), `docs/`, `frontend-vue/`, `frontend-streamlit/`, `load-tests/`, `scripts/`, root k6/npm artifacts.
+**Portfolio publish queue is complete on `main`** (GitHub PRs #1–#8, README #6, cleanup #7).
 
-**Integration gap (fix in platform/RAG commits):**
+| GitHub PR | Content |
+|-----------|---------|
+| #1–#2 | Hooks, scripts, Alembic |
+| #3 | Platform middleware, metrics, rate limits |
+| #4 | Providers, RAG registry, RAGAS eval |
+| #5–#6 | Vue SPA, Streamlit client |
+| #4 (load) | k6 `load-tests/` |
+| #5 (docs) | `docs/` |
+| #6 | Portfolio README + mock `.env.example` |
+| #7 | Remove duplicate `frontend/`; use `frontend-streamlit/` |
 
-- [`backend/app/main.py`](../backend/app/main.py) — new middleware not wired yet
-- [`backend/app/api/chat.py`](../backend/app/api/chat.py), [`auth.py`](../backend/app/api/auth.py) — rate limit / context not wired
-- [`backend/app/services/rag.py`](../backend/app/services/rag.py) — still direct Bedrock, not provider registry
-
-### Implementation status (2026-05-17 audit)
+### Implementation status (current `main`)
 
 | Area | Status |
 |------|--------|
-| Platform modules (`request_context`, `metrics`, `rate_limit`, `dev_routes`) | **Present, not wired** in `main.py` / routers |
-| Provider registry | **Present**; `rag.py` still uses Bedrock directly |
-| LangGraph (`backend/app/services/graph/`) | **Not started** (roadmap Phase 4) |
-| `/api/chat/stream` (SSE) | **Not present** in `chat.py` (Phase 6 / org Phase 0 target) |
-| RAGAS eval tests | **Present** under `backend/tests/eval/` |
-| `tox -e eval` | **Not defined** — use `pytest backend/tests/eval/` from repo root with `PYTHONPATH=.` |
+| Platform (`request_context`, metrics, rate limits) | **Wired** |
+| Provider registry + `rag.py` | **Wired** |
+| Vue + Streamlit | **On `main`** |
+| LangGraph | **Not started** — [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md) |
+| `/api/chat/stream` (SSE) | **Not implemented** — Vue uses fallback |
+| RAGAS eval | `pytest backend/tests/eval/` (optional `ragas` install) |
+| DB schema | **Alembic** for deploy; `create_all` only in dev/test startup |
+
+See [DOC_AUDIT.md](./DOC_AUDIT.md) for doc-vs-code gaps.
 
 
 ---
@@ -92,7 +100,7 @@ Each row = one `git commit` (or squash PR slice). Use prefixes: `chore:`, `feat(
 | **0** | `.gitignore` hygiene only | — |
 | **1** | `.githooks/pre-commit`, `scripts/install-hooks.sh` | PR1 |
 | **1b** | Remaining `scripts/*` (venv, vue, kill-dev, loadtest, changelog) | PR1 |
-| **2** | `root-open-k6.js` + root `package-lock.json` (if used together) | PR1 |
+| **2** | ~~root k6 stub~~ → use `load-tests/` only (stub removed post-publish) | PR1 / cleanup |
 | **3** | `alembic.ini`, `backend/alembic/` (+ DB config if needed) | PR2 |
 | **4** | `request_context.py` + test + **`main.py` middleware** | PR3 |
 | **5** | `metrics.py` + **`main.py`** + config / `.env.example` | PR3 |
