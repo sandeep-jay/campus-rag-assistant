@@ -43,6 +43,7 @@ from backend.app.schemas.chat import ChatMessageCreate, ChatSessionCreate
 from backend.app.schemas.feedback import Feedback, FeedbackCreate
 from backend.app.services.db import DatabaseService
 from backend.app.services.rag import RAGService
+from backend.app.services.tenant_rag_config import load_tenant_rag_config
 from backend.app.utils.simple_tracer import trace_rag
 
 router = APIRouter()
@@ -58,6 +59,14 @@ def _history_limit() -> int | None:
     limit = int(getattr(settings, 'CHAT_HISTORY_MAX_MESSAGES', 0) or 0)
     return limit if limit > 0 else None
 
+
+
+
+def _resolve_tenant_rag_config(db_service: DatabaseService, user: User):
+    tenant = None
+    if user.tenant_id:
+        tenant = db_service.get_tenant(user.tenant_id)
+    return load_tenant_rag_config(tenant)
 
 def _load_chat_history(db_service: DatabaseService, session_id: int) -> list:
     session_messages = db_service.get_session_messages(session_id, max_messages=_history_limit())
@@ -345,10 +354,11 @@ async def chat(
 
     # Initialize the RAG service for this request
     rag_service = get_rag_service()
+    tenant_config = _resolve_tenant_rag_config(db_service, current_user)
 
     @trace_rag
     def process_chat(content, history):
-        return rag_service.process_query(content, history)
+        return rag_service.process_query(content, history, tenant_config)
 
     try:
         rag_response = process_chat(message.content, chat_history)
@@ -404,13 +414,14 @@ async def chat_stream(
     )
     chat_history = _load_chat_history(db_service, session_id)
     rag_service = get_rag_service()
+    tenant_config = _resolve_tenant_rag_config(db_service, current_user)
 
     def streaming_body():
         assistant_chunks: list[str] = []
         stream_started = time.perf_counter()
         first_token_recorded = False
         try:
-            for event in rag_service.stream_query(message.content, chat_history):
+            for event in rag_service.stream_query(message.content, chat_history, tenant_config):
                 if event['type'] == 'token':
                     if not first_token_recorded:
                         first_token_recorded = True
@@ -421,7 +432,7 @@ async def chat_stream(
                     metadata = event.get('metadata', {})
                     assistant_text = ''.join(assistant_chunks)
                     if not assistant_text.strip():
-                        buffered = rag_service.process_query(message.content, chat_history)
+                        buffered = rag_service.process_query(message.content, chat_history, tenant_config)
                         assistant_text = buffered['message']
                         metadata = buffered.get('metadata', metadata)
                     assistant_text = rag_service._normalize_answer_formatting(  # noqa: SLF001

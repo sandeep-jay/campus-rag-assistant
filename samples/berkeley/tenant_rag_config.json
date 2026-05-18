@@ -1,0 +1,5 @@
+{
+  "assistant_name": "Campus EdTech Support Assistant (Berkeley RTL sample)",
+  "supported_topics": "bCourses, Ally, Course Capture, Academic Integrity, Kaltura, SuiteC, and Gradescope",
+  "out_of_scope_message": "I can only answer questions related to bCourses, Ally, Course Capture, Academic Integrity, Kaltura, SuiteC, and Gradescope. Please ask a question related to these topics."
+}

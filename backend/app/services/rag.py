@@ -43,6 +43,7 @@ from backend.app.services.providers.llm.aws import AwsLlmProvider
 from backend.app.services.providers.llm.mock import MockLlmProvider
 from backend.app.services.providers.retriever.aws import AwsRetrieverProvider
 from backend.app.services.providers.retriever.mock import MockRetrieverProvider
+from backend.app.services.tenant_rag_config import TenantRagConfig
 from backend.app.utils.simple_tracer import trace_rag
 
 # Configure logging
@@ -113,7 +114,9 @@ class RAGService:
             elif bedrock_service is not None:
                 self.bedrock_service = bedrock_service
 
-            self.qa_prompt, self.condense_question_prompt = self._create_prompt_templates()
+            self.qa_prompt, self.condense_question_prompt = self._create_prompt_templates(
+                TenantRagConfig.from_settings(),
+            )
             logger.info('Created prompt templates')
 
         except (ProfileNotFound, NoCredentialsError, NoRegionError) as e:
@@ -125,20 +128,25 @@ class RAGService:
             logger.warning('Falling back to mock implementation')
             self.is_mock = True
 
-    def _load_templates(self):
-        """Load prompt templates and few-shot examples from the templates directory"""
+    def _load_templates(self, tenant_config: TenantRagConfig | None = None):
+        """Load prompt templates; hydrate placeholders from tenant or env defaults."""
+        config = tenant_config or TenantRagConfig.from_settings()
         templates = {}
         try:
-            # Load prefix template
-            with open(TEMPLATES_DIR / 'prompt_prefix.txt', 'r') as f:
-                templates['prefix'] = f.read()
-            # Load suffix template
-            with open(TEMPLATES_DIR / 'prompt_suffix.txt', 'r') as f:
-                templates['suffix'] = f.read()
-            # Load few-shot examples
-            with open(TEMPLATES_DIR / 'few_shot_examples.json', 'r') as f:
-                templates['few_shot_examples'] = json.load(f)
-            logger.info('Successfully loaded templates and few-shot examples')
+            with open(TEMPLATES_DIR / 'prompt_prefix.txt', 'r', encoding='utf-8') as f:
+                templates['prefix'] = config.hydrate_text(f.read())
+            suffix_path = TEMPLATES_DIR / 'prompt_suffix.txt'
+            if suffix_path.is_file():
+                with open(suffix_path, 'r', encoding='utf-8') as f:
+                    templates['suffix'] = config.hydrate_text(f.read())
+            else:
+                templates['suffix'] = ''
+            if config.few_shot_examples:
+                templates['few_shot_examples'] = config.few_shot_examples
+            else:
+                with open(TEMPLATES_DIR / 'few_shot_examples.json', 'r', encoding='utf-8') as f:
+                    templates['few_shot_examples'] = json.load(f)
+            logger.info('Successfully loaded templates for assistant=%s', config.assistant_name)
         except Exception as e:
             logger.exception(f'Failed to load templates: {e!s}')
             # Provide default templates as fallback
@@ -167,10 +175,10 @@ class RAGService:
             templates['few_shot_examples'] = []
         return templates
 
-    def _create_prompt_templates(self):
+    def _create_prompt_templates(self, tenant_config: TenantRagConfig | None = None):
         # Load templates — use a single QA prompt (few-shot examples removed from combine chain
         # because they caused format leakage and garbled answers with ConversationalRetrievalChain).
-        templates = self._load_templates()
+        templates = self._load_templates(tenant_config)
         prefix = templates.get('prefix', '')
         suffix = templates.get('suffix', '')
         qa_prompt = PromptTemplate(
@@ -197,7 +205,7 @@ Standalone Question (one line only, no labels):""")
             intent_prompt = """
             Examine this question: {0}
 
-            If it's about educational technology tools, rewrite it to be more specific
+            If it's about the supported topic areas, rewrite it to be more specific
             while maintaining the original intent.
             If it's not about educational technology, return it unchanged.
 
@@ -336,13 +344,18 @@ Standalone Question (one line only, no labels):""")
         for i in range(0, len(text), size):
             yield text[i : i + size]
 
-    def stream_query(self, query: str, chat_history: list | None = None):  # noqa: C901
+    def stream_query(
+        self,
+        query: str,
+        chat_history: list | None = None,
+        tenant_config: TenantRagConfig | None = None,
+    ):
         """Yield SSE payload dicts: token events then a final done metadata event."""
         if chat_history is None:
             chat_history = []
 
         if self.is_mock:
-            mock = self._create_mock_response(query)
+            mock = self._create_mock_response(query, tenant_config)
             message = self._normalize_answer_formatting(
                 mock['message'],
                 mock['metadata'].get('sources', []),
@@ -358,13 +371,14 @@ Standalone Question (one line only, no labels):""")
             streaming_llm = self.llm_provider.get_streaming_llm()
             if streaming_llm is None:
                 streaming_llm = self.llm_provider.get_llm()
+            qa_prompt, condense_question_prompt = self._create_prompt_templates(tenant_config)
             qa_chain = ConversationalRetrievalChain.from_llm(
                 llm=streaming_llm,
                 retriever=self.retriever,
                 return_source_documents=True,
                 memory=memory,
-                combine_docs_chain_kwargs={'prompt': self.qa_prompt},
-                condense_question_prompt=self.condense_question_prompt,
+                combine_docs_chain_kwargs={'prompt': qa_prompt},
+                condense_question_prompt=condense_question_prompt,
             )
             last_answer = ''
             source_documents: list = []
@@ -395,18 +409,22 @@ Standalone Question (one line only, no labels):""")
             }
         except Exception as e:
             logger.exception('Stream query failed, using buffered fallback: %s', e)
-            result = self.process_query(query, chat_history)
+            result = self.process_query(query, chat_history, tenant_config)
             for chunk in self._chunk_for_stream(result['message'], size=12):
                 yield {'type': 'token', 'token': chunk}
                 _stream_artificial_delay()
             yield {'type': 'done', 'metadata': result['metadata']}
 
-    def _create_mock_response(self, query: str):
+    def _create_mock_response(self, query: str, tenant_config: TenantRagConfig | None = None):
         # Create an improved mock response using few-shot examples if available
         try:
             # Try to load examples for better mock responses
-            with open(TEMPLATES_DIR / 'few_shot_examples.json', 'r') as file:
-                mock_examples = json.load(file)
+            config = tenant_config or TenantRagConfig.from_settings()
+            if config.few_shot_examples:
+                mock_examples = config.few_shot_examples
+            else:
+                with open(TEMPLATES_DIR / 'few_shot_examples.json', 'r', encoding='utf-8') as file:
+                    mock_examples = json.load(file)
             # Find most relevant example based on simple keyword matching
             query_words = set(query.lower().split())
             best_match = None
@@ -470,6 +488,7 @@ Standalone Question (one line only, no labels):""")
         self,
         query: str,
         chat_history: list | None = None,
+        tenant_config: TenantRagConfig | None = None,
     ) -> dict[str, Any]:
         # Process a user query through the RAG pipeline with conversation memory.
         if not chat_history:
@@ -479,7 +498,7 @@ Standalone Question (one line only, no labels):""")
         start_time = time.time()
 
         if self.is_mock:
-            mock_response = self._create_mock_response(query)
+            mock_response = self._create_mock_response(query, tenant_config)
             logger.info(f'Mock response generated in {time.time() - start_time:.2f}s')
             return mock_response
 
@@ -487,13 +506,14 @@ Standalone Question (one line only, no labels):""")
             memory = self._build_memory(chat_history)
             improved_query = query
             # Initialize the conversational chain for each request
+            qa_prompt, condense_question_prompt = self._create_prompt_templates(tenant_config)
             qa_chain = ConversationalRetrievalChain.from_llm(
                 llm=self.llm,
                 retriever=self.retriever,
                 return_source_documents=True,
                 memory=memory,
-                combine_docs_chain_kwargs={'prompt': self.qa_prompt},
-                condense_question_prompt=self.condense_question_prompt,
+                combine_docs_chain_kwargs={'prompt': qa_prompt},
+                condense_question_prompt=condense_question_prompt,
             )
             # Use the conversational retrieval chain to get a response
             response = qa_chain.invoke(

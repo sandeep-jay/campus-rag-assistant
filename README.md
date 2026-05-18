@@ -1,6 +1,6 @@
 # Campus RAG Assistant
 
-Production-style **retrieval-augmented chat** over campus support FAQs and knowledge-base articles. **FastAPI** backend, **Vue 3** SPA, and pluggable **AWS / Azure / mock** LLM and retriever providers.
+Production-style **retrieval-augmented chat** over your knowledge base, with **tenant-hydrated** prompts (generic defaults; per-tenant `rag_config` in Postgres). **FastAPI** backend, **Vue 3** SPA, and pluggable **AWS / Azure / mock** LLM and retriever providers.
 
 Ask questions in natural language; the app retrieves relevant docs, streams a cited answer, and keeps conversation history per user.
 
@@ -20,7 +20,7 @@ Ask questions in natural language; the app retrieves relevant docs, streams a ci
 ## Chatbot features
 
 - **RAG answers** — retrieval + generation from your KB (not open-web search)
-- **Scoped topics** — declines questions outside configured support domains
+- **Scoped topics** — declines off-topic questions using `SUPPORTED_TOPICS` / `tenant.rag_config`
 - **Markdown replies** — summary, `##` sections, bullets, numbered steps
 - **SSE streaming** — `POST /api/chat/stream` with fallback to `POST /api/chat/chat`
 - **Sources** — KB chips and expandable excerpt panel per message
