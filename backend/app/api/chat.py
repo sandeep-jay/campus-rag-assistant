@@ -23,9 +23,12 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
+import json
+import time
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from backend.app.core.config_manager import settings
@@ -42,6 +45,41 @@ from backend.app.services.rag import RAGService
 from backend.app.utils.simple_tracer import trace_rag
 
 router = APIRouter()
+
+
+def _sse_payload(event: dict) -> str:
+    return f'data: {json.dumps(event)}\n\n'
+
+
+def _format_chat_history(session_messages) -> list:
+    chat_history = []
+    for msg in session_messages:
+        chat_history.append((msg.content, '') if msg.role == 'user' else ('', msg.content))
+    return chat_history
+
+
+def _resolve_or_create_session(
+    message: ChatMessageCreate,
+    current_user: User,
+    db_service: DatabaseService,
+) -> int:
+    session_id = message.session_id
+    if not session_id:
+        title = f'Chat: {message.content[:20]}...' if len(message.content) > 20 else message.content
+        session = db_service.create_chat_session(user_id=current_user.id, title=title)
+        return session.id
+
+    session = db_service.get_chat_session(session_id)
+    if not session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Chat session not found')
+    if session.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Not authorized to access this chat session',
+        )
+    return session_id
+
+
 # Removed module-level instance to avoid initialization issues
 
 
@@ -319,6 +357,7 @@ async def chat(
 
         # Return the response
         return {
+            'session_id': session_id,
             'user_message': {
                 'id': user_msg.id,
                 'content': user_msg.content,
@@ -339,6 +378,74 @@ async def chat(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f'Error generating response: {e!s}',
         )
+
+
+@router.post('/stream', dependencies=[Depends(limit_chat)])
+async def chat_stream(
+    message: ChatMessageCreate,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> StreamingResponse:
+    """Stream assistant tokens via Server-Sent Events (SSE)."""
+    db_service = DatabaseService(db)
+
+    session_id = _resolve_or_create_session(message, current_user, db_service)
+
+    db_service.create_chat_message(
+        session_id=session_id,
+        content=message.content,
+        role='user',
+    )
+    session_messages = db_service.get_session_messages(session_id)
+    chat_history = _format_chat_history(session_messages)
+    rag_service = get_rag_service()
+
+    def streaming_body():
+        assistant_chunks: list[str] = []
+        try:
+            for event in rag_service.stream_query(message.content, chat_history):
+                if event['type'] == 'token':
+                    assistant_chunks.append(event['token'])
+                    yield _sse_payload({'type': 'token', 'token': event['token']})
+                    time.sleep(0.02)
+                elif event['type'] == 'done':
+                    metadata = event.get('metadata', {})
+                    assistant_text = ''.join(assistant_chunks)
+                    if not assistant_text.strip():
+                        buffered = rag_service.process_query(message.content, chat_history)
+                        assistant_text = buffered['message']
+                        metadata = buffered.get('metadata', metadata)
+                    assistant_text = rag_service._normalize_answer_formatting(  # noqa: SLF001
+                        assistant_text,
+                        metadata.get('sources', []),
+                    )
+                    db_service.create_chat_message(
+                        session_id=session_id,
+                        content=assistant_text,
+                        role='assistant',
+                        metadata=metadata,
+                    )
+                    yield _sse_payload(
+                        {
+                            'type': 'done',
+                            'session_id': session_id,
+                            'sources': metadata.get('sources', []),
+                            'document_contents': metadata.get('document_contents', []),
+                        },
+                    )
+        except Exception as e:
+            logger.exception('Streaming chat failed: %s', e)
+            yield _sse_payload({'type': 'error', 'message': 'Error generating response.'})
+
+    return StreamingResponse(
+        streaming_body(),
+        media_type='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no',
+        },
+    )
 
 
 @router.post('/feedback')
