@@ -1,6 +1,8 @@
-# Multicloud RAG Chatbot
+# RAG Chat Platform
 
-Portfolio continuation of the UC Berkeley ETS **Chabot** platform: a multi-tenant RAG chat API with swappable LLM/retriever providers (AWS Bedrock, Azure OpenAI, mock), a Vue 3 SPA, and a Streamlit client.
+Production-style **retrieval-augmented chat**: **FastAPI** backend, **Vue 3** SPA, and pluggable **AWS Bedrock / Azure OpenAI / mock** LLM and retriever providers. Multi-tenant sessions, **cited answers**, **RAGAS** golden-dataset eval, and a **mock-first** path so you can demo without cloud credentials.
+
+Also includes a **Streamlit** client (`frontend-streamlit/`) on the same API. Forked from UC Berkeley ETS [**Chabot**](https://github.com/ets-berkeley-edu/chabot); see [License](#license) for attribution.
 
 ## Features
 
