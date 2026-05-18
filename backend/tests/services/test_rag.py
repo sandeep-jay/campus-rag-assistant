@@ -34,39 +34,42 @@ from backend.app.services.rag import RAGService
 
 @pytest.fixture()
 def rag_mocks():
-    """Patch all RAG dependencies at the correct import path and return the mocks."""
+    """Patch RAG providers and chain; return mocks tuple for assertions."""
+    mock_llm = MagicMock()
+    mock_retriever_instance = MagicMock()
+    mock_bedrock_instance = MagicMock()
+    mock_bedrock_instance.get_llm.return_value = mock_llm
+    mock_bedrock_instance.client = MagicMock()
+
+    mock_llm_provider = MagicMock()
+    mock_llm_provider.is_mock = False
+    mock_llm_provider.name = 'aws'
+    mock_llm_provider.get_llm.return_value = mock_llm
+    mock_llm_provider._bedrock = mock_bedrock_instance
+
+    mock_ret_provider = MagicMock()
+    mock_ret_provider.is_mock = False
+    mock_ret_provider.name = 'aws'
+    mock_ret_provider.get_retriever.return_value = mock_retriever_instance
+
     patchers = [
-        patch('backend.app.services.rag.BedrockService'),
-        patch('backend.app.services.rag.AmazonKnowledgeBasesRetriever'),
+        patch('backend.app.services.rag.get_llm_provider', return_value=mock_llm_provider),
+        patch('backend.app.services.rag.get_retriever_provider', return_value=mock_ret_provider),
         patch('backend.app.services.rag.ConversationalRetrievalChain'),
         patch('backend.app.services.rag.settings'),
         patch('backend.app.services.aws_client.settings'),
     ]
     mocks = [p.start() for p in patchers]
 
-    # Setup settings
     mocks[3].AWS_REGION = 'us-east-1'
     mocks[3].BEDROCK_KNOWLEDGE_BASE_ID = 'test-kb-id'
     mocks[3].BEDROCK_MODEL_ID = 'anthropic.claude-v2'
     mocks[3].LANGCHAIN_API_KEY = None
+    mocks[3].RAG_FORCE_MOCK = False
 
-    # Configure AWS settings
     mocks[4].AWS_REGION = 'us-east-1'
     mocks[4].AWS_ROLE_ARN = None
 
-    # Mock bedrock service and LLM
-    mock_bedrock_instance = MagicMock()
-    mock_llm = MagicMock()
-    mock_agent_client = MagicMock()
-    mock_bedrock_instance.get_llm.return_value = mock_llm
-    mock_bedrock_instance.get_agent_client.return_value = mock_agent_client
-    mocks[0].return_value = mock_bedrock_instance
-
-    # Mock retriever
-    mock_retriever_instance = MagicMock()
-    mocks[1].return_value = mock_retriever_instance
-
-    # Mock chain
     mock_chain_instance = MagicMock()
     mock_chain_instance.invoke.return_value = {
         'answer': 'Test answer',
@@ -74,57 +77,46 @@ def rag_mocks():
     }
     mocks[2].from_llm.return_value = mock_chain_instance
 
-    yield mocks
+    # [0]=llm provider patch, [1]=retriever provider, [2]=chain, [3]=rag settings, [4]=aws settings
+    yield (*mocks, mock_llm_provider, mock_ret_provider, mock_bedrock_instance, mock_llm, mock_retriever_instance)
 
-    # Cleanup
     for p in patchers:
         p.stop()
 
 
 # Basic Initialization Tests
 def test_initialize_rag_service_with_bedrock_service(rag_mocks):
-    """Test initialization of RAGService with BedrockService."""
+    """Test initialization of RAGService via provider registry."""
     service = RAGService()
 
-    # Check bedrock service was initialized correctly
-    rag_mocks[0].assert_called_once()
-
-    # Check that RAG service is not in mock mode
     assert not service.is_mock
-
-    # Check that the service has the expected attributes
+    assert service.llm_provider is rag_mocks[5]
+    assert service.retriever_provider is rag_mocks[6]
     assert isinstance(service.bedrock_service, MagicMock)
-    assert service.llm == service.bedrock_service.get_llm.return_value
+    assert service.llm == rag_mocks[8]
 
 
 def test_initialize_with_provided_client(rag_mocks):
-    """Test initialization of RAGService with provided client."""
-    service = RAGService(bedrock_service=rag_mocks[0])
+    """Test initialization of RAGService with injected Bedrock service."""
+    bedrock = rag_mocks[7]
+    with patch('backend.app.services.rag.AwsLlmProvider.create_or_mock', return_value=rag_mocks[5]), patch(
+        'backend.app.services.rag.AwsRetrieverProvider.create_or_mock',
+        return_value=rag_mocks[6],
+    ):
+        service = RAGService(bedrock_service=bedrock)
     assert not service.is_mock
-    assert service.bedrock_service == rag_mocks[0]
+    assert service.bedrock_service == bedrock
 
 
 def test_rag_service_initialization(rag_mocks):
-    """Test that RAG service initializes correctly."""
+    """Test that RAG service initializes correctly via providers."""
     rag_service = RAGService()
 
-    # Check bedrock service was initialized correctly
-    rag_mocks[0].assert_called_once()
-
-    # Check bedrock client was set correctly
-    assert rag_service.bedrock_service == rag_mocks[0].return_value
-    assert rag_service.llm == rag_mocks[0].return_value.get_llm.return_value
-
-    # Check retriever was initialized correctly
-    rag_mocks[1].assert_called_once_with(
-        knowledge_base_id='test-kb-id',
-        retrieval_config=ANY,
-        region_name='us-east-1',
-        client=rag_mocks[0].return_value.get_agent_client.return_value,
-    )
-
-    # We don't initialize the chain eagerly anymore, so don't check for it
-    # Chain creation now happens per request
+    assert not rag_service.is_mock
+    assert rag_service.llm_provider is rag_mocks[5]
+    assert rag_service.retriever_provider is rag_mocks[6]
+    assert rag_service.llm == rag_mocks[8]
+    assert rag_service.retriever == rag_mocks[9]
 
 
 # Processing Query Tests
@@ -133,7 +125,7 @@ def test_process_query(rag_mocks):
     # Setup mock responses
     mock_chain_instance = rag_mocks[2].from_llm.return_value
 
-    service = RAGService(bedrock_service=rag_mocks[0])
+    service = RAGService()
     response = service.process_query('Test query')
 
     assert response['message'] == 'Test answer'
@@ -221,8 +213,8 @@ def test_rag_service_with_chat_history(rag_mocks):
 # Mock Mode Tests
 def test_mock_mode(rag_mocks):
     """Test that RAG service works in mock mode."""
-    # Force mock mode
-    rag_mocks[3].BEDROCK_KNOWLEDGE_BASE_ID = None
+    rag_mocks[5].is_mock = True
+    rag_mocks[6].is_mock = True
 
     # Mock the few_shot_examples.json file
     with patch('json.load') as mock_json_load:
@@ -259,8 +251,8 @@ def test_mock_mode(rag_mocks):
 
 
 def test_fallback_to_mock_implementation(rag_mocks):
-    """Test fallback to mock implementation when BedrockService fails."""
-    rag_mocks[0].side_effect = Exception('Test error')
+    """Test fallback to mock implementation when providers fail."""
+    rag_mocks[5].is_mock = True
     service = RAGService()
     assert service.is_mock
     assert not hasattr(service, 'bedrock_service')
@@ -268,13 +260,16 @@ def test_fallback_to_mock_implementation(rag_mocks):
 
 # Integration with Bedrock Tests
 def test_rag_and_bedrock_service_compatibility(rag_mocks):
-    """Test that BedrockService can be used with RAGService."""
-    # Create RAG service with mocked Bedrock service
-    service = RAGService(bedrock_service=rag_mocks[0])
+    """Test that injected Bedrock service works with RAGService."""
+    bedrock = rag_mocks[7]
+    with patch('backend.app.services.rag.AwsLlmProvider.create_or_mock', return_value=rag_mocks[5]), patch(
+        'backend.app.services.rag.AwsRetrieverProvider.create_or_mock',
+        return_value=rag_mocks[6],
+    ):
+        service = RAGService(bedrock_service=bedrock)
     assert not service.is_mock
-    assert service.bedrock_service == rag_mocks[0]
+    assert service.bedrock_service == bedrock
 
-    # Test query processing
     response = service.process_query('Test query')
     assert response['message'] == 'Test answer'
     rag_mocks[2].from_llm.return_value.invoke.assert_called_once()

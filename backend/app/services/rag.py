@@ -35,10 +35,12 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import FewShotPromptTemplate, PromptTemplate
 from langchain.schema import AIMessage, HumanMessage
-from langchain_aws import AmazonKnowledgeBasesRetriever
-
 from backend.app.core.config_manager import settings
-from backend.app.services.bedrock import BedrockService
+from backend.app.services.providers import get_llm_provider, get_retriever_provider
+from backend.app.services.providers.llm.aws import AwsLlmProvider
+from backend.app.services.providers.llm.mock import MockLlmProvider
+from backend.app.services.providers.retriever.aws import AwsRetrieverProvider
+from backend.app.services.providers.retriever.mock import MockRetrieverProvider
 from backend.app.utils.simple_tracer import trace_rag
 
 # Configure logging
@@ -53,48 +55,55 @@ _instance_lock = threading.Lock()
 
 
 class RAGService:
-    """Enhanced RAG service using Bedrock and external templates"""
+    """RAG service with config-driven LLM and retriever providers."""
 
     def __init__(self, bedrock_service=None, bedrock_client=None):
         self.is_mock = False
+        self.llm_provider = None
+        self.retriever_provider = None
 
         try:
-            # First determine if we should use mock mode
-            if not settings.BEDROCK_KNOWLEDGE_BASE_ID:
-                logger.warning('No BEDROCK_KNOWLEDGE_BASE_ID provided in settings - using mock implementation')
-                self.is_mock = True
-                return
-
-            # Use provided Bedrock service or client, or create a new service
-            if bedrock_service:
-                self.bedrock_service = bedrock_service
-                logger.info('Using provided BedrockService')
-            elif bedrock_client:
-                self.bedrock_service = BedrockService(bedrock_client=bedrock_client)
-                logger.info('Created BedrockService with provided client')
+            if bedrock_service is not None or bedrock_client is not None:
+                self.llm_provider = AwsLlmProvider.create_or_mock(
+                    MockLlmProvider,
+                    bedrock_service=bedrock_service,
+                    bedrock_client=bedrock_client,
+                )
+                self.retriever_provider = AwsRetrieverProvider.create_or_mock(
+                    MockRetrieverProvider,
+                    bedrock_service=bedrock_service,
+                    bedrock_client=bedrock_client,
+                )
             else:
-                self.bedrock_service = BedrockService()
-                logger.info('Created new BedrockService')
+                self.llm_provider = get_llm_provider()
+                self.retriever_provider = get_retriever_provider()
 
-            # Store the bedrock client for compatibility with existing code
-            self.bedrock_client = self.bedrock_service.client
-
-            # Set up the retriever
-            self.retriever = self._initialize_retriever()
-            if not self.retriever:
-                logger.warning('Failed to initialize retriever - using mock implementation')
+            if getattr(settings, 'RAG_FORCE_MOCK', False) or self.llm_provider.is_mock or self.retriever_provider.is_mock:
+                logger.warning(
+                    'RAG running in mock mode (provider=%s/%s)',
+                    self.llm_provider.name,
+                    self.retriever_provider.name,
+                )
                 self.is_mock = True
                 return
 
-            # Initialize the LLM
-            self.llm = self.bedrock_service.get_llm()
-            logger.info(f'Initialized BedrockLLM with model {settings.BEDROCK_MODEL_ID}')
+            self.llm = self.llm_provider.get_llm()
+            self.retriever = self.retriever_provider.get_retriever()
+            logger.info(
+                'Initialized RAG with llm=%s retriever=%s model=%s',
+                self.llm_provider.name,
+                self.retriever_provider.name,
+                settings.BEDROCK_MODEL_ID,
+            )
 
-            # Create prompt templates
+            if hasattr(self.llm_provider, '_bedrock'):
+                self.bedrock_service = self.llm_provider._bedrock
+                self.bedrock_client = self.bedrock_service.client
+            elif bedrock_service is not None:
+                self.bedrock_service = bedrock_service
+
             self.qa_prompt, self.condense_question_prompt = self._create_prompt_templates()
             logger.info('Created prompt templates')
-
-            # No eager chain initialization - we'll create it per request
 
         except (ProfileNotFound, NoCredentialsError, NoRegionError) as e:
             logger.exception(f'AWS configuration error: {e!s}')
@@ -104,30 +113,6 @@ class RAGService:
             logger.exception(f'Failed to initialize RAG service: {e!s}')
             logger.warning('Falling back to mock implementation')
             self.is_mock = True
-
-    def _initialize_retriever(self):
-        """Initialize the knowledge base retriever with improved configuration"""
-        try:
-            # Get the agent client from the Bedrock service
-            agent_client = self.bedrock_service.get_agent_client()
-
-            # Create the retriever with enhanced configuration
-            retriever = AmazonKnowledgeBasesRetriever(
-                knowledge_base_id=settings.BEDROCK_KNOWLEDGE_BASE_ID,
-                retrieval_config={
-                    'vectorSearchConfiguration': {
-                        'numberOfResults': settings.RETRIEVER_NUMBER_OF_RESULTS,
-                        'overrideSearchType': settings.RETRIEVER_SEARCH_TYPE,
-                    }
-                },
-                region_name=settings.AWS_REGION,
-                client=agent_client,
-            )
-            logger.info('Successfully initialized AmazonKnowledgeBasesRetriever')
-            return retriever
-        except Exception as e:
-            logger.exception(f'Failed to initialize knowledge base retriever: {e!s}')
-            return None
 
     def _load_templates(self):
         """Load prompt templates and few-shot examples from the templates directory"""
