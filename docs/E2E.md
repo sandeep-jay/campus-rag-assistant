@@ -13,6 +13,12 @@ Playwright lives under [`frontend-vue/e2e/`](../frontend-vue/e2e/). Tests assume
 
 ## Running locally
 
+**Via tox** (after the API is up):
+
+```bash
+tox -e e2e
+```
+
 Terminal 1 — backend (example):
 
 ```bash
