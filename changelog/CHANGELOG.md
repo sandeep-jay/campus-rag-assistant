@@ -1,7 +1,7 @@
 # Changelog
 
-Notable changes to this **portfolio fork** of the UC Berkeley ETS Chabot platform
-([multicloud-rag-chatbot](https://github.com/sandeep-jay/multicloud-rag-chatbot)).
+Notable changes to **Campus RAG Assistant** — portfolio edition of the UC Berkeley ETS Chabot platform
+([campus-rag-assistant](https://github.com/sandeep-jay/campus-rag-assistant)).
 
 [Keep a Changelog](https://keepachangelog.com/) format.  
 Attribution and license: [README](../README.md#license).
@@ -22,12 +22,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
-- Documentation: attribution under README License; removed `PORTFOLIO.md`, `EXECUTION_PLAN.md`, `DOC_AUDIT.md`; trimmed `ARCHITECTURE.md`.
-- **changelog/CHANGELOG.md** — single session-based running log in `changelog/`.
-
-### Removed
-
-- Retired root `CHANGELOG.md` and local session drafts; only `changelog/CHANGELOG.md` is tracked.
+- Rebrand to **Campus RAG Assistant**; GitHub repo renamed to `campus-rag-assistant`.
 
 ---
 
@@ -51,7 +46,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ## [2026-05-17] — Portfolio publish to GitHub
 
-*PRs #1–#8 → [multicloud-rag-chatbot](https://github.com/sandeep-jay/multicloud-rag-chatbot) `main`.*
+*PRs #1–#8 → [campus-rag-assistant](https://github.com/sandeep-jay/campus-rag-assistant) `main`.*
 *Packages work from May 2026 dev sessions into reviewable commits.*
 
 ### PR #1 — Dev tooling

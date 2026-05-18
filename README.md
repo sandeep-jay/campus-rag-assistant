@@ -1,4 +1,4 @@
-# RAG Chat Platform
+# Campus RAG Assistant
 
 Production-style **retrieval-augmented chat**: **FastAPI** backend, **Vue 3** SPA, and pluggable **AWS Bedrock / Azure OpenAI / mock** LLM and retriever providers. Multi-tenant sessions, **cited answers**, **RAGAS** golden-dataset eval, and a **mock-first** path so you can demo without cloud credentials.
 
