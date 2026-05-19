@@ -27,8 +27,8 @@ Original upstream chabot architecture (Streamlit-only UI, LangChain → OpenSear
 | **UI** | Streamlit only | **Vue 3 SPA** (primary); Streamlit optional, same API |
 | **API** | Chat endpoints | **SSE** `POST /api/chat/stream`, sessions CRUD, feedback, sources |
 | **Auth** | — | **JWT** in HTTP-only cookies (`/api/auth/*`) |
-| **Retrieval (AWS)** | LangChain → **OpenSearch** directly | **Bedrock Knowledge Base** API (`AmazonKnowledgeBasesRetriever`); vectors and hybrid search typically in **OpenSearch Serverless** behind the KB |
-| **Retrieval (Azure)** | — | **Azure AI Search** hybrid + Azure OpenAI embeddings |
+| **Retrieval (AWS)** | LangChain → **OpenSearch** directly | **Bedrock Knowledge Base** API (`AmazonKnowledgeBasesRetriever`); **vector store:** **OpenSearch Serverless** (vector/keyword/hybrid index) behind the KB |
+| **Retrieval (Azure)** | — | **Azure AI Search** vector + keyword/hybrid index; Azure OpenAI embeddings |
 | **LLM** | Bedrock only | **Bedrock** or **Azure OpenAI** or **mock** via `LLM_PROVIDER` |
 | **DB** | PostgreSQL | PostgreSQL + **Alembic** (no `create_all` in production) |
 | **Ops** | LangSmith | LangSmith + **Prometheus** (`/api/metrics`, pool snapshot, first-token histogram); chat history capped via `CHAT_HISTORY_MAX_MESSAGES` — [PERFORMANCE.md](./PERFORMANCE.md) |
