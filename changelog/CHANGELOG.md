@@ -22,6 +22,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
+- **CI** — `tox -e lint,backend,frontend-vue` green; ruff format/fix, LangGraph import fixes, ChatView `research-mode` binding.
 - **Docs** — archived completed [SPRINT_2026-05-18_LANGGRAPH.md](../docs/roadmap/archive/SPRINT_2026-05-18_LANGGRAPH.md); `TODAY_SPRINT.md` is now a pointer; portfolio roadmap Phase 4 marked done.
 - **Tests** — `conftest` forces `RAG_ENGINE=chain` so API stream tests stay isolated from developer `.env`.
 
