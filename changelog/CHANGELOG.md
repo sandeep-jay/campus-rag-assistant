@@ -20,7 +20,10 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ## [Unreleased]
 
-_No pending changes._
+### Changed
+
+- **Docs** — archived completed [SPRINT_2026-05-18_LANGGRAPH.md](../docs/roadmap/archive/SPRINT_2026-05-18_LANGGRAPH.md); `TODAY_SPRINT.md` is now a pointer; portfolio roadmap Phase 4 marked done.
+- **Tests** — `conftest` forces `RAG_ENGINE=chain` so API stream tests stay isolated from developer `.env`.
 
 ---
 

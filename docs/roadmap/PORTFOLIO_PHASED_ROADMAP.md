@@ -1,12 +1,12 @@
 # Portfolio phased roadmap
 
-**Last updated:** 2026-05-18 (execution order: LangGraph → web tool → Phase 3 deferred)  
+**Last updated:** 2026-05-18 (Phase 4 KB graph shipped; security deps on `feature/security-deps`)  
 **Audience:** Independent continuation of the RAG chatbot (portfolio edition).  
 **Supersedes for portfolio work:** execution order and priorities here; campus-scale items remain in [PHASED_IMPROVEMENT_ROADMAP.md](./PHASED_IMPROVEMENT_ROADMAP.md).
 
 **Publish and platform wiring are complete** on [`main`](https://github.com/sandeep-jay/campus-rag-assistant).
 
-**Active plan:** [TODAY_SPRINT.md](./TODAY_SPRINT.md) — LangGraph KB parity on **live AWS**, then web research. **Deferred:** full Phase 3 RAGAS gates until after graph ships.
+**Active plan:** [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md) (this doc). Completed sprint: [archive/SPRINT_2026-05-18_LANGGRAPH.md](./archive/SPRINT_2026-05-18_LANGGRAPH.md). **Deferred:** full Phase 3 RAGAS gates.
 
 ---
 
@@ -39,7 +39,7 @@ flowchart LR
 | Phase | Focus | Status |
 |-------|--------|--------|
 | **0–2** | Publish repo, platform + providers + tox | **Done** |
-| **4** | LangGraph KB graph (`RAG_ENGINE`); per-node traces | **In progress** — [TODAY_SPRINT.md](./TODAY_SPRINT.md) |
+| **4** | LangGraph KB graph (`RAG_ENGINE`); per-node traces | **Done** — live AWS KB parity; paced SSE ([LANGGRAPH.md](./LANGGRAPH.md)) |
 | **6b** | Opt-in web research tool (`research_mode=web`) | **In progress** — same sprint |
 | **3** | RAGAS gates; README quality section | **Deferred** — after graph + web MVP |
 | **5** | Retrieval nodes (rerank, multi-query) | Planned |
@@ -211,7 +211,7 @@ condense → retrieve → grade_documents → (rewrite once max) → generate �
 
 | When | Focus |
 |------|--------|
-| **Today** | [TODAY_SPRINT.md](./TODAY_SPRINT.md) — LangGraph + web MVP |
+| **Sprint archive** | [SPRINT_2026-05-18_LANGGRAPH.md](./archive/SPRINT_2026-05-18_LANGGRAPH.md) |
 | **Next session** | Phase 3 lite — RAGAS spot-check; grow golden set |
 | **Later** | Phase 5 retrieval nodes; Phase 6a SSE |
 

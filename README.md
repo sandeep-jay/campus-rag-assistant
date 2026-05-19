@@ -41,7 +41,7 @@ Optional **Streamlit** client (`frontend-streamlit/`) uses the same API.
 
 ## Roadmap (in progress)
 
-- **LangGraph** — `RAG_ENGINE=langgraph` validated on live AWS KB ([sprint notes](docs/roadmap/TODAY_SPRINT.md)); opt-in `research_mode=web` in Vue when enabled. Default orchestration remains `chain` for true Bedrock token streaming.
+- **LangGraph** — `RAG_ENGINE=langgraph` validated on live AWS KB ([sprint archive](docs/roadmap/archive/SPRINT_2026-05-18_LANGGRAPH.md)); opt-in `research_mode=web` in Vue when enabled. Default `chain` for true Bedrock token streaming.
 - **RAGAS quality gates** — deferred until after graph; harness exists under `backend/tests/eval/`.
 
 ## Prerequisites
