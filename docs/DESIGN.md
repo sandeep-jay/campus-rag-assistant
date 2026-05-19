@@ -117,7 +117,7 @@ condense → multi_query → retrieve → rerank → generate → format
 |-------|---------|
 | **condense** | Turn follow-up questions into a standalone retrieval query |
 | **multi_query** | Expand queries; fuse results (RRF) for better recall |
-| **retrieve** | Bedrock KB / Azure Search; optional metadata filters; fetch `RERANK_CANDIDATE_K` docs when reranking |
+| **retrieve** | Bedrock KB → OpenSearch Serverless or Azure AI Search (vector + keyword/hybrid); optional metadata filters; fetch `RERANK_CANDIDATE_K` docs when reranking |
 | **rerank** | FlashRank or keyword backend to trim noise before generation |
 | **generate** | LLM answer grounded on selected chunks |
 | **format** | Normalize metadata (`sources`, `source_kind`, markdown shape) |
