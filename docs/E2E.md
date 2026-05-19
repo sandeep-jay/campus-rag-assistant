@@ -46,3 +46,7 @@ npm run e2e
 ## CI
 
 For CI, run Postgres + migrations (if any) + backend **before** `npm run e2e`, or start the API as a service step. The health wait reduces flakes but does not replace a running API.
+
+## OAuth (manual / future E2E)
+
+GitHub OAuth in local dev uses the **API** origin for redirect (`OAUTH_REDIRECT_BASE_URL=http://127.0.0.1:8000`), then a one-time handoff to `http://127.0.0.1:5173/oauth/handoff`. Playwright global setup uses email/password register today — not OAuth. See [PRODUCTION_TLS.md](./PRODUCTION_TLS.md).

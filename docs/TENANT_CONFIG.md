@@ -30,10 +30,10 @@ Apply after migration `0002`:
 alembic upgrade head
 ```
 
-## Berkeley sample (optional)
+## Example campus sample (optional)
 
-Reference profile for the original campus corpus: [samples/berkeley/tenant_rag_config.json](../samples/berkeley/tenant_rag_config.json). Copy into a tenant row’s `rag_config` or use as a seed — not loaded automatically.
+Reference profile: [samples/berkeley/tenant_rag_config.json](../samples/berkeley/tenant_rag_config.json) (Canvas LMS, LTI, accessibility, inclusive teaching). Copy into a tenant’s `rag_config` or use as a seed — not loaded automatically.
 
 ## Knowledge base
 
-Live answers come from your **Bedrock Knowledge Base** or **Azure AI Search** index. Point provider env vars at your corpus; prompts do not embed institution-specific articles in the repo.
+Live answers come from your **Bedrock Knowledge Base** (vectors in **OpenSearch Serverless**) or **Azure AI Search** index, typically fed by sources such as **ServiceNow** knowledge articles and Canvas LMS help content. Point provider env vars at your corpus; prompts do not embed institution-specific articles in the repo.
