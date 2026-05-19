@@ -16,19 +16,16 @@ where the public merge story matters.
 Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 `## [YYYY-MM-DD] — short title` and open a new `[Unreleased]`.
 
----
-
-## [2026-05-19] — GitHub Actions CI/CD
-
-### Added
-
-- **RAGAS eval** — golden bootstrap scripts, 10-row baseline, Phase 3 lite policy in EVALUATION.md.
+## [Unreleased]
 
 ### Changed
 
+- **Docs:** Screenshot gallery under `docs/assets/{product,observability,auth}/`; documentation audit (OAuth handoff, roadmap status, README gallery); `.gitignore` for `.cursor/` and golden draft.
+
 ---
 
 ## [2026-05-19] — GitHub Actions CI/CD
+
 ### Added
 
 - **CI/CD** — GitHub Actions: [`ci.yml`](../.github/workflows/ci.yml) (tox on `main` + PRs), [`cd.yml`](../.github/workflows/cd.yml) (Vue build + optional EB deploy on `qa`/`release`); [docs/CI.md](../docs/CI.md). Removed `.travis.yml`.
