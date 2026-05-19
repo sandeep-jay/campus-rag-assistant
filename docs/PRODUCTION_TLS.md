@@ -32,7 +32,7 @@ Set on the EB environment (via Terraform or console):
 |----------|---------|--------|
 | `AUTH_COOKIE_SECURE` | `true` | Required so `access_token` cookies are `Secure` over HTTPS |
 | `AUTH_COOKIE_SAMESITE` | `lax` | Default; adjust if cross-site frontend |
-| `OAUTH_REDIRECT_BASE_URL` | `https://api.example.com` | Must match the host users hit for OAuth callbacks |
+| `OAUTH_REDIRECT_BASE_URL` | `https://api.example.com` | OAuth callback host (API, not SPA) |
 | `FRONTEND_URL` | `https://app.example.com` | CORS and post-login redirect |
 | `OAUTH_GOOGLE_CLIENT_ID` / `SECRET` | (from Google Cloud console) | Social login |
 | `OAUTH_GITHUB_CLIENT_ID` / `SECRET` | (from GitHub OAuth app) | Social login |
@@ -63,21 +63,23 @@ Only if cookies or redirects show `http` incorrectly, or SSE streams stall:
 
 See [`.ebextensions/00_ami.config`](../.ebextensions/00_ami.config) for the current Nginx template.
 
-
 ## Local OAuth development (Vite + GitHub)
 
-OAuth `state` is stored in a **session cookie** on the browser host. The callback URL must use the **same hostname** as the tab where you clicked "Continue with GitHub".
+OAuth `state` is stored in a **session cookie on the API host**. Vite’s dev proxy does not reliably forward that cookie, so local GitHub login uses the **API origin** for the OAuth redirect, then a **one-time handoff** back to Vue.
 
 ### Checklist
 
 | Item | Local example |
 |------|----------------|
-| Browser URL | `http://127.0.0.1:5173` (see [`scripts/run-frontend-vue.sh`](../scripts/run-frontend-vue.sh)) |
+| Browser (chat UI) | `http://127.0.0.1:5173` |
 | `FRONTEND_URL` | `http://127.0.0.1:5173` |
-| `OAUTH_REDIRECT_BASE_URL` | `http://127.0.0.1:5173` (Vue origin, **not** `:8000`) |
-| GitHub OAuth app callback | `http://127.0.0.1:5173/api/auth/oauth/github/callback` |
+| `OAUTH_REDIRECT_BASE_URL` | `http://127.0.0.1:8000` (API, **not** `:5173`) |
+| `frontend-vue/.env.local` | `VITE_OAUTH_API_URL=http://127.0.0.1:8000` |
+| GitHub OAuth app callback | `http://127.0.0.1:8000/api/auth/oauth/github/callback` |
 
-`localhost` and `127.0.0.1` are different hosts for cookies. If the app runs on `127.0.0.1` but `OAUTH_REDIRECT_BASE_URL` uses `localhost`, GitHub redirects to `localhost` and the session cookie is missing → `MismatchingStateError`.
+Flow: user clicks GitHub on Vue → browser hits `:8000` for OAuth → GitHub callback on `:8000` → API redirects to `http://127.0.0.1:5173/oauth/handoff?code=...` → Vue exchanges code for JWT cookies.
+
+`localhost` and `127.0.0.1` are different hosts for cookies. Use **`127.0.0.1` everywhere** if Vite binds to it (see [`scripts/run-frontend-vue.sh`](../scripts/run-frontend-vue.sh)).
 
 Restart the API after changing `.env`. Start a **new** OAuth flow after an error (do not refresh the callback URL).
 
@@ -85,12 +87,13 @@ Restart the API after changing `.env`. Start a **new** OAuth flow after an error
 
 | Symptom | Likely cause | Fix |
 |---------|----------------|-----|
-| `MismatchingStateError` / `mismatching_state` | Host or port mismatch between OAuth start and callback | Align browser URL, `OAUTH_REDIRECT_BASE_URL`, and provider callback; use `127.0.0.1` consistently if Vite binds to it |
+| `MismatchingStateError` / `mismatching_state` | Mixed `localhost` / `127.0.0.1`, or callback on wrong port | Align checklist above; callback on **:8000** |
 | Same error on refresh | OAuth `code`/`state` already used or session missing | Open `/login` and try GitHub again once |
 | 503 on `/api/auth/oauth/github` | Missing `OAUTH_*` credentials | Set client id/secret in `.env` and restart API |
 
+Verify: `./scripts/verify_oauth.py` (repo root, venv active).
 
 ## Out of scope in this repo
 
 - Terraform modules for Route 53, ACM, or ALB
-- Local mkcert / dev HTTP/2 proxy (use plain `http://localhost:8000` for daily dev unless you add a proxy yourself)
+- Local mkcert / dev HTTP/2 proxy (use plain `http://127.0.0.1:8000` for daily dev unless you add a proxy yourself)

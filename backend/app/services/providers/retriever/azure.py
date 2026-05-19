@@ -10,6 +10,7 @@ from pydantic import Field, PrivateAttr
 
 from backend.app.core.config_manager import settings
 from backend.app.services.providers.base import BaseRetrieverProvider
+from backend.app.services.rerank import retrieval_candidate_count
 
 
 class AzureHybridRetriever(BaseRetriever):
@@ -83,7 +84,7 @@ class AzureRetrieverProvider(BaseRetrieverProvider):
             api_version=getattr(settings, 'AZURE_OPENAI_API_VERSION', '2024-02-01'),
         )
         self._vector_field = getattr(settings, 'AZURE_SEARCH_VECTOR_FIELD', 'text_vector')
-        self._top_k = settings.RETRIEVER_NUMBER_OF_RESULTS
+        self._top_k = retrieval_candidate_count()
 
     def _validate_config(self) -> None:
         keys = [
