@@ -41,6 +41,14 @@ alembic downgrade -1
 3. Start/restart API workers.
 4. Verify `/api/health` and `/api/metrics`.
 
+## Local logs
+
+`*.log` files (`app.log`, `backend/app.log`, etc.) are gitignored. After stopping uvicorn/Vite, remove them to reclaim disk:
+
+```bash
+find . -name '*.log' -not -path './venv/*' -not -path './node_modules/*' -delete
+```
+
 ## Security
 
 See [SECURITY.md](./SECURITY.md) for `pip-audit`, bandit, and production hardening.

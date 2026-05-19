@@ -16,8 +16,10 @@ Narrative, chat/SSE flow, and API surface: [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 | Doc | Description |
 |-----|-------------|
-| [roadmap/TODAY_SPRINT.md](./roadmap/TODAY_SPRINT.md) | **Active sprint** — LangGraph + web research (same day) |
+| [roadmap/PORTFOLIO_PHASED_ROADMAP.md](./roadmap/PORTFOLIO_PHASED_ROADMAP.md) | **Primary roadmap** — phases and priorities |
+| [roadmap/TODAY_SPRINT.md](./roadmap/TODAY_SPRINT.md) | Sprint pointer + commands |
 | [roadmap/PORTFOLIO_PHASED_ROADMAP.md](./roadmap/PORTFOLIO_PHASED_ROADMAP.md) | **Primary roadmap** — phases and deferrals |
+| [roadmap/archive/SPRINT_2026-05-18_LANGGRAPH.md](./roadmap/archive/SPRINT_2026-05-18_LANGGRAPH.md) | Completed LangGraph AWS sprint |
 | [EVALUATION.md](./EVALUATION.md) | RAGAS vs LangSmith; quality scorecard |
 | [../changelog/CHANGELOG.md](../changelog/CHANGELOG.md) | Release history |
 | [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md) | LangGraph design |
