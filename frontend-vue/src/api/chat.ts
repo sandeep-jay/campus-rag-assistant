@@ -116,6 +116,10 @@ export async function streamMessage(
             onStatus?.(event.message)
           } else if (event.type === 'token') {
             onToken(event.token)
+            // Many tokens can arrive in one SSE read; yield a frame so the UI updates incrementally
+            await new Promise<void>((resolve) => {
+              requestAnimationFrame(() => resolve())
+            })
           } else if (event.type === 'done') {
             onDone(event)
           } else if (event.type === 'error') {
