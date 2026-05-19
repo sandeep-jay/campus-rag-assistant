@@ -34,6 +34,9 @@ load_dotenv(_PROJECT_ROOT / '.env', override=True)
 
 import os
 
+# Developer .env may set RAG_ENGINE=langgraph; API tests mock the chain stream path.
+os.environ['RAG_ENGINE'] = 'chain'
+
 # tox -e eval sets RAGAS_EVAL=1 — avoid LangSmith + Bedrock stream teardown noise
 if os.environ.get('RAGAS_EVAL', '').lower() in ('1', 'true', 'yes'):
     os.environ['LANGCHAIN_TRACING_V2'] = 'false'
