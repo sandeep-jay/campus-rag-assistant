@@ -1,5 +1,7 @@
 # Campus RAG Assistant
 
+[![CI](https://github.com/sandeep-jay/campus-rag-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/sandeep-jay/campus-rag-assistant/actions/workflows/ci.yml)
+
 Production-style **retrieval-augmented chat** over your knowledge base, with **tenant-hydrated** prompts (generic defaults; per-tenant `rag_config` in Postgres). **FastAPI** backend, **Vue 3** SPA, and pluggable **AWS / Azure / mock** LLM and retriever providers.
 
 Ask questions in natural language; the app retrieves relevant docs, streams a cited answer, and keeps conversation history per user.
@@ -95,7 +97,9 @@ When both `LLM_PROVIDER` and `RETRIEVER_PROVIDER` are set, they override `RAG_PR
 
 ## Testing
 
-**Default CI-style suite** (lint + unit tests):
+**CI:** GitHub Actions runs the same suite on push to `main` and on PRs ([`ci.yml`](.github/workflows/ci.yml)). CD on `qa` / `release` is documented in [docs/CI.md](docs/CI.md).
+
+**Default CI-style suite** (local) (lint + unit tests):
 
 ```bash
 tox -e lint,backend,frontend-streamlit,frontend-vue

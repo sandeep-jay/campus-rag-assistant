@@ -1,12 +1,33 @@
 # Portfolio phased roadmap
 
-**Last updated:** 2026-05-18 (Phase 4 KB graph shipped; security deps on `feature/security-deps`)  
-**Audience:** Independent continuation of the RAG chatbot (portfolio edition).  
-**Supersedes for portfolio work:** execution order and priorities here; campus-scale items remain in [PHASED_IMPROVEMENT_ROADMAP.md](./PHASED_IMPROVEMENT_ROADMAP.md).
+**Last updated:** 2026-05-18  
+**Audience:** Independent continuation of the RAG chatbot (portfolio edition).
 
 **Publish and platform wiring are complete** on [`main`](https://github.com/sandeep-jay/campus-rag-assistant).
 
-**Active plan:** [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md) (this doc). Completed sprint: [archive/SPRINT_2026-05-18_LANGGRAPH.md](./archive/SPRINT_2026-05-18_LANGGRAPH.md). **Deferred:** full Phase 3 RAGAS gates.
+## Roadmap index
+
+| Doc | Purpose |
+|-----|---------|
+| **This file** | Phases, priorities, timeline |
+| [LANGGRAPH.md](./LANGGRAPH.md) | `RAG_ENGINE`, graph nodes, latency |
+| [WEB_RESEARCH.md](./WEB_RESEARCH.md) | `research_mode=web` (Vue toggle + API) |
+| [archive/SPRINT_2026-05-18_LANGGRAPH.md](./archive/SPRINT_2026-05-18_LANGGRAPH.md) | Completed AWS KB validation sprint |
+| [archive/PHASED_IMPROVEMENT_ROADMAP.md](./archive/PHASED_IMPROVEMENT_ROADMAP.md) | Campus / production scale (Redis HA, EB) — optional |
+
+## Quick dev commands
+
+```bash
+tox -e lint,backend,frontend-vue   # CI-style checks (mock RAG)
+PIP_SYNC=0 ./scripts/run-backend-venv.sh
+./scripts/run-frontend-vue.sh
+```
+
+CI: GitHub Actions on push/PR to `main` ([docs/CI.md](../CI.md)).
+
+Live AWS / LangGraph: set `RAG_ENGINE=langgraph` in local `.env` only (not required for tox).
+
+**Deferred:** full Phase 3 RAGAS gates (see Phase 3 below).
 
 ---
 
@@ -45,7 +66,7 @@ flowchart LR
 | **5** | Retrieval nodes (rerank, multi-query) | Planned |
 | **6** | LangGraph SSE; bounded rewrite loop | Optional |
 
-Campus production concerns (Redis HA, tenant budgets, Elastic Beanstalk) stay in [PHASED_IMPROVEMENT_ROADMAP.md](./PHASED_IMPROVEMENT_ROADMAP.md) Phases 1–4 org track.
+Campus production concerns (Redis HA, tenant budgets, Elastic Beanstalk) stay in [archive/PHASED_IMPROVEMENT_ROADMAP.md](./archive/PHASED_IMPROVEMENT_ROADMAP.md) Phases 1–4 org track.
 
 ---
 
@@ -145,7 +166,7 @@ Add nodes to the **same** LangGraph; do not reintroduce monolithic chain.
 
 **Exit criteria:** Primary metric improves on golden set; faithfulness guardrail holds.
 
-Aligns with org roadmap Phase 2 in [PHASED_IMPROVEMENT_ROADMAP.md](./PHASED_IMPROVEMENT_ROADMAP.md).
+Aligns with org roadmap Phase 2 in [archive/PHASED_IMPROVEMENT_ROADMAP.md](./archive/PHASED_IMPROVEMENT_ROADMAP.md).
 
 ---
 
@@ -220,8 +241,7 @@ condense → retrieve → grade_documents → (rewrite once max) → generate �
 ## Related docs
 
 - [EVALUATION.md](../EVALUATION.md) — RAGAS vs LangSmith
-- [TODAY_SPRINT.md](./TODAY_SPRINT.md) — compressed same-day plan
 - [LANGGRAPH.md](./LANGGRAPH.md) — graph design and flags
 - [WEB_RESEARCH.md](./WEB_RESEARCH.md) — opt-in web tool
-- [PHASED_IMPROVEMENT_ROADMAP.md](./PHASED_IMPROVEMENT_ROADMAP.md) — campus / scale track
+- [archive/PHASED_IMPROVEMENT_ROADMAP.md](./archive/PHASED_IMPROVEMENT_ROADMAP.md) — campus / scale track
 - [README.md](../../README.md) — quick start and attribution

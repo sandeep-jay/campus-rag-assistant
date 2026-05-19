@@ -16,19 +16,18 @@ Narrative, chat/SSE flow, and API surface: [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 | Doc | Description |
 |-----|-------------|
-| [roadmap/PORTFOLIO_PHASED_ROADMAP.md](./roadmap/PORTFOLIO_PHASED_ROADMAP.md) | **Primary roadmap** — phases and priorities |
-| [roadmap/TODAY_SPRINT.md](./roadmap/TODAY_SPRINT.md) | Sprint pointer + commands |
-| [roadmap/PORTFOLIO_PHASED_ROADMAP.md](./roadmap/PORTFOLIO_PHASED_ROADMAP.md) | **Primary roadmap** — phases and deferrals |
-| [roadmap/archive/SPRINT_2026-05-18_LANGGRAPH.md](./roadmap/archive/SPRINT_2026-05-18_LANGGRAPH.md) | Completed LangGraph AWS sprint |
-| [EVALUATION.md](./EVALUATION.md) | RAGAS vs LangSmith; quality scorecard |
+| [roadmap/PORTFOLIO_PHASED_ROADMAP.md](./roadmap/PORTFOLIO_PHASED_ROADMAP.md) | **Primary roadmap** — phases, priorities, dev commands |
+| [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md) | LangGraph design, flags, latency |
+| [roadmap/WEB_RESEARCH.md](./roadmap/WEB_RESEARCH.md) | Opt-in web research |
+| [roadmap/archive/](./roadmap/archive/) | Completed sprint + campus scale track |
+| [EVALUATION.md](./EVALUATION.md) | RAGAS vs LangSmith |
 | [../changelog/CHANGELOG.md](../changelog/CHANGELOG.md) | Release history |
-| [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md) | LangGraph design |
-| [roadmap/WEB_RESEARCH.md](./roadmap/WEB_RESEARCH.md) | Opt-in web research tool |
 
 ## Architecture and operations
 
 | Doc | Description |
 |-----|-------------|
+| [CI.md](./CI.md) | GitHub Actions CI/CD, secrets, branch gates |
 | [RELEASE.md](./RELEASE.md) | `main` → `qa` → `release` promotion, tags, CI/CD branches |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | System design, chat/SSE flow, API surface |
 | [OPERATIONS.md](./OPERATIONS.md) | Runbooks, metrics, migrations |
@@ -36,13 +35,7 @@ Narrative, chat/SSE flow, and API surface: [ARCHITECTURE.md](./ARCHITECTURE.md).
 | [LOAD_TESTING.md](./LOAD_TESTING.md) | k6 load tests |
 | [TENANT_CONFIG.md](./TENANT_CONFIG.md) | Per-tenant RAG prompts (`tenant.rag_config`, env defaults) |
 | [SECURITY.md](./SECURITY.md) | Dependency audit, bandit, production hardening |
-| [PERFORMANCE.md](./PERFORMANCE.md) | Phase 0 tuning + Phase 1–3 doc checklists |
+| [PERFORMANCE.md](./PERFORMANCE.md) | Phase 0 tuning + Phase 1–3 checklists |
 | [E2E.md](./E2E.md) | Playwright E2E |
-
-## Optional (campus / scale track)
-
-| Doc | Description |
-|-----|-------------|
-| [roadmap/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/PHASED_IMPROVEMENT_ROADMAP.md) | Production scale — Redis HA, tenant budgets, EB |
 
 Attribution and license: [README](../README.md#license).

@@ -20,10 +20,14 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ## [Unreleased]
 
+### Added
+
+- **CI/CD** — GitHub Actions: [`ci.yml`](../.github/workflows/ci.yml) (tox on `main` + PRs), [`cd.yml`](../.github/workflows/cd.yml) (Vue build + optional EB deploy on `qa`/`release`); [docs/CI.md](../docs/CI.md). Removed `.travis.yml`.
+
 ### Changed
 
 - **CI** — `tox -e lint,backend,frontend-vue` green; ruff format/fix, LangGraph import fixes, ChatView `research-mode` binding.
-- **Docs** — archived completed [SPRINT_2026-05-18_LANGGRAPH.md](../docs/roadmap/archive/SPRINT_2026-05-18_LANGGRAPH.md); `TODAY_SPRINT.md` is now a pointer; portfolio roadmap Phase 4 marked done.
+- **Docs** — roadmap cleanup: [PORTFOLIO_PHASED_ROADMAP.md](../docs/roadmap/PORTFOLIO_PHASED_ROADMAP.md) is the single index; removed `TODAY_SPRINT.md` and `roadmap/README.md`; campus scale track moved to [archive/PHASED_IMPROVEMENT_ROADMAP.md](../docs/roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md).
 - **Tests** — `conftest` forces `RAG_ENGINE=chain` so API stream tests stay isolated from developer `.env`.
 
 ---
