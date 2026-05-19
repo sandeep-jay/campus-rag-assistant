@@ -6,8 +6,8 @@ Screenshots for the root README and live demos. Product UI and LangSmith traces 
 
 | File | Use |
 |------|-----|
-| [architecture_v2.png](architecture_v2.png) | README + [ARCHITECTURE.md](../ARCHITECTURE.md) (primary) |
-| [architecture_detailed_v2.png](architecture_detailed_v2.png) | ARCHITECTURE.md detail |
+| [architecture_v2.png](architecture_v2.png) | README Overview + [ARCHITECTURE.md](../ARCHITECTURE.md) (primary) |
+| [architecture_detailed_v2.png](architecture_detailed_v2.png) | README Overview + ARCHITECTURE.md detail |
 | [architecture_v1.png](architecture_v1.png) | Upstream reference / comparison |
 
 ## Product UI (`product/`)
@@ -21,7 +21,7 @@ Screenshots for the root README and live demos. Product UI and LangSmith traces 
 | [chat-web-research-answer.png](product/chat-web-research-answer.png) | Web mode answer + disclaimer |
 | [chat-sources-web.png](product/chat-sources-web.png) | Web search source list |
 
-Embedded in the root [README](../../README.md#screenshots).
+Embedded in the root [README → Overview → Screenshots](../../README.md#overview).
 
 ## Auth (`auth/`)
 
