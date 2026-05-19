@@ -8,6 +8,7 @@ import type {
   FeedbackResponse,
   MessageSourcesResponse,
   StreamEvent,
+  ResearchMode,
 } from './types'
 
 export async function getSessions(): Promise<ChatSession[]> {
@@ -32,10 +33,12 @@ export async function deleteSession(sessionId: number): Promise<void> {
 export async function sendMessage(
   content: string,
   sessionId?: number | null,
+  researchMode: ResearchMode = 'kb',
 ): Promise<SendMessageResponse> {
   const { data } = await client.post<SendMessageResponse>('/api/chat/chat', {
     content,
     session_id: sessionId ?? undefined,
+    research_mode: researchMode,
   })
   return data
 }
@@ -56,6 +59,7 @@ export async function streamMessage(
   onDone: (event: Extract<StreamEvent, { type: 'done' }>) => void,
   onError?: (message: string) => void,
   onStatus?: (message: string) => void,
+  researchMode: ResearchMode = 'kb',
   signal?: AbortSignal,
 ): Promise<void> {
   const csrfCookie = document.cookie
@@ -70,7 +74,11 @@ export async function streamMessage(
       ...(csrfCookie ? { 'X-CSRF-Token': csrfCookie } : {}),
     },
     credentials: 'include',
-    body: JSON.stringify({ content, session_id: sessionId ?? undefined }),
+    body: JSON.stringify({
+      content,
+      session_id: sessionId ?? undefined,
+      research_mode: researchMode,
+    }),
     signal,
   })
 

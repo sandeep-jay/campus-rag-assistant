@@ -11,7 +11,7 @@ import TypingIndicator from '@/components/chat/TypingIndicator.vue'
 const route = useRoute()
 const router = useRouter()
 const chatStore = useChatStore()
-const { messages, streamingMessage, streamingStatus, isSendingMessage, isLoading, activeSessionId, retryableSendContent } =
+const { messages, streamingMessage, streamingStatus, isSendingMessage, isLoading, activeSessionId, retryableSendContent, researchMode } =
   storeToRefs(chatStore)
 
 const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null)

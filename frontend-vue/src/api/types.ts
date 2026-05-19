@@ -50,6 +50,14 @@ export interface OptimisticMessage {
 
 export type DisplayMessage = ChatMessage | OptimisticMessage | StreamingMessage
 
+export type ResearchMode = 'kb' | 'web'
+
+export interface ChatMessageRequest {
+  content: string
+  session_id?: number
+  research_mode?: ResearchMode
+}
+
 export interface SendMessageResponse {
   session_id: number
   user_message: ChatMessage
