@@ -20,6 +20,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
+- **Eval** — expanded [eval_baseline_2026-05-19.md](../docs/eval_baseline_2026-05-19.md) (retained AWS scores, Azure sweep table, findings); eval respects LangGraph when `RAGAS_EVAL=1`; Phase 5 script precision-balanced profile; `RAGAS_DO_NOT_TRACK` in tox eval.
 - **Logging** — `RequestIdFilter` on handlers; redact JWT payloads and chat queries at INFO; cap vendor loggers; optional `LOG_JSON`; access log via `app.access`; single idempotent `initialize_logger()`.
 - **Docs** — documentation cohesion: [DESIGN.md](../docs/DESIGN.md) (product boundaries, decisions); README problem/quality sections; rename [PRODUCT_ROADMAP.md](../docs/roadmap/PRODUCT_ROADMAP.md); de-portfolio language; generic campus/Canvas LMS framing; document Bedrock KB + OpenSearch Serverless alongside Azure Search; expanded [docs/README.md](../docs/README.md) index; [ARCHITECTURE.md](../docs/ARCHITECTURE.md) LangGraph/OAuth/research_mode; [WEB_RESEARCH.md](../docs/roadmap/WEB_RESEARCH.md) KB path diagram; [CI.md](../docs/CI.md) portfolio quick tox note; [E2E.md](../docs/E2E.md) OAuth note; [RELEASE.md](../docs/RELEASE.md) tag message; deduped CHANGELOG `[Unreleased]`.
 
