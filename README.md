@@ -20,7 +20,7 @@ Design goals, tradeoffs, and non-goals: [docs/DESIGN.md](docs/DESIGN.md).
 
 - **Full-stack** — Vue 3 + FastAPI + PostgreSQL (Alembic), JWT auth, GitHub OAuth, Prometheus metrics
 - **LangGraph RAG** — `RAG_ENGINE=langgraph`: condense → multi-query → retrieve → rerank → generate (KB path); optional web branch
-- **Retrieval quality** — multi-query fusion (RRF), metadata filters, FlashRank / keyword rerank
+- **Retrieval quality** — vector + keyword/hybrid indexes (OpenSearch Serverless, Azure AI Search); multi-query fusion (RRF), metadata filters, FlashRank / keyword rerank
 - **Opt-in web research** — per-message `research_mode=web`, disclaimer UI, optional Tavily
 - **Eval discipline** — RAGAS golden set (10 rows), baseline scores, optional CI gates; LangSmith per-node traces
 - **Local and CI friendly** — mock providers run without cloud credentials; live AWS/Azure via `.env`; demo script in [docs/assets/](docs/assets/README.md)
@@ -35,7 +35,7 @@ Design goals, tradeoffs, and non-goals: [docs/DESIGN.md](docs/DESIGN.md).
 
 ### Knowledge-base chat (default)
 
-- **RAG over managed search** — AWS: Bedrock Knowledge Base API over OpenSearch Serverless vectors; Azure: AI Search; grounded generation with cited sources
+- **RAG over managed search** — AWS: Bedrock KB API → OpenSearch Serverless (vectors + keywords); Azure AI Search hybrid; grounded generation with cited sources
 - **LangGraph pipeline** — `condense` → `multi_query` → `retrieve` → `rerank` → `generate` → `format` when `RAG_ENGINE=langgraph`
 - **Legacy chain path** — `RAG_ENGINE=chain` (default) for true Bedrock token streaming via LangChain
 - **Scoped topics** — declines off-topic questions via `SUPPORTED_TOPICS` / `tenant.rag_config`
@@ -85,7 +85,7 @@ Design goals, tradeoffs, and non-goals: [docs/DESIGN.md](docs/DESIGN.md).
 | **Backend**           | FastAPI, SQLAlchemy, Alembic, JWT auth, rate limiting, Prometheus (`/api/metrics`)                        |
 | **Frontend**          | Vue 3, TypeScript, Pinia, Tailwind, Vitest, Playwright (`frontend-vue/`)                                  |
 | **RAG orchestration** | **LangGraph** (`RAG_ENGINE=langgraph`) or LangChain **ConversationalRetrievalChain** (`RAG_ENGINE=chain`) |
-| **Retrieval**         | AWS: Bedrock KB + OpenSearch Serverless; Azure AI Search; multi-query + RRF; optional FlashRank / keyword rerank |
+| **Retrieval**         | **Vector stores:** Bedrock KB → OpenSearch Serverless (vector/keyword/hybrid); Azure AI Search (vector + keyword/hybrid); multi-query + RRF; optional FlashRank / keyword rerank |
 | **LLM**               | AWS Bedrock, Azure OpenAI, or **mock** (`LLM_PROVIDER` / `RETRIEVER_PROVIDER`)                            |
 | **Web search**        | Mock or **Tavily** (`tavily-python`) behind `research_mode=web`                                           |
 | **Eval**              | **RAGAS** harness (`backend/tests/eval/`), golden dataset, `tox -e eval`                                  |

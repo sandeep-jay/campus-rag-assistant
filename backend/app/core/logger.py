@@ -23,62 +23,99 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
+from __future__ import annotations
+
 import atexit
 import contextlib
+import json
 import logging
 import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI  # noqa: TCH002
 
 from backend.app.core.config_manager import settings
+from backend.app.core.request_context import RequestIdFilter
 from backend.app.utils.simple_tracer import get_client
 
-"""Logging configuration for the backend application."""
+VENDOR_LOGGER_LEVELS: dict[str, int] = {
+    'boto3': logging.WARNING,
+    'botocore': logging.WARNING,
+    'urllib3': logging.WARNING,
+    'httpcore': logging.WARNING,
+    'sqlalchemy': logging.WARNING,
+    'sqlalchemy.engine': logging.WARNING,
+    'langsmith': logging.WARNING,
+    'uvicorn.access': logging.INFO,
+}
 
-# Define loggers to be configured
-LOGGERS_TO_CONFIGURE = [
-    'uvicorn',
-    'uvicorn.error',
-    'uvicorn.access',
-    'fastapi',
-    'boto3',
-    'botocore',
-    'sqlalchemy',
-    # 'langsmith' is handled separately with a custom handler
-]
+LOGGERS_TO_FOLLOW_APP = ('uvicorn', 'uvicorn.error', 'fastapi')
 
-# Create the logger instance that will be exported
 logger = logging.getLogger('app')
+
+_logging_configured = False
 
 
 class ThreadSafeHandler(logging.StreamHandler):
-    """A thread-safe handler that suppresses errors on closed streams during shutdown."""
+    """Suppress errors when stdout is closed during shutdown."""
 
-    def emit(self, record):
-        # Emit a record handling closed file errors during shutdown.
+    def emit(self, record: logging.LogRecord) -> None:
         try:
             super().emit(record)
         except ValueError as e:
-            # Check if this is a closed file error during shutdown
             if 'I/O operation on closed file' in str(e):
-                # Silently ignore I/O errors on closed files
                 return
-            # Re-raise other ValueErrors
             raise
 
 
+class JsonLogFormatter(logging.Formatter):
+    """One JSON object per line for log aggregators."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload = {
+            'ts': self.formatTime(record, self.datefmt),
+            'level': record.levelname,
+            'logger': record.name,
+            'message': record.getMessage(),
+            'request_id': getattr(record, 'request_id', '-'),
+            'pathname': record.pathname,
+            'lineno': record.lineno,
+        }
+        if record.exc_info:
+            payload['exc_info'] = self.formatException(record.exc_info)
+        return json.dumps(payload, ensure_ascii=False)
+
+
+def _resolve_app_level() -> int:
+    return getattr(logging, settings.LOGGING_LEVEL.upper(), logging.INFO)
+
+
+def _vendor_levels(app_level: int) -> dict[str, int]:
+    if app_level <= logging.DEBUG:
+        return {name: app_level for name in VENDOR_LOGGER_LEVELS}
+    return dict(VENDOR_LOGGER_LEVELS)
+
+
+def _build_formatter(fmt: str) -> logging.Formatter:
+    if settings.LOG_JSON:
+        return JsonLogFormatter()
+    return logging.Formatter(fmt)
+
+
+def _attach_request_id_filter(handler: logging.Handler) -> None:
+    handler.addFilter(RequestIdFilter())
+
+
 def _create_console_handler(level: int, fmt: str) -> logging.Handler:
-    # Create a console handler for logging.
     handler = ThreadSafeHandler(sys.stdout)
     handler.setLevel(level)
-    handler.setFormatter(logging.Formatter(fmt))
+    handler.setFormatter(_build_formatter(fmt))
+    _attach_request_id_filter(handler)
     return handler
 
 
 def _create_file_handler(level: int, fmt: str) -> logging.Handler | None:
-    # Create a file handler for logging if enabled in settings.
     if not settings.LOG_TO_FILE:
         return None
     try:
@@ -86,119 +123,86 @@ def _create_file_handler(level: int, fmt: str) -> logging.Handler | None:
         log_path.parent.mkdir(parents=True, exist_ok=True)
         handler = RotatingFileHandler(
             filename=settings.LOGGING_LOCATION,
-            maxBytes=10_485_760,  # 10MB
+            maxBytes=10_485_760,
             backupCount=20,
             encoding='utf-8',
         )
         handler.setLevel(level)
-        handler.setFormatter(logging.Formatter(fmt))
-        logger.info(f'File logging enabled at {settings.LOGGING_LOCATION}')
+        handler.setFormatter(_build_formatter(fmt))
+        _attach_request_id_filter(handler)
         return handler
-    except Exception as e:
-        logger.error(f'Failed to create file handler: {e}')
+    except OSError as e:
+        logging.getLogger('app.setup').error('Failed to create file handler: %s', e)
         return None
 
 
-def _configure_langsmith_logger(level: int) -> None:
-    # Configure the LangSmith logger with thread-safe handlers.
-    langsmith_logger = logging.getLogger('langsmith')
-    langsmith_logger.handlers.clear()
-    langsmith_logger.setLevel(level)
-
-    # Use thread-safe handler for LangSmith
-    handler = ThreadSafeHandler(sys.stdout)
-    handler.setLevel(level)
-    handler.setFormatter(logging.Formatter(settings.LOGGING_FORMAT))
-    langsmith_logger.addHandler(handler)
-
-    # Also configure urllib3 logger which is used by LangSmith
-    urllib3_logger = logging.getLogger('urllib3')
-    urllib3_logger.handlers.clear()
-    urllib3_logger.addHandler(handler)
+def _configure_vendor_loggers(app_level: int) -> None:
+    levels = _vendor_levels(app_level)
+    for name, level in levels.items():
+        logging.getLogger(name).setLevel(level)
+    for name in LOGGERS_TO_FOLLOW_APP:
+        logging.getLogger(name).setLevel(app_level)
 
 
 def initialize_logger(app: FastAPI | None = None) -> None:
-    # Initialize and configure backend logging.
+    """Configure logging once per process (idempotent)."""
+    global _logging_configured
+    if _logging_configured:
+        return
 
-    level = getattr(logging, settings.LOGGING_LEVEL.upper(), logging.INFO)
+    app_level = _resolve_app_level()
     fmt = settings.LOGGING_FORMAT
 
-    # Clear and configure root logger
-    root_logger = logging.getLogger()
-    root_logger.handlers.clear()
-    root_logger.setLevel(level)
+    root = logging.getLogger()
+    root.handlers.clear()
+    root.setLevel(app_level)
 
-    # Capture warnings
     logging.captureWarnings(True)
 
-    # Handlers
-    console_handler = _create_console_handler(level, fmt)
-    file_handler = _create_file_handler(level, fmt)
-
-    root_logger.addHandler(console_handler)
+    console_handler = _create_console_handler(app_level, fmt)
+    file_handler = _create_file_handler(app_level, fmt)
+    root.addHandler(console_handler)
     if file_handler:
-        root_logger.addHandler(file_handler)
+        root.addHandler(file_handler)
 
-    # Configure app logger
     logger.handlers.clear()
-    logger.setLevel(level)
-    logger.addHandler(console_handler)
-    if file_handler:
-        logger.addHandler(file_handler)
+    logger.setLevel(app_level)
+    logger.propagate = True
 
-    # Configure third-party loggers
-    for logger_name in LOGGERS_TO_CONFIGURE:
-        logging.getLogger(logger_name).setLevel(level)
+    _configure_vendor_loggers(app_level)
 
-    # Special configuration for LangSmith logger
-    _configure_langsmith_logger(level)
-
-    # Optionally configure FastAPI logger
-    if app:
+    if app is not None:
         fastapi_logger = logging.getLogger('fastapi')
         fastapi_logger.handlers.clear()
-        fastapi_logger.setLevel(level)
-        fastapi_logger.addHandler(console_handler)
-        if file_handler:
-            fastapi_logger.addHandler(file_handler)
+        fastapi_logger.propagate = True
+        fastapi_logger.setLevel(app_level)
 
-    logger.info(f'Logger initialized at level {logging.getLevelName(level)}')
+    _logging_configured = True
+    logger.info('Logger initialized at level %s', logging.getLevelName(app_level))
 
 
 def cleanup_logging() -> None:
-    """Close all handlers and cleanup LangSmith."""
-    # First cleanup LangSmith client if it exists
+    """Close handlers and LangSmith client on shutdown."""
     try:
-        # Disable langsmith logger to prevent logging after handlers are closed
         logging.getLogger('langsmith').setLevel(logging.CRITICAL)
         logging.getLogger('urllib3').setLevel(logging.CRITICAL)
-
         client = get_client()
         if client:
             with contextlib.suppress(Exception):
                 client.session.close()
     except Exception:  # noqa: S110
-        # Silent exception handling is intentional here
-        # We're in cleanup code and can't log errors as handlers may be closed
         pass
 
-    # Close all handlers
-    root_logger = logging.getLogger()
-    for handler in root_logger.handlers[:]:
+    root = logging.getLogger()
+    for handler in root.handlers[:]:
         with contextlib.suppress(Exception):
             handler.flush()
             handler.close()
-            root_logger.removeHandler(handler)
+            root.removeHandler(handler)
 
 
 def get_logger(name: str) -> logging.Logger:
-    # Get a configured logger.
-
     return logging.getLogger(name)
 
 
-# Register cleanup function to ensure proper resource release
 atexit.register(cleanup_logging)
-
-# Initialize logging when module is imported
-initialize_logger()
