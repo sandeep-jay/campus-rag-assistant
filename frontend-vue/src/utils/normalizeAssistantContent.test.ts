@@ -18,4 +18,12 @@ describe('normalizeAssistantContent', () => {
     const result = normalizeAssistantContent('**Group Management**\n- item')
     expect(result).toContain('## Group Management')
   })
+
+  it('strips condensed question before em-dash answer', () => {
+    const raw =
+      'How do I submit an assignment in the learning platform?— Students can submit assignments in bCourses.'
+    const result = normalizeAssistantContent(raw)
+    expect(result).not.toMatch(/^How do I submit/)
+    expect(result).toContain('Students can submit')
+  })
 })
