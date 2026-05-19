@@ -77,4 +77,4 @@ jobs:
             "ALTER SCHEMA public OWNER TO chatbot;"
 
       - name: Run tox
-        run: tox -e lint,backend,frontend-streamlit,frontend-vue -p auto
+        run: tox -e lint,backend,frontend-streamlit,frontend-vue

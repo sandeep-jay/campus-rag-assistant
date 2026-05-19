@@ -26,7 +26,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Fixed
 
-- **CI** — `frontend-vue` tox env skips `nvm use` when nvm is absent (GitHub Actions uses `setup-node` only).
+- **CI** — `frontend-vue` tox env skips `nvm use` when `CI=true` (GHA) or nvm is absent; CI workflow runs tox sequentially.
 
 ### Changed
 
