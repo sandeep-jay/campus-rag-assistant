@@ -214,7 +214,7 @@ async def debug_auth(
             payload = verify_token(access_token)
             result['token_valid'] = payload is not None
             result['token_payload'] = payload
-            logger.info(f'Debug token payload: {payload}')
+            logger.debug('Debug token subject validated')
         except Exception as e:
             result['token_valid'] = False
             result['token_error'] = str(e)
