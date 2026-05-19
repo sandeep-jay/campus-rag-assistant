@@ -32,6 +32,7 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from backend.app.core.config_manager import settings
+from backend.app.core.log_redaction import jwt_subject_for_log
 from backend.app.db.database import get_db
 from backend.app.services.db import DatabaseService
 
@@ -47,14 +48,14 @@ async def get_token_from_request(
     access_token: str | None = Cookie(None, alias='access_token'),
 ) -> str | None:
     # Extract token from either authorization header or cookie.
-    logger.info(f'Extracting token - Bearer: {bool(token)}, Cookie: {bool(access_token)}')
+    logger.debug('Extracting token - Bearer: %s, Cookie: %s', bool(token), bool(access_token))
 
     # Return the first available token
     if token:
-        logger.info('Using bearer token from authorization header')
+        logger.debug('Using bearer token from authorization header')
         return token
     elif access_token:
-        logger.info('Using access_token from cookie')
+        logger.debug('Using access_token from cookie')
         return access_token
 
     logger.warning('No token found in request')
@@ -124,13 +125,13 @@ async def get_current_user(
         )
 
     try:
-        logger.info(f'Verifying token (length: {len(token)})')
+        logger.debug('Verifying token (length=%s)', len(token))
         payload = verify_token(token)
         if payload is None:
             logger.error('Token verification failed')
             raise credentials_exception
 
-        logger.info(f'Token payload: {payload}')
+        logger.debug('Token subject: %s', jwt_subject_for_log(payload))
         username: str = payload.get('sub')
         if username is None:
             logger.error("No 'sub' claim in token")
@@ -148,14 +149,14 @@ async def get_current_user(
         logger.exception(f'Unexpected error in get_current_user: {e}')
         raise credentials_exception
 
-    logger.info(f'Looking up user: {username}')
+    logger.debug('Looking up user: %s', username)
     db_service = DatabaseService(db)
     user = db_service.get_user_by_username(username)
     if user is None:
         logger.error(f'User not found: {username}')
         raise credentials_exception
 
-    logger.info(f'Authentication successful for user: {username}')
+    logger.info('Authentication successful for user=%s', username)
     return user
 
 
@@ -186,7 +187,7 @@ async def get_current_user_from_cookie(
         )
 
     try:
-        logger.info(f'Verifying cookie token (length: {len(access_token)})')
+        logger.debug('Verifying cookie token (length=%s)', len(access_token))
         payload = verify_token(access_token)
         if payload is None:
             logger.error('Cookie token verification failed')
@@ -195,7 +196,7 @@ async def get_current_user_from_cookie(
                 detail='Invalid or expired token',
             )
 
-        logger.info(f'Cookie token payload: {payload}')
+        logger.debug('Cookie token subject: %s', jwt_subject_for_log(payload))
         username: str = payload.get('sub')
         if username is None:
             logger.error("No 'sub' claim in cookie token")
@@ -210,7 +211,7 @@ async def get_current_user_from_cookie(
             detail='Could not validate credentials',
         )
 
-    logger.info(f'Looking up user from cookie: {username}')
+    logger.debug('Looking up user from cookie: %s', username)
     db_service = DatabaseService(db)
     user = db_service.get_user_by_username(username)
     if user is None:
@@ -220,5 +221,5 @@ async def get_current_user_from_cookie(
             detail='User not found',
         )
 
-    logger.info(f'Cookie authentication successful for user: {username}')
+    logger.info('Cookie authentication successful for user=%s', username)
     return user

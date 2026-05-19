@@ -41,6 +41,19 @@ alembic downgrade -1
 3. Start/restart API workers.
 4. Verify `/api/health` and `/api/metrics`.
 
+
+## Logging
+
+| Setting | Purpose |
+|---------|---------|
+| `LOGGING_LEVEL` | App log level (`INFO` recommended for production) |
+| `LOGGING_FORMAT` | Include `%(request_id)s` — wired via `RequestIdFilter` on all handlers |
+| `LOGGING_LOCATION` | Rotating file path when `LOG_TO_FILE=true` (default `backend_logs.log`) |
+| `LOG_JSON` | When `true`, emit one JSON object per line (for aggregators) |
+| `LOG_TO_FILE` | Enable rotating file handler (10 MB × 20 backups) |
+
+**Privacy:** JWT payloads and full chat queries are not logged at `INFO`. Use `DEBUG` locally for verbose auth/RAG text. Access lines: `app.access` logger (`METHOD path status duration`).
+
 ## Local logs
 
 `*.log` files (`app.log`, `backend/app.log`, etc.) are gitignored. After stopping uvicorn/Vite, remove them to reclaim disk:

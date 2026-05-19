@@ -14,7 +14,6 @@ from backend.app.core.metrics import metrics_middleware, metrics_response, refre
 from backend.app.core.request_context import RequestContextMiddleware
 from backend.app.db.database import Base, engine
 
-# Configure logging before other subsystems emit logs.
 initialize_logger()
 
 _env = (getattr(settings, 'APP_ENV', None) or settings.ENVIRONMENT or '').lower()
@@ -43,7 +42,6 @@ app = FastAPI(
 )
 
 initialize_logger(app)
-logger.info('Enhanced logging system initialized with FastAPI app')
 
 app.add_middleware(
     SessionMiddleware,

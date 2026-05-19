@@ -12,6 +12,7 @@ from __future__ import annotations
 import contextvars
 import logging
 import re
+import time
 import uuid
 
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -62,9 +63,18 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         header_val = request.headers.get(REQUEST_ID_HEADER)
         rid = normalize_request_id(header_val)
         token = request_id_ctx.set(rid)
+        start = time.perf_counter()
         try:
             response = await call_next(request)
             response.headers[REQUEST_ID_HEADER] = rid
+            duration_ms = (time.perf_counter() - start) * 1000
+            logging.getLogger('app.access').info(
+                '%s %s %s %.0fms',
+                request.method,
+                request.url.path,
+                response.status_code,
+                duration_ms,
+            )
             return response
         finally:
             request_id_ctx.reset(token)

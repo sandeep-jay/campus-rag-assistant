@@ -83,7 +83,7 @@ class DatabaseService:
         password: str,
         tenant_id: int | None = None,
     ) -> User:
-        logger.info(f'Creating new user: {username} (email: {email})')
+        logger.info('Creating new user: %s', username)
         hashed_password = get_password_hash(password)
         db_user = User(
             username=username,
