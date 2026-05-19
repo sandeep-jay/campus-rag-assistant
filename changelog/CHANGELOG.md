@@ -24,6 +24,10 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 - **CI/CD** — GitHub Actions: [`ci.yml`](../.github/workflows/ci.yml) (tox on `main` + PRs), [`cd.yml`](../.github/workflows/cd.yml) (Vue build + optional EB deploy on `qa`/`release`); [docs/CI.md](../docs/CI.md). Removed `.travis.yml`.
 
+### Fixed
+
+- **CI** — `frontend-vue` tox env skips `nvm use` when nvm is absent (GitHub Actions uses `setup-node` only).
+
 ### Changed
 
 - **CI** — `tox -e lint,backend,frontend-vue` green; ruff format/fix, LangGraph import fixes, ChatView `research-mode` binding.
