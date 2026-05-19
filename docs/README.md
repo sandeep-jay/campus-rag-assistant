@@ -1,6 +1,23 @@
 # Documentation index
 
-See the root [README](../README.md) for setup and feature overview.
+See the root [README](../README.md) for setup, features, screenshots, and stack overview.
+
+## Start here
+
+| Audience | Start with |
+|----------|------------|
+| **New to the codebase** | [DESIGN.md](./DESIGN.md) → [ARCHITECTURE.md](./ARCHITECTURE.md) → [README#quick-start](../README.md#quick-start-mock-rag-no-cloud) |
+| **RAG / LangGraph** | [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md) → [EVALUATION.md](./EVALUATION.md) |
+| **Ops / release** | [OPERATIONS.md](./OPERATIONS.md) → [CI.md](./CI.md) → [RELEASE.md](./RELEASE.md) |
+
+## Design and architecture
+
+| Doc | Description |
+|-----|-------------|
+| [DESIGN.md](./DESIGN.md) | **Design goals and decisions** — why chain vs LangGraph, retrieval stack, eval, OAuth, web mode |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | Diagrams, request flows, API and frontend layout |
+| [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md) | Graph nodes, configuration, streaming behavior |
+| [roadmap/WEB_RESEARCH.md](./roadmap/WEB_RESEARCH.md) | Opt-in `research_mode=web` |
 
 ## Screenshots and demos
 
@@ -17,34 +34,35 @@ See the root [README](../README.md) for setup and feature overview.
 | [architecture_detailed_v2.png](./assets/architecture_detailed_v2.png) | **Detailed** — [ARCHITECTURE.md](./ARCHITECTURE.md#detailed-v2) |
 | [architecture_v1.png](./assets/architecture_v1.png) | Upstream reference — [ARCHITECTURE.md](./ARCHITECTURE.md#upstream-reference-v1) |
 
-Narrative, chat/SSE flow, and API surface: [ARCHITECTURE.md](./ARCHITECTURE.md).
-
-## Roadmap and quality
+## Quality and delivery
 
 | Doc | Description |
 |-----|-------------|
-| [roadmap/PORTFOLIO_PHASED_ROADMAP.md](./roadmap/PORTFOLIO_PHASED_ROADMAP.md) | **Primary roadmap** — phases, priorities, dev commands |
-| [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md) | LangGraph design, flags, latency |
-| [roadmap/WEB_RESEARCH.md](./roadmap/WEB_RESEARCH.md) | Opt-in web research |
-| [roadmap/archive/](./roadmap/archive/) | Completed sprint + campus scale track |
-| [eval_baseline_2026-05-19.md](./eval_baseline_2026-05-19.md) | RAGAS bootstrap baseline |
-| [EVALUATION.md](./EVALUATION.md) | RAGAS vs LangSmith |
+| [EVALUATION.md](./EVALUATION.md) | RAGAS vs LangSmith, bootstrap, CI gates |
+| [eval_baseline_2026-05-19.md](./eval_baseline_2026-05-19.md) | RAGAS baseline scores (live AWS) |
+| [roadmap/PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md) | Product phases — shipped vs optional |
 | [../changelog/CHANGELOG.md](../changelog/CHANGELOG.md) | Release history |
 
-## Architecture and operations
+## Operations and engineering
 
 | Doc | Description |
 |-----|-------------|
 | [CI.md](./CI.md) | GitHub Actions CI/CD, secrets, branch gates |
-| [RELEASE.md](./RELEASE.md) | `main` → `qa` → `release` promotion, tags, CI/CD branches |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | System design, chat/SSE flow, API surface |
+| [RELEASE.md](./RELEASE.md) | `main` → `qa` → `release` promotion |
 | [OPERATIONS.md](./OPERATIONS.md) | Runbooks, metrics, migrations |
-| [PRODUCTION_TLS.md](./PRODUCTION_TLS.md) | HTTPS, OAuth (API-port + handoff), local dev checklist |
+| [PRODUCTION_TLS.md](./PRODUCTION_TLS.md) | HTTPS, OAuth (API-port + handoff) |
+| [SECURITY.md](./SECURITY.md) | Dependency audit, production hardening |
+| [PERFORMANCE.md](./PERFORMANCE.md) | Chat history caps and latency metrics |
 | [LOAD_TESTING.md](./LOAD_TESTING.md) | k6 load tests |
-| [TENANT_CONFIG.md](./TENANT_CONFIG.md) | Per-tenant RAG prompts (`tenant.rag_config`, env defaults) |
-| [SECURITY.md](./SECURITY.md) | Dependency audit, bandit, production hardening |
-| [PERFORMANCE.md](./PERFORMANCE.md) | Campus perf track (Phase 0 shipped; checklists for cache/scale) |
+| [TENANT_CONFIG.md](./TENANT_CONFIG.md) | Per-tenant `tenant.rag_config` |
 | [E2E.md](./E2E.md) | Playwright E2E |
 | [../frontend-vue/README.md](../frontend-vue/README.md) | Vue app setup |
+
+## Archive
+
+| Doc | Description |
+|-----|-------------|
+| [roadmap/archive/SPRINT_2026-05-18_LANGGRAPH.md](./roadmap/archive/SPRINT_2026-05-18_LANGGRAPH.md) | LangGraph live-validation sprint log |
+| [roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md) | Campus / production scale (optional track) |
 
 Attribution and license: [README](../README.md#license).

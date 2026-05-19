@@ -40,7 +40,7 @@ git reset --hard qa
 git push origin release
 
 # Immutable release marker (on release branch tip)
-git tag -a v2.0.0 -m "Campus RAG Assistant v2.0 — Vue SPA, SSE streaming, provider registry"
+git tag -a v2.0.0 -m "Campus RAG Assistant v2.0 — Vue SPA, LangGraph RAG, Phase 5 retrieval, web research, RAGAS baseline"
 git push origin v2.0.0
 ```
 

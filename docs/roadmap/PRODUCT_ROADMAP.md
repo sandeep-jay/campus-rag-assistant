@@ -1,9 +1,8 @@
-# Portfolio phased roadmap
+# Product phased roadmap
 
-**Last updated:** 2026-05-19  
-**Audience:** Independent continuation of the RAG chatbot (portfolio edition).
+**Last updated:** 2026-05-19
 
-**Publish and platform wiring are complete** on [`main`](https://github.com/sandeep-jay/campus-rag-assistant).
+Delivery phases for Campus RAG Assistant — what is shipped on [`main`](https://github.com/sandeep-jay/campus-rag-assistant) versus optional follow-ups. Design context: [DESIGN.md](../DESIGN.md).
 
 ## Roadmap index
 
@@ -32,10 +31,10 @@ CI: GitHub Actions on push/PR to `main` ([docs/CI.md](../CI.md)). Live AWS / Lan
 
 | Goal | How we measure success |
 |------|-------------------------|
-| **Portfolio-ready demo** | Clone → mock mode → login → chat with sources in <15 min |
+| **Runnable without cloud** | Clone → mock mode → login → chat with sources in <15 min |
 | **Credible AI engineering** | Providers, RAGAS harness, LangSmith traces, LangGraph |
-| **JD alignment** | LangGraph, eval discipline, full-stack Vue — without agent swarms |
-| **Clean repo story** | README attribution; Regents `LICENSE` retained |
+| **Measurable quality** | RAGAS golden set, LangSmith traces, documented baselines |
+| **Clean repo story** | README attribution; upstream `LICENSE` retained |
 
 ---
 
@@ -138,7 +137,7 @@ Opt-in `research_mode=web`, Tavily optional, disclaimer UI. [WEB_RESEARCH.md](./
 
 | Priority | Focus |
 |----------|--------|
-| **Now** | Commit portfolio slice; optional branch protection on `main` |
+| **Now** | Ship product increments; optional branch protection on `main` |
 | **Optional** | Phase 6a LangGraph SSE; grow golden set; faithfulness/precision via ingestion |
 | **Later** | Campus scale track — [PHASED_IMPROVEMENT_ROADMAP.md](./archive/PHASED_IMPROVEMENT_ROADMAP.md) |
 

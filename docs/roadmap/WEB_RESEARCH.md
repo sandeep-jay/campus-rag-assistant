@@ -1,6 +1,6 @@
 # Web research tool (opt-in)
 
-**Status:** Portfolio MVP complete (API + Vue toggle + disclaimer UI); Tavily live optional (`tavily-python`). See [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md).
+**Status:** Shipped (API + Vue toggle + disclaimer UI) (API + Vue toggle + disclaimer UI); Tavily live optional (`tavily-python`). See [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md).
 
 User chooses **KB** (default) or **web** per message. Not silent open-web mode.
 
@@ -11,9 +11,9 @@ User chooses **KB** (default) or **web** per message. Not silent open-web mode.
 ```mermaid
 flowchart TB
   START --> Route{research_mode}
-  Route -->|kb| C1[condense] --> KB[retrieve_kb]
+  Route -->|kb| C1[condense] --> MQ[multi_query] --> RET[retrieve_kb] --> RR[rerank]
   Route -->|web| C2[condense] --> WEB[web_search]
-  KB --> GEN[generate]
+  RR --> GEN[generate]
   WEB --> GEN
   GEN --> FMT[format]
 ```
@@ -56,5 +56,5 @@ Opt-in only; disclaimer; rate limits; no arbitrary URL fetch in v1.
 
 ## Related
 
-- [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md)
+- [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md)
 - [LANGGRAPH.md](./LANGGRAPH.md)
