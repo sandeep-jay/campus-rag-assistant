@@ -24,7 +24,7 @@ See the root [README](../README.md) for setup, features, screenshots, and stack 
 | Resource | Description |
 |----------|-------------|
 | [assets/README.md](./assets/README.md) | Product, auth, and LangSmith screenshots + demo script |
-| [README#screenshots](../README.md#screenshots) | Gallery embedded in repo README |
+| [README#overview](../README.md#overview) | Architecture, design, screenshots, and LangSmith (collapsible panels) |
 
 ## Architecture diagrams
 
