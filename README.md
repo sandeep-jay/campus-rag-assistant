@@ -31,6 +31,31 @@ Ask questions in natural language; the app retrieves relevant docs, streams a ci
 - **Auth** — email/password or **GitHub OAuth** (Google-ready); JWT in HTTP-only cookies
 - **UI** — streaming chat, copy answer, sources panel, dark/light mode, mobile-friendly layout
 
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/assets/product/chat-empty-state.png" alt="Campus RAG Assistant welcome screen" width="720" />
+</p>
+<p align="center"><em>Welcome screen with suggested campus prompts.</em></p>
+
+<p align="center">
+  <img src="docs/assets/product/chat-assistant-response.png" alt="Structured RAG answer with bCourses sources" width="720" />
+</p>
+<p align="center"><em>Knowledge-base answers with structured markdown and session history.</em></p>
+
+<p align="center">
+  <img src="docs/assets/product/chat-sources-kb.png" alt="Expandable KB source citations" width="520" />
+</p>
+<p align="center"><em>Source transparency — Berkeley ServiceNow KB articles with scores.</em></p>
+
+<p align="center">
+  <img src="docs/assets/product/chat-web-research-answer.png" alt="Web research mode with disclaimer" width="720" />
+</p>
+<p align="center"><em>Opt-in web research (Phase 6b) with an explicit disclaimer banner.</em></p>
+
+Demo script: [docs/assets/README.md#product-demo-script-23-min](docs/assets/README.md#product-demo-script-23-min).
+
 Optional **Streamlit** client (`frontend-streamlit/`) uses the same API.
 
 ## Stack
@@ -41,10 +66,12 @@ Optional **Streamlit** client (`frontend-streamlit/`) uses the same API.
 - **Providers:** `LLM_PROVIDER` / `RETRIEVER_PROVIDER` — `mock` | `aws` | `azure`; `RAG_FORCE_MOCK` for local demos
 - **Eval:** RAGAS harness (`backend/tests/eval/`), k6 load tests
 
-## Roadmap (in progress)
+## Roadmap
 
-- **LangGraph** — `RAG_ENGINE=langgraph` validated on live AWS KB ([sprint archive](docs/roadmap/archive/SPRINT_2026-05-18_LANGGRAPH.md)); opt-in `research_mode=web` in Vue when enabled. Default `chain` for true Bedrock token streaming.
-- **RAGAS quality gates** — deferred until after graph; harness exists under `backend/tests/eval/`.
+Portfolio phases **3–5** and **6b** (web research) are **done** on `main`. Optional next: LangGraph-native SSE (Phase 6a). Full status: [docs/roadmap/PORTFOLIO_PHASED_ROADMAP.md](docs/roadmap/PORTFOLIO_PHASED_ROADMAP.md).
+
+- **LangGraph** — `RAG_ENGINE=langgraph` on live AWS KB; default `chain` for true Bedrock token streaming.
+- **Eval** — RAGAS golden set + [baseline](docs/eval_baseline_2026-05-19.md); LangSmith traces; strict gates on release only ([EVALUATION.md](docs/EVALUATION.md)).
 
 ## Prerequisites
 
@@ -68,7 +95,7 @@ alembic upgrade head
 ./scripts/run-backend-venv.sh          # terminal 1 — http://127.0.0.1:8000
 cp frontend-vue/.env.example frontend-vue/.env.local
 # VITE_API_URL=http://127.0.0.1:8000
-# For GitHub OAuth, use 127.0.0.1 (not localhost) in the browser — see docs/PRODUCTION_TLS.md
+# GitHub OAuth: VITE_OAUTH_API_URL=http://127.0.0.1:8000 in frontend-vue/.env.local — see docs/PRODUCTION_TLS.md
 ./scripts/run-frontend-vue.sh        # terminal 2 — http://127.0.0.1:5173
 ```
 
@@ -122,6 +149,42 @@ cd frontend-vue && npm run e2e
 
 Load tests: [docs/LOAD_TESTING.md](docs/LOAD_TESTING.md).
 
+
+## Quality and observability
+
+Two complementary tools — see [docs/EVALUATION.md](docs/EVALUATION.md).
+
+| Tool | Role |
+|------|------|
+| **RAGAS** | Regression **quality metrics** on a golden dataset (`backend/tests/eval/`) |
+| **LangSmith** | **Traces** per chat turn and LangGraph node (`LANGCHAIN_TRACING_V2=true`) |
+
+### RAGAS
+
+```bash
+tox -e eval
+RAGAS_QUALITY_GATE=1 tox -e eval   # strict gates (release / local milestone)
+```
+
+Golden set (**10** rows), thresholds, bootstrap, and baseline scores: [docs/EVALUATION.md](docs/EVALUATION.md) and [docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md).
+
+### LangSmith
+
+Enable `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, and `LANGCHAIN_PROJECT` in `.env`; filter runs by `chat-session-<id>`. Per-node spans with `RAG_ENGINE=langgraph`.
+
+![LangSmith trace — KB path](docs/assets/observability/langsmith-trace-kb-waterfall.png)
+
+Web path: [langsmith-trace-web-waterfall.png](docs/assets/observability/langsmith-trace-web-waterfall.png). Capture steps: [EVALUATION.md — LangSmith](docs/EVALUATION.md#langsmith-run-naming-and-traces).
+
+### Ops quick reference
+
+| Item | Where |
+|------|--------|
+| Request correlation | `X-Request-ID` header (echoed on responses) |
+| Metrics | `GET /api/metrics` (Prometheus) |
+| Mock vs live RAG | `RAG_FORCE_MOCK`, `LLM_PROVIDER`, `RETRIEVER_PROVIDER` in `.env.example` |
+
+
 ## Documentation
 
 | Doc | Description |
@@ -129,7 +192,8 @@ Load tests: [docs/LOAD_TESTING.md](docs/LOAD_TESTING.md).
 | [docs/README.md](docs/README.md) | Index |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System overview, diagrams ([v2](./docs/assets/architecture_v2.png)), chat/SSE flow |
 | [docs/OPERATIONS.md](docs/OPERATIONS.md) | Runbooks, metrics, migrations |
-| [docs/EVALUATION.md](docs/EVALUATION.md) | RAGAS quality gates |
+| [docs/EVALUATION.md](docs/EVALUATION.md) | RAGAS + LangSmith |
+| [docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md) | RAGAS baseline scores |
 | [changelog/CHANGELOG.md](changelog/CHANGELOG.md) | Release history |
 
 ## License

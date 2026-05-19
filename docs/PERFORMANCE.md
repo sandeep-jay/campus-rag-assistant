@@ -1,79 +1,68 @@
 # Performance and scale
 
-Operational tuning for latency, throughput, and cost. Roadmap phases align with [roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md).
+Operational tuning for latency, throughput, and cost.
 
-## Phase 0 — Shipped on `main`
+> **Phase numbering:** This doc uses the **campus / production scale** track in [roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md). **Portfolio** retrieval work (multi-query, rerank) is **portfolio Phase 5** — done on `main`; see [roadmap/PORTFOLIO_PHASED_ROADMAP.md](./roadmap/PORTFOLIO_PHASED_ROADMAP.md) and [LANGGRAPH.md](./roadmap/LANGGRAPH.md).
+
+## Campus track Phase 0 — Shipped on `main`
 
 | Change | Config / code | Docs |
 |--------|----------------|------|
 | Chat history window | `CHAT_HISTORY_MAX_MESSAGES` | [.env.example](../.env.example), [LOAD_TESTING.md](./LOAD_TESTING.md) |
 | Optional stream demo delay | `STREAM_ARTIFICIAL_DELAY_MS` (default `0`) | `.env.example` |
-| SQLAlchemy pool | `SQLALCHEMY_POOL_SIZE`, `SQLALCHEMY_MAX_OVERFLOW` | `.env.example`, [OPERATIONS.md](./OPERATIONS.md), [LOAD_TESTING.md](./LOAD_TESTING.md) |
-| Multi-worker API (EB) | `API_WORKERS` / `UVICORN_WORKERS` in [run_services.sh](../run_services.sh) | [OPERATIONS.md](./OPERATIONS.md) |
-| SSE first-token metric | `chatbot_chat_first_token_latency_seconds` | [OPERATIONS.md](./OPERATIONS.md) alerts |
-| No fixed `sleep` on SSE tokens | — | This doc |
+| SQLAlchemy pool | `SQLALCHEMY_POOL_SIZE`, `SQLALCHEMY_MAX_OVERFLOW` | `.env.example`, [OPERATIONS.md](./OPERATIONS.md) |
+| Multi-worker API (EB) | `API_WORKERS` in [run_services.sh](../run_services.sh) | [OPERATIONS.md](./OPERATIONS.md) |
+| SSE first-token metric | `chatbot_chat_first_token_latency_seconds` | [OPERATIONS.md](./OPERATIONS.md) |
 
-Runbooks: [OPERATIONS.md](./OPERATIONS.md) (SLOs split: auth/session vs live RAG). Load validation: [LOAD_TESTING.md](./LOAD_TESTING.md).
+Runbooks: [OPERATIONS.md](./OPERATIONS.md). Load validation: [LOAD_TESTING.md](./LOAD_TESTING.md).
 
 ---
 
-## Documentation checklist — Phase 1 (not yet implemented)
+## Documentation checklist — Campus Phase 1 (not implemented)
 
 **Goal:** exact Redis response cache, deeper observability, realistic k6 mix.
 
 | Doc | Update when Phase 1 lands |
 |-----|---------------------------|
-| [.env.example](../.env.example) | `RESPONSE_CACHE_ENABLED`, `RESPONSE_CACHE_TTL_SECONDS`, `CACHE_BYPASS_HEADER` (or equivalent) |
-| [OPERATIONS.md](./OPERATIONS.md) | Cache hit rate metric, invalidation on KB deploy, bypass for support |
-| [LOAD_TESTING.md](./LOAD_TESTING.md) | Mixed scenario (sessions + stream + feedback); note cache warm vs cold |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | Optional cache layer in chat sequence / diagram notes |
-| [roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md) | Mark 1a–1c complete; link env names |
-| [EVALUATION.md](./EVALUATION.md) | Whether cached answers are excluded from RAGAS runs |
-| [changelog/CHANGELOG.md](../changelog/CHANGELOG.md) | Release notes |
-
-**Code (for implementers):** `backend/app/services/response_cache.py` (or similar), wire in `chat.py` / `rag.py`, Prometheus `cache_hit` / `cache_miss` counters.
+| [.env.example](../.env.example) | `RESPONSE_CACHE_ENABLED`, `RESPONSE_CACHE_TTL_SECONDS`, `CACHE_BYPASS_HEADER` |
+| [OPERATIONS.md](./OPERATIONS.md) | Cache hit rate metric, invalidation on KB deploy |
+| [LOAD_TESTING.md](./LOAD_TESTING.md) | Mixed scenario; cache warm vs cold |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | Optional cache layer in chat flow |
+| [roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md) | Mark 1a–1c complete |
+| [EVALUATION.md](./EVALUATION.md) | Whether cached answers are excluded from RAGAS |
 
 ---
 
-## Documentation checklist — Phase 2 (not yet implemented)
+## Documentation checklist — Campus Phase 2 (partially superseded)
 
-**Goal:** retrieval quality (multi-query, metadata filters, optional rerank) without regressing eval.
+**Goal (campus track):** retrieval quality at scale.
 
-| Doc | Update when Phase 2 lands |
-|-----|---------------------------|
-| [.env.example](../.env.example) | `RERANK_ENABLED`, `RERANK_*`, multi-query / filter flags |
-| [EVALUATION.md](./EVALUATION.md) | RAGAS gates with rerank on/off; baseline comparison |
-| [roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md) | 2a–2d status; **note:** FlashRank is roadmap-only until wired in `rag.py` |
-| [roadmap/PORTFOLIO_PHASED_ROADMAP.md](./roadmap/PORTFOLIO_PHASED_ROADMAP.md) | Portfolio eval / LangGraph alignment |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | Retrieval subgraph (expand, filter, rerank) |
-| [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md) | If nodes move to graph runner |
-| [changelog/CHANGELOG.md](../changelog/CHANGELOG.md) | Release notes |
+Portfolio **Phase 5** already shipped multi-query, metadata filters, and LangGraph **rerank** (FlashRank + keyword) on `main`. When implementing **remaining** campus Phase 2 items (e.g. semantic cache, ingestion pipeline), update:
 
-**Code:** `backend/app/services/rag.py`, retriever providers, `backend/tests/eval/`.
+| Doc | Update |
+|-----|--------|
+| [.env.example](../.env.example) | Any new cache / ingestion flags |
+| [EVALUATION.md](./EVALUATION.md) | RAGAS comparison after changes |
+| [roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md) | Mark completed slices |
+| [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md) | New graph nodes if any |
 
 ---
 
-## Documentation checklist — Phase 3 (not yet implemented)
+## Documentation checklist — Campus Phase 3 (not implemented)
 
 **Goal:** multi-instance reliability, idempotency, cost governance.
 
 | Doc | Update when Phase 3 lands |
 |-----|---------------------------|
-| [.env.example](../.env.example) | Production `REDIS_URL` (TLS), idempotency TTL, budget caps |
-| [OPERATIONS.md](./OPERATIONS.md) | ElastiCache / Redis HA, idempotent chat retries, connection budget math |
-| [RELEASE.md](./RELEASE.md) | Promote + cache flush / migration notes |
+| [.env.example](../.env.example) | Production `REDIS_URL`, idempotency TTL, budget caps |
+| [OPERATIONS.md](./OPERATIONS.md) | Redis HA, idempotent chat retries |
+| [RELEASE.md](./RELEASE.md) | Promote + cache flush notes |
 | [LOAD_TESTING.md](./LOAD_TESTING.md) | Retry / duplicate POST scenarios |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | Redis HA, horizontal workers, optional read path |
-| [roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md) | Phase 3–4 items |
-| [docs/RELEASE.md](./RELEASE.md) | Deploy order if schema adds `client_message_id` |
-| [changelog/CHANGELOG.md](../changelog/CHANGELOG.md) | Release notes |
-
-**Code:** rate limit shared Redis (already), chat API schema, Alembic migration if idempotency keys are stored.
 
 ---
 
 ## Related
 
-- [OPERATIONS.md](./OPERATIONS.md) — metrics, pools, alerts
-- [LOAD_TESTING.md](./LOAD_TESTING.md) — k6 profiles
-- [RELEASE.md](./RELEASE.md) — branch promotion
+- [OPERATIONS.md](./OPERATIONS.md)
+- [LOAD_TESTING.md](./LOAD_TESTING.md)
+- [RELEASE.md](./RELEASE.md)
