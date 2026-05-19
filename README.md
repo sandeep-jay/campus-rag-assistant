@@ -6,7 +6,7 @@ Production-style **retrieval-augmented chat** over a campus knowledge base (Canv
 
 Ask questions in natural language; the app retrieves relevant docs, streams a cited answer, and keeps conversation history per user.
 
-System design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/DESIGN.md](docs/DESIGN.md) · [screenshots & demo](docs/assets/README.md)
+System design: [Overview](#overview) · [docs/DESIGN.md](docs/DESIGN.md) · [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ## Problem and approach
 
@@ -25,19 +25,53 @@ Design goals, tradeoffs, and non-goals: [docs/DESIGN.md](docs/DESIGN.md).
 - **Eval discipline** — RAGAS golden set (10 rows), baseline scores, optional CI gates; LangSmith per-node traces
 - **Local and CI friendly** — mock providers run without cloud credentials; live AWS/Azure via `.env`; demo script in [docs/assets/](docs/assets/README.md)
 
-## Architecture
+## Overview
 
-![High-level architecture](docs/assets/architecture_v2.png)
+Architecture, design rationale, product UI, and observability traces.
 
-Request flows, component boundaries, and v1 comparison: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Goals, tradeoffs, and capability map: [docs/DESIGN.md](docs/DESIGN.md).
+### Architecture
 
-## Product UI
+| Overview | Detailed (v2) |
+|----------|----------------|
+| ![High-level architecture](docs/assets/architecture_v2.png) | ![Detailed component diagram](docs/assets/architecture_detailed_v2.png) |
+
+Upstream v1 comparison and request flows: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+
+### Design
+
+| Goals | Decisions |
+|-------|-----------|
+| Grounded answers from a **governed campus KB** (Canvas, ServiceNow, policies) | **Bedrock KB → OpenSearch Serverless** or **Azure AI Search** — app calls KB API, not OpenSearch directly |
+| **Cited sources** and per-tenant prompts (`tenant.rag_config`) | **`RAG_ENGINE=chain`** for token streaming · **`langgraph`** for multi-query, rerank, explicit nodes |
+| **Opt-in web research** with disclaimer — not silent fallback | Pluggable **`LLM_PROVIDER` / `RETRIEVER_PROVIDER`** (`aws` · `azure` · `mock`) |
+
+Full goals, tradeoffs, boundaries, and eval approach: [docs/DESIGN.md](docs/DESIGN.md)
+
+### Screenshots
 
 | Sign in | Chat (KB answer) |
 |---------|------------------|
 | ![Sign in — GitHub OAuth or local account](docs/assets/auth/sign-in.png) | ![Structured KB answer with session history](docs/assets/product/chat-assistant-response.png) |
 
-More screenshots (sources, web research, welcome state) and a **~2–3 min demo script**: [docs/assets/README.md](docs/assets/README.md#product-demo-script-23-min).
+| Welcome + suggested prompts | KB sources (citations) |
+|---------------------------|-------------------------|
+| ![Welcome screen with suggested campus prompts](docs/assets/product/chat-empty-state.png) | ![Source transparency — KB articles with scores](docs/assets/product/chat-sources-kb.png) |
+
+| Web research (opt-in) | Web sources |
+|---------------------|-------------|
+| ![Web mode answer with disclaimer banner](docs/assets/product/chat-web-research-answer.png) | ![Web search sources labeled WEB](docs/assets/product/chat-sources-web.png) |
+
+More assets (content tab, register): [docs/assets/README.md](docs/assets/README.md)
+
+**Demo script (~2–3 min):** [docs/assets/README.md#product-demo-script-23-min](docs/assets/README.md#product-demo-script-23-min)
+
+### LangSmith traces
+
+| KB path (LangGraph waterfall) | Web research path |
+|------------------------------|-------------------|
+| ![LangSmith trace — KB path](docs/assets/observability/langsmith-trace-kb-waterfall.png) | ![LangSmith trace — web path](docs/assets/observability/langsmith-trace-web-waterfall.png) |
+
+Enable `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, and `LANGCHAIN_PROJECT` in `.env`; filter runs by `chat-session-<id>`. Capture steps: [docs/EVALUATION.md](docs/EVALUATION.md#capture-a-trace-for-docs). More traces: [docs/assets/README.md](docs/assets/README.md)
 
 ## Features
 
@@ -190,7 +224,7 @@ Golden set (**10** rows), thresholds, bootstrap, and baseline scores: [docs/EVAL
 
 ### LangSmith
 
-Enable `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, and `LANGCHAIN_PROJECT` in `.env`; filter runs by `chat-session-<id>`. Per-node spans with `RAG_ENGINE=langgraph`. Example traces: [docs/assets/README.md](docs/assets/README.md). Capture steps: [EVALUATION.md — LangSmith](docs/EVALUATION.md#capture-a-trace-for-docs).
+Enable `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, and `LANGCHAIN_PROJECT` in `.env`; filter runs by `chat-session-<id>`. Per-node spans with `RAG_ENGINE=langgraph`. Example traces: [Overview → LangSmith traces](#langsmith-traces). Capture steps: [EVALUATION.md — LangSmith](docs/EVALUATION.md#capture-a-trace-for-docs).
 
 ### Ops quick reference
 
