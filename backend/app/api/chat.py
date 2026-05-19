@@ -436,19 +436,28 @@ async def chat_stream(
         first_token_recorded = False
         try:
             if (getattr(settings, 'RAG_ENGINE', 'chain') or 'chain').strip().lower() == 'langgraph':
-                result = rag_service.process_query(
+                yield _sse_payload({'type': 'status', 'message': 'Searching the knowledge base…'})
+                await asyncio.sleep(0)
+                result = await asyncio.to_thread(
+                    rag_service.process_query,
                     message.content,
                     chat_history,
                     tenant_config,
-                    research_mode=_research_mode,
+                    _research_mode,
                 )
-                for chunk in rag_service._chunk_for_stream(result['message'], size=12):  # noqa: SLF001
+                chunk_delay_s = max(
+                    0.0,
+                    int(getattr(settings, 'STREAM_ARTIFICIAL_DELAY_MS', 0) or 0) / 1000.0,
+                )
+                if chunk_delay_s == 0:
+                    chunk_delay_s = 0.012  # LangGraph returns a full answer; pace chunks for UI
+                for chunk in rag_service._chunk_for_stream(result['message'], size=8):  # noqa: SLF001
                     if not first_token_recorded:
                         first_token_recorded = True
                         CHAT_FIRST_TOKEN_LATENCY_SECONDS.observe(time.perf_counter() - stream_started)
                     assistant_chunks.append(chunk)
                     yield _sse_payload({'type': 'token', 'token': chunk})
-                    await asyncio.sleep(0)
+                    await asyncio.sleep(chunk_delay_s)
                 metadata = result.get('metadata', {})
                 assistant_text = rag_service._normalize_answer_formatting(  # noqa: SLF001
                     result['message'],
