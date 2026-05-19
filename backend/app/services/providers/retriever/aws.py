@@ -5,6 +5,8 @@ from langchain_aws import AmazonKnowledgeBasesRetriever
 from backend.app.core.config_manager import settings
 from backend.app.services.bedrock import BedrockService
 from backend.app.services.providers.base import BaseRetrieverProvider
+from backend.app.services.rerank import retrieval_candidate_count
+from backend.app.services.retrieval import build_bedrock_vector_filter
 
 # KB IDs that commonly appear in .env examples — treat as "not configured".
 _PLACEHOLDER_KB_IDS = frozenset(
@@ -46,14 +48,16 @@ class AwsRetrieverProvider(BaseRetrieverProvider):
 
     def _build_retriever(self):
         agent_client = self._bedrock.get_agent_client()
+        vector_search_configuration = {
+            'numberOfResults': retrieval_candidate_count(),
+            'overrideSearchType': settings.RETRIEVER_SEARCH_TYPE,
+        }
+        bedrock_filter = build_bedrock_vector_filter()
+        if bedrock_filter:
+            vector_search_configuration['filter'] = bedrock_filter
         return AmazonKnowledgeBasesRetriever(
             knowledge_base_id=settings.BEDROCK_KNOWLEDGE_BASE_ID,
-            retrieval_config={
-                'vectorSearchConfiguration': {
-                    'numberOfResults': settings.RETRIEVER_NUMBER_OF_RESULTS,
-                    'overrideSearchType': settings.RETRIEVER_SEARCH_TYPE,
-                }
-            },
+            retrieval_config={'vectorSearchConfiguration': vector_search_configuration},
             region_name=settings.AWS_REGION,
             client=agent_client,
         )

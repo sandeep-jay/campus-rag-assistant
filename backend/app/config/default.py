@@ -102,6 +102,26 @@ class DefaultSettings(BaseSettings):
     RETRIEVER_SEARCH_TYPE: str = 'HYBRID'  # Default search type for retriever
     TEMPERATURE: float = 0.1  # Default temperature for LLM
 
+    # Rerank (Phase 5) — fetch RERANK_CANDIDATE_K, keep RERANK_TOP_N for generation
+    RERANK_ENABLED: bool = False
+    RERANK_BACKEND: str = 'flashrank'  # flashrank | keyword
+    RERANK_TOP_N: int = 3
+    RERANK_CANDIDATE_K: int = 10
+    RERANK_MODEL: str = 'ms-marco-MiniLM-L-12-v2'
+    RERANK_PREFILTER_MAX: int = 10
+    RERANK_MIN_KEYWORD_OVERLAP: int = 0
+    RERANK_RRF_K: int = 60
+
+    # Multi-query (Phase 5)
+    MULTI_QUERY_ENABLED: bool = False
+    MULTI_QUERY_COUNT: int = 2
+
+    # Metadata filters (Phase 5) — AWS KB filter JSON and/or client post-filter
+    METADATA_FILTER_ENABLED: bool = False
+    METADATA_FILTER_JSON: str | None = None
+    METADATA_FILTER_CLIENT_ENABLED: bool = False
+    METADATA_FILTER_CLIENT_JSON: str | None = None
+
     # Provider selection (mock | aws | azure); RAG_FORCE_MOCK overrides all
     RAG_FORCE_MOCK: bool = False
     RAG_PROVIDER: str | None = None  # single shortcut for both LLM and retriever

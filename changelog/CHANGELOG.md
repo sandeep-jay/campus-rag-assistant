@@ -23,8 +23,13 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 ### Added
 
 - **OAuth (dev)** — API-port OAuth + one-time handoff to Vue (`/oauth/handoff`) fixes GitHub `state_mismatch` when Vite proxy drops session cookies.
+- **Phase 5 retrieval** — multi-query fusion, metadata filters, LangGraph rerank node (FlashRank + keyword).
 
 ### Changed
+
+---
+
+## [2026-05-19] — GitHub Actions CI/CD
 
 ### Added
 
