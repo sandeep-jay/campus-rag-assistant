@@ -5,13 +5,13 @@ cd "$(dirname "$0")/.."
 export RAG_ENGINE=langgraph
 export RERANK_ENABLED=true
 export RERANK_BACKEND=keyword
-export RERANK_TOP_N=3
-export RERANK_CANDIDATE_K=10
+export RERANK_TOP_N=2
+export RERANK_CANDIDATE_K=15
 export RERANK_PREFILTER_MAX=10
-export RERANK_MIN_KEYWORD_OVERLAP=0
+export RERANK_MIN_KEYWORD_OVERLAP=1
 export MULTI_QUERY_ENABLED=true
-export MULTI_QUERY_COUNT=2
+export MULTI_QUERY_COUNT=3
 export METADATA_FILTER_ENABLED=false
 export METADATA_FILTER_CLIENT_ENABLED=false
-echo "Phase 5 eval (tuned): keyword rerank + 2 extra queries + RRF + prefilter"
-tox -e eval
+echo "Phase 5 eval (precision-balanced): top-2 keyword rerank, 3 multi-queries, overlap prefilter"
+tox -e eval -- python -m pytest backend/tests/eval/test_rag_quality.py::TestRAGQuality::test_full_suite_report -v -s -m slow --log-cli-level=WARNING

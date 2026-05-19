@@ -29,11 +29,17 @@ LangSmith can run evaluators (including RAG-like judges), but **do not treat Lan
 
 ## RAGAS baseline (2026-05-19)
 
-The checked-in golden set was bootstrapped from one **campus knowledge base** deployment (Canvas LMS teaching-and-learning and ServiceNow IT articles). Questions and `ground_truth` rows are **corpus-specific**—re-run `scripts/bootstrap_golden_dataset.py` after ingesting your own KB. See [eval_baseline_2026-05-19.md](./eval_baseline_2026-05-19.md).
+The checked-in golden set was bootstrapped from one **campus knowledge base** deployment (Canvas LMS teaching-and-learning and ServiceNow IT articles). Questions and `ground_truth` rows are **corpus-specific**—re-run `scripts/bootstrap_golden_dataset.py` after ingesting your own KB.
 
-Live AWS eval on **10** golden rows (`RAG_ENGINE=langgraph`, retrieval stack tuned (Phase 5)). **Full score table and commands:** [eval_baseline_2026-05-19.md](./eval_baseline_2026-05-19.md).
+**Full score tables, Azure sweep results, tuning profiles, and findings:** [eval_baseline_2026-05-19.md](./eval_baseline_2026-05-19.md).
 
-Summary: **context_recall** passes the gate (0.80); faithfulness, answer relevancy, and context precision remain below targets — documented baselines, not demo blockers. Further gains likely need ingestion/chunking work, not retrieval flags alone.
+| Stack | Best-known highlight | Precision |
+|-------|----------------------|-----------|
+| **AWS** Phase 5 tuned (LangGraph) | **context_recall 0.80** (passes gate) | ~0.50 |
+| **Azure** LLM + judge, chain path | faithfulness ~0.84, relevancy ~0.98, recall ~0.83 | ~0.50 |
+| **Azure** LangGraph precision-balanced | relevancy ~0.88; recall often ~0.60 | ~0.54–0.58 |
+
+**context_precision** (~0.70 gate) is the bottleneck for all profiles; multi-query fusion adds recall but also noisy chunks. Align bootstrap provider with eval judge when comparing faithfulness/recall. Eval now respects `RAG_ENGINE=langgraph` when `RAGAS_EVAL=1` (see baseline doc). Sub-threshold scores are documented baselines, not demo blockers.
 
 ### CI gate policy
 
