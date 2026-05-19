@@ -56,6 +56,8 @@ CD uses GitHub **environments** `qa` and `production` on deploy jobs (approval r
 
 ## Local parity
 
+**Fast CI check** (Vue only, no Streamlit): `tox -e lint,backend,frontend-vue` — matches [PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md). Full CI parity includes `frontend-streamlit` as in `.github/workflows/ci.yml`.
+
 ```bash
 tox -e lint,backend,frontend-streamlit,frontend-vue
 ```

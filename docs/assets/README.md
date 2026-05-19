@@ -1,6 +1,6 @@
 # Doc assets
 
-Screenshots for the portfolio README and live demos. Product UI and LangSmith traces live in subfolders; architecture PNGs stay at this level.
+Screenshots for the root README and live demos. Product UI and LangSmith traces live in subfolders; architecture PNGs stay at this level.
 
 ## Architecture
 
@@ -47,9 +47,9 @@ KB waterfall is in [README — Quality](../../README.md#quality-and-observabilit
 | Step | Asset | Talking point |
 |------|-------|----------------|
 | 1 | [sign-in.png](auth/sign-in.png) | GitHub OAuth or local account; dev OAuth on API port 8000 |
-| 2 | [chat-empty-state.png](product/chat-empty-state.png) | Scoped to campus KB; suggested prompts |
-| 3 | [chat-assistant-response.png](product/chat-assistant-response.png) | Structured answer from bCourses KB |
-| 4 | [chat-sources-kb.png](product/chat-sources-kb.png) | Transparent citations (ServiceNow KB URLs) |
+| 2 | [chat-empty-state.png](product/chat-empty-state.png) | Scoped to teaching & learning KB; suggested prompts |
+| 3 | [chat-assistant-response.png](product/chat-assistant-response.png) | Structured answer from Canvas LMS / ServiceNow KB |
+| 4 | [chat-sources-kb.png](product/chat-sources-kb.png) | Transparent citations (ServiceNow KB article links) |
 | 5 | [chat-web-research-answer.png](product/chat-web-research-answer.png) | Opt-in **Search the web** + disclaimer |
 | 6 | [chat-sources-web.png](product/chat-sources-web.png) | Web sources labeled WEB |
 | 7 *(optional)* | [langsmith-trace-kb-waterfall.png](observability/langsmith-trace-kb-waterfall.png) | LangGraph spans (technical audience) |

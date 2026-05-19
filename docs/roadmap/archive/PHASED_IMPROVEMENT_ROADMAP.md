@@ -1,12 +1,12 @@
 # Campus / production scale roadmap (archived)
 
-> **Archived.** Portfolio priorities: [PORTFOLIO_PHASED_ROADMAP.md](../PORTFOLIO_PHASED_ROADMAP.md). **Portfolio Phase 5** (multi-query, rerank on LangGraph) is already shipped on `main` — see [LANGGRAPH.md](../LANGGRAPH.md) and [eval_baseline_2026-05-19.md](../../eval_baseline_2026-05-19.md). This file is the **org / campus** scale track (Redis HA, EB, tenant budgets) with its **own** phase numbers.
+> **Archived.** Product roadmap: [PRODUCT_ROADMAP.md](../PRODUCT_ROADMAP.md). **Phase 5 (retrieval stack)** (multi-query, rerank on LangGraph) is already shipped on `main` — see [LANGGRAPH.md](../LANGGRAPH.md) and [eval_baseline_2026-05-19.md](../../eval_baseline_2026-05-19.md). This file is the **org / campus** scale track (Redis HA, EB, tenant budgets) with its **own** phase numbers.
 
-**Last updated:** 2026-05-19 (archive; see portfolio roadmap for current status)
+**Last updated:** 2026-05-19 (archive; see product roadmap for current status)
 
 This document captures the recommended phased roadmap for evolving the RAG-based chatbot: AWS + Azure parity, portable architecture, measurable RAG quality, scalability, reliability, observability, and cost governance.
 
-Phase 0 lists foundations **in flight or planned** for the campus track (not all are merged or wired in `main` yet): SSE streaming for chat (implemented on LangChain path), Redis-backed sliding-window rate limiting (fakeredis locally), optional FlashRank reranking on the LangGraph rerank node (portfolio Phase 5 — shipped; campus track Phase 2 may add ingestion/semantic cache), provider abstraction for AWS Bedrock and Azure OpenAI / search, RAGAS harness + golden dataset, Alembic initial migration, Vue 3 SPA with Vitest, Prometheus hooks, and basic reliability hardening (health proxy, password rules, safer error responses). Adjust timelines to team capacity and release cadence.
+Phase 0 lists foundations **in flight or planned** for the campus track (not all are merged or wired in `main` yet): SSE streaming for chat (implemented on LangChain path), Redis-backed sliding-window rate limiting (fakeredis locally), optional FlashRank reranking on the LangGraph rerank node (Phase 5 (retrieval) — shipped; campus track Phase 2 may add ingestion/semantic cache), provider abstraction for AWS Bedrock and Azure OpenAI / search, RAGAS harness + golden dataset, Alembic initial migration, Vue 3 SPA with Vitest, Prometheus hooks, and basic reliability hardening (health proxy, password rules, safer error responses). Adjust timelines to team capacity and release cadence.
 
 ```mermaid
 flowchart LR
@@ -158,7 +158,7 @@ flowchart LR
 
 ## Related docs
 
-- [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md) — portfolio track
+- [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md) — product roadmap
 - [ARCHITECTURE.md](../ARCHITECTURE.md)
 - [OPERATIONS.md](../OPERATIONS.md)
 - [LOAD_TESTING.md](../LOAD_TESTING.md)

@@ -1,6 +1,6 @@
 # Evaluation strategy (RAGAS + LangSmith)
 
-How to judge additions to this project — for portfolio work, LangGraph migration, and retrieval upgrades.
+How to judge additions to this project — when changing RAG behavior, LangGraph nodes, or retrieval settings.
 
 ---
 
@@ -27,9 +27,11 @@ LangSmith can run evaluators (including RAG-like judges), but **do not treat Lan
 | **context_recall** | 0.75 | Retrieval covers ground truth |
 | **context_precision** | 0.70 | Retrieved chunks are on-topic |
 
-## Portfolio baseline (2026-05-19)
+## RAGAS baseline (2026-05-19)
 
-Live AWS eval on **10** golden rows (`RAG_ENGINE=langgraph`, portfolio Phase 5 tuned). **Full score table and commands:** [eval_baseline_2026-05-19.md](./eval_baseline_2026-05-19.md).
+The checked-in golden set was bootstrapped from one **campus knowledge base** deployment (Canvas LMS teaching-and-learning and ServiceNow IT articles). Questions and `ground_truth` rows are **corpus-specific**—re-run `scripts/bootstrap_golden_dataset.py` after ingesting your own KB. See [eval_baseline_2026-05-19.md](./eval_baseline_2026-05-19.md).
+
+Live AWS eval on **10** golden rows (`RAG_ENGINE=langgraph`, retrieval stack tuned (Phase 5)). **Full score table and commands:** [eval_baseline_2026-05-19.md](./eval_baseline_2026-05-19.md).
 
 Summary: **context_recall** passes the gate (0.80); faithfulness, answer relevancy, and context precision remain below targets — documented baselines, not demo blockers. Further gains likely need ingestion/chunking work, not retrieval flags alone.
 
@@ -63,9 +65,9 @@ Requires judge LLM: `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, or `RAGAS_LLM_PROV
 | Event | RAGAS | LangSmith |
 |-------|-------|-----------|
 | Every PR | Optional — unit tests with mocked RAG | Dev only |
-| Pre-release / portfolio milestone | Full golden set; compare to [baseline](./eval_baseline_2026-05-19.md) | Trace screenshots in README |
-| LangGraph parity (portfolio Phase 4) | chain vs `RAG_ENGINE=langgraph`, ±0.02 | Per-node spans |
-| Retrieval change (portfolio Phase 5) | Primary metric + faithfulness guardrail | Compare runs |
+| Pre-release / milestone | Full golden set; compare to [baseline](./eval_baseline_2026-05-19.md) | Trace screenshots in README |
+| LangGraph parity (Phase 4 (LangGraph)) | chain vs `RAG_ENGINE=langgraph`, ±0.02 | Per-node spans |
+| Retrieval change (Phase 5 (retrieval)) | Primary metric + faithfulness guardrail | Compare runs |
 | Nightly staging | Full gate with secrets | SLO debugging |
 
 ---
@@ -75,7 +77,7 @@ Requires judge LLM: `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, or `RAGAS_LLM_PROV
 | Field | Value |
 |-------|--------|
 | **Change** | e.g. multi-query retrieval node |
-| **Roadmap phase** | Portfolio phase (see [PORTFOLIO_PHASED_ROADMAP.md](./roadmap/PORTFOLIO_PHASED_ROADMAP.md)) |
+| **Roadmap phase** | Product phase (see [PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md)) |
 | **Primary metric** | context_recall |
 | **Guardrails** | faithfulness ≥ 0.85; p95 latency < X ms |
 | **Baseline** | commit / [eval_baseline_2026-05-19.md](./eval_baseline_2026-05-19.md) |
@@ -86,7 +88,7 @@ Requires judge LLM: `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, or `RAGAS_LLM_PROV
 
 - **LangGraph parity:** ship if RAGAS within ε of chain and tests green.
 - **Retrieval / prompts:** ship if primary metric improves and guardrails hold.
-- **Agentic (portfolio Phase 6):** flag-only until staging week is stable.
+- **Agentic (Phase 6 (agentic)):** flag-only until staging week is stable.
 
 ---
 
@@ -161,6 +163,6 @@ Screenshots: [docs/assets/observability/](./assets/observability/) (README uses 
 
 ## Related
 
-- [roadmap/PORTFOLIO_PHASED_ROADMAP.md](./roadmap/PORTFOLIO_PHASED_ROADMAP.md)
+- [roadmap/PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md)
 - [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md)
 - [assets/README.md](./assets/README.md) — demo script

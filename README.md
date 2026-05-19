@@ -1,10 +1,20 @@
 # Campus RAG Assistant
 
-[![CI](https://github.com/sandeep-jay/campus-rag-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/sandeep-jay/campus-rag-assistant/actions/workflows/ci.yml)
+[CI](https://github.com/sandeep-jay/campus-rag-assistant/actions/workflows/ci.yml)
 
-Production-style **retrieval-augmented chat** over a campus knowledge base (Berkeley bCourses / ServiceNow KB on AWS Bedrock), with **tenant-hydrated** prompts (`tenant.rag_config` in Postgres). **FastAPI** backend, **Vue 3** SPA, pluggable **AWS / Azure / mock** providers, and a **LangGraph** RAG pipeline with evaluation and observability built in.
+Production-style **retrieval-augmented chat** over a campus knowledge base (Canvas LMS & LTI tool guides, ServiceNow IT knowledge articles, and institutional policies—retrieved via **Bedrock Knowledge Base** (typically **OpenSearch Serverless** behind the index) or **Azure AI Search**), with **tenant-hydrated** prompts (`tenant.rag_config` in Postgres). **FastAPI** backend, **Vue 3** SPA, pluggable **AWS / Azure / mock** providers, and a **LangGraph** RAG pipeline with evaluation and observability built in.
 
 Ask questions in natural language; the app retrieves relevant docs, streams a cited answer, and keeps conversation history per user.
+
+System design and decision rationale: [docs/DESIGN.md](docs/DESIGN.md) · [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+
+## Problem and approach
+
+Campus staff and students spend time searching scattered documentation—Canvas LMS and LTI tools, accessibility and inclusive teaching resources, ServiceNow IT knowledge articles, and institutional policies. This application answers **in natural language** while **showing which articles were used**, so users can verify and follow links.
+
+**Approach:** retrieve from a governed corpus first (Bedrock KB over OpenSearch on AWS, or Azure AI Search), generate a structured answer, and keep multi-turn sessions per user. Off-topic questions are declined via configurable topic scope. Open-web search is **opt-in per message**, with a visible disclaimer—not a silent fallback when retrieval is weak.
+
+Design goals, tradeoffs, and non-goals: [docs/DESIGN.md](docs/DESIGN.md).
 
 ## Highlights
 
@@ -13,25 +23,19 @@ Ask questions in natural language; the app retrieves relevant docs, streams a ci
 - **Retrieval quality** — multi-query fusion (RRF), metadata filters, FlashRank / keyword rerank
 - **Opt-in web research** — per-message `research_mode=web`, disclaimer UI, optional Tavily
 - **Eval discipline** — RAGAS golden set (10 rows), baseline scores, optional CI gates; LangSmith per-node traces
-- **Portfolio-ready** — mock mode in <15 min; live AWS via `.env`; screenshots and demo script in [docs/assets/](docs/assets/README.md)
+- **Local and CI friendly** — mock providers run without cloud credentials; live AWS/Azure via `.env`; demo script in [docs/assets/](docs/assets/README.md)
 
 ## Architecture
 
-<p align="center">
-  <img
-    src="https://raw.githubusercontent.com/sandeep-jay/campus-rag-assistant/main/docs/assets/architecture_v2.png"
-    alt="Campus RAG Assistant system architecture (v2)"
-    width="900"
-  />
-</p>
 
-<p align="center"><em>High-level v2 overview.</em> Detailed diagram and upstream v1: <a href="docs/ARCHITECTURE.md">docs/ARCHITECTURE.md</a></p>
+
+*High-level v2 overview.* Detailed diagram and upstream v1: docs/ARCHITECTURE.md
 
 ## Features
 
 ### Knowledge-base chat (default)
 
-- **RAG over Bedrock Knowledge Base** — retrieval + grounded generation with cited sources
+- **RAG over managed search** — AWS: Bedrock Knowledge Base API over OpenSearch Serverless vectors; Azure: AI Search; grounded generation with cited sources
 - **LangGraph pipeline** — `condense` → `multi_query` → `retrieve` → `rerank` → `generate` → `format` when `RAG_ENGINE=langgraph`
 - **Legacy chain path** — `RAG_ENGINE=chain` (default) for true Bedrock token streaming via LangChain
 - **Scoped topics** — declines off-topic questions via `SUPPORTED_TOPICS` / `tenant.rag_config`
@@ -55,42 +59,40 @@ Ask questions in natural language; the app retrieves relevant docs, streams a ci
 
 ## Screenshots
 
-<p align="center">
-  <img src="docs/assets/product/chat-empty-state.png" alt="Campus RAG Assistant welcome screen" width="720" />
-</p>
-<p align="center"><em>Welcome screen with suggested campus prompts.</em></p>
 
-<p align="center">
-  <img src="docs/assets/product/chat-assistant-response.png" alt="Structured RAG answer with bCourses sources" width="720" />
-</p>
-<p align="center"><em>Knowledge-base answers with structured markdown and session history.</em></p>
 
-<p align="center">
-  <img src="docs/assets/product/chat-sources-kb.png" alt="Expandable KB source citations" width="520" />
-</p>
-<p align="center"><em>Source transparency — Berkeley ServiceNow KB articles with scores.</em></p>
+*Welcome screen with suggested campus prompts.*
 
-<p align="center">
-  <img src="docs/assets/product/chat-web-research-answer.png" alt="Web research mode with disclaimer" width="720" />
-</p>
-<p align="center"><em>Opt-in web research with an explicit disclaimer banner.</em></p>
+
+
+*Knowledge-base answers with structured markdown and session history.*
+
+
+
+*Source transparency — cited ServiceNow and knowledge base articles with relevance scores.*
+
+
+
+*Opt-in web research with an explicit disclaimer banner.*
 
 **Demo script (~2–3 min):** [docs/assets/README.md#product-demo-script-23-min](docs/assets/README.md#product-demo-script-23-min).
 
 ## Stack
 
-| Layer | Technologies |
-|-------|----------------|
-| **Backend** | FastAPI, SQLAlchemy, Alembic, JWT auth, rate limiting, Prometheus (`/api/metrics`) |
-| **Frontend** | Vue 3, TypeScript, Pinia, Tailwind, Vitest, Playwright (`frontend-vue/`) |
+
+| Layer                 | Technologies                                                                                              |
+| --------------------- | --------------------------------------------------------------------------------------------------------- |
+| **Backend**           | FastAPI, SQLAlchemy, Alembic, JWT auth, rate limiting, Prometheus (`/api/metrics`)                        |
+| **Frontend**          | Vue 3, TypeScript, Pinia, Tailwind, Vitest, Playwright (`frontend-vue/`)                                  |
 | **RAG orchestration** | **LangGraph** (`RAG_ENGINE=langgraph`) or LangChain **ConversationalRetrievalChain** (`RAG_ENGINE=chain`) |
-| **Retrieval** | AWS Bedrock Knowledge Base, Azure AI Search; multi-query + RRF; optional FlashRank / keyword rerank |
-| **LLM** | AWS Bedrock, Azure OpenAI, or **mock** (`LLM_PROVIDER` / `RETRIEVER_PROVIDER`) |
-| **Web search** | Mock or **Tavily** (`tavily-python`) behind `research_mode=web` |
-| **Eval** | **RAGAS** harness (`backend/tests/eval/`), golden dataset, `tox -e eval` |
-| **Observability** | **LangSmith** (`LANGCHAIN_TRACING_V2`), structured logs, first-token latency metric |
-| **CI/CD** | GitHub Actions — `tox -e lint,backend,frontend-vue` on PRs and `main` ([docs/CI.md](docs/CI.md)) |
-| **Load tests** | k6 ([docs/LOAD_TESTING.md](docs/LOAD_TESTING.md)) |
+| **Retrieval**         | AWS: Bedrock KB + OpenSearch Serverless; Azure AI Search; multi-query + RRF; optional FlashRank / keyword rerank |
+| **LLM**               | AWS Bedrock, Azure OpenAI, or **mock** (`LLM_PROVIDER` / `RETRIEVER_PROVIDER`)                            |
+| **Web search**        | Mock or **Tavily** (`tavily-python`) behind `research_mode=web`                                           |
+| **Eval**              | **RAGAS** harness (`backend/tests/eval/`), golden dataset, `tox -e eval`                                  |
+| **Observability**     | **LangSmith** (`LANGCHAIN_TRACING_V2`), structured logs, first-token latency metric                       |
+| **CI/CD**             | GitHub Actions — `tox -e lint,backend,frontend-vue` on PRs and `main` ([docs/CI.md](docs/CI.md))          |
+| **Load tests**        | k6 ([docs/LOAD_TESTING.md](docs/LOAD_TESTING.md))                                                         |
+
 
 Local demos: `RAG_FORCE_MOCK=true` with no cloud credentials. Design detail: [docs/roadmap/LANGGRAPH.md](docs/roadmap/LANGGRAPH.md), [docs/roadmap/WEB_RESEARCH.md](docs/roadmap/WEB_RESEARCH.md).
 
@@ -99,7 +101,7 @@ Local demos: `RAG_FORCE_MOCK=true` with no cloud credentials. Design detail: [do
 - Python 3.11+
 - PostgreSQL 13+
 - Node.js 20+ (Vue; see `frontend-vue/.nvmrc`)
-- Optional: AWS Bedrock Knowledge Base or Azure OpenAI + AI Search
+- Optional: AWS (Bedrock Knowledge Base with OpenSearch-backed index) or Azure OpenAI + AI Search
 
 ## Quick start (mock RAG, no cloud)
 
@@ -134,21 +136,23 @@ streamlit run frontend-streamlit/app/main.py
 
 Set `RAG_FORCE_MOCK=false` and configure providers in `.env` (see [docs/OPERATIONS.md](docs/OPERATIONS.md)).
 
-| Variable | Purpose |
-|----------|---------|
-| `RAG_ENGINE` | `chain` (default, true streaming) or `langgraph` (graph + per-node LangSmith spans) |
-| `LLM_PROVIDER` | `aws` \| `azure` \| `mock` |
-| `RETRIEVER_PROVIDER` | `aws` \| `azure` \| `mock` |
-| `BEDROCK_KNOWLEDGE_BASE_ID` | AWS Knowledge Base |
-| `RERANK_ENABLED`, `MULTI_QUERY_ENABLED` | Phase 5 retrieval tuning — see `.env.example` |
-| `WEB_RESEARCH_ENABLED`, `WEB_SEARCH_PROVIDER` | Opt-in web mode (`mock` \| `tavily`) |
-| Azure OpenAI / Search vars | Per `backend/app/config/` and `.env.example` |
+
+| Variable                                      | Purpose                                                                             |
+| --------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `RAG_ENGINE`                                  | `chain` (default, true streaming) or `langgraph` (graph + per-node LangSmith spans) |
+| `LLM_PROVIDER`                                | `aws` | `azure` | `mock`                                                            |
+| `RETRIEVER_PROVIDER`                          | `aws` | `azure` | `mock`                                                            |
+| `BEDROCK_KNOWLEDGE_BASE_ID`                   | Bedrock KB ID (vectors usually in OpenSearch Serverless)                            |
+| `RERANK_ENABLED`, `MULTI_QUERY_ENABLED`       | Phase 5 retrieval tuning — see `.env.example`                                       |
+| `WEB_RESEARCH_ENABLED`, `WEB_SEARCH_PROVIDER` | Opt-in web mode (`mock` | `tavily`)                                                 |
+| Azure OpenAI / Search vars                    | Per `backend/app/config/` and `.env.example`                                        |
+
 
 **Tuned eval profile (live AWS):** `./scripts/run_eval_phase5.sh` — see [docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md).
 
 ## Testing
 
-**CI:** GitHub Actions on push to `main` and on PRs ([`ci.yml`](.github/workflows/ci.yml)). CD on `qa` / `release`: [docs/CI.md](docs/CI.md), [docs/RELEASE.md](docs/RELEASE.md).
+**CI:** GitHub Actions on push to `main` and on PRs (`[ci.yml](.github/workflows/ci.yml)`). CD on `qa` / `release`: [docs/CI.md](docs/CI.md), [docs/RELEASE.md](docs/RELEASE.md).
 
 **CI-style suite (local):**
 
@@ -174,12 +178,18 @@ Load tests: [docs/LOAD_TESTING.md](docs/LOAD_TESTING.md).
 
 ## Quality and observability
 
+### Measured quality (RAGAS)
+
+Regression testing uses a **10-question golden set** and RAGAS metrics ([docs/EVALUATION.md](docs/EVALUATION.md)). The [2026-05-19 baseline](docs/eval_baseline_2026-05-19.md) records live AWS scores under the tuned retrieval profile: **context_recall** meets the gate; faithfulness, answer relevancy, and context precision are documented below target—honest baselines for further ingestion and tuning work, not blockers for local demo.
+
 Two complementary tools — see [docs/EVALUATION.md](docs/EVALUATION.md).
 
-| Tool | Role |
-|------|------|
-| **RAGAS** | Regression **quality metrics** on a golden dataset (`backend/tests/eval/`) |
-| **LangSmith** | **Traces** per chat turn and LangGraph node (`LANGCHAIN_TRACING_V2=true`) |
+
+| Tool          | Role                                                                       |
+| ------------- | -------------------------------------------------------------------------- |
+| **RAGAS**     | Regression **quality metrics** on a golden dataset (`backend/tests/eval/`) |
+| **LangSmith** | **Traces** per chat turn and LangGraph node (`LANGCHAIN_TRACING_V2=true`)  |
+
 
 ### RAGAS
 
@@ -194,36 +204,41 @@ Golden set (**10** rows), thresholds, bootstrap, and baseline scores: [docs/EVAL
 
 Enable `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, and `LANGCHAIN_PROJECT` in `.env`; filter runs by `chat-session-<id>`. Per-node spans with `RAG_ENGINE=langgraph`.
 
-![LangSmith trace — KB path](docs/assets/observability/langsmith-trace-kb-waterfall.png)
+LangSmith trace — KB path
 
 Web path: [langsmith-trace-web-waterfall.png](docs/assets/observability/langsmith-trace-web-waterfall.png). Capture steps: [EVALUATION.md — LangSmith](docs/EVALUATION.md#capture-a-trace-for-docs).
 
 ### Ops quick reference
 
-| Item | Where |
-|------|--------|
-| Request correlation | `X-Request-ID` header (echoed on responses) |
-| Metrics | `GET /api/metrics` (Prometheus) |
-| Mock vs live RAG | `RAG_FORCE_MOCK`, `LLM_PROVIDER`, `RETRIEVER_PROVIDER` in `.env.example` |
+
+| Item                | Where                                                                    |
+| ------------------- | ------------------------------------------------------------------------ |
+| Request correlation | `X-Request-ID` header (echoed on responses)                              |
+| Metrics             | `GET /api/metrics` (Prometheus)                                          |
+| Mock vs live RAG    | `RAG_FORCE_MOCK`, `LLM_PROVIDER`, `RETRIEVER_PROVIDER` in `.env.example` |
+
 
 ## What's next
 
-Optional follow-ups (not required for portfolio demo): **LangGraph-native SSE** (Phase 6a), stricter RAGAS gates after ingestion improvements, campus-scale ops (Redis HA, EB). Status: [docs/roadmap/PORTFOLIO_PHASED_ROADMAP.md](docs/roadmap/PORTFOLIO_PHASED_ROADMAP.md).
+Optional follow-ups: **LangGraph-native SSE** (Phase 6a), stricter RAGAS gates after ingestion improvements, campus-scale ops (Redis HA, EB). Status: [docs/roadmap/PRODUCT_ROADMAP.md](docs/roadmap/PRODUCT_ROADMAP.md).
 
 ## Documentation
 
-| Doc | Description |
-|-----|-------------|
-| [docs/README.md](docs/README.md) | Documentation index |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design, chat/SSE flow, API surface |
-| [docs/assets/README.md](docs/assets/README.md) | Screenshots catalog + demo script |
-| [docs/EVALUATION.md](docs/EVALUATION.md) | RAGAS vs LangSmith, bootstrap, CI gates |
-| [docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md) | RAGAS baseline scores |
-| [docs/roadmap/PORTFOLIO_PHASED_ROADMAP.md](docs/roadmap/PORTFOLIO_PHASED_ROADMAP.md) | Phases shipped vs optional |
-| [docs/CI.md](docs/CI.md) | GitHub Actions, branch gates |
-| [docs/PRODUCTION_TLS.md](docs/PRODUCTION_TLS.md) | HTTPS, OAuth (API-port + handoff) |
-| [docs/OPERATIONS.md](docs/OPERATIONS.md) | Runbooks, metrics, migrations |
-| [changelog/CHANGELOG.md](changelog/CHANGELOG.md) | Release history |
+
+| Doc                                                                  | Description                                   |
+| -------------------------------------------------------------------- | --------------------------------------------- |
+| [docs/README.md](docs/README.md)                                     | Documentation index                           |
+| [docs/DESIGN.md](docs/DESIGN.md)                                     | Design goals, major decisions, capability map |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                         | System design, chat/SSE flow, API surface     |
+| [docs/assets/README.md](docs/assets/README.md)                       | Screenshots catalog + demo script             |
+| [docs/EVALUATION.md](docs/EVALUATION.md)                             | RAGAS vs LangSmith, bootstrap, CI gates       |
+| [docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md) | RAGAS baseline scores                         |
+| [docs/roadmap/PRODUCT_ROADMAP.md](docs/roadmap/PRODUCT_ROADMAP.md)   | Product phases — shipped vs optional          |
+| [docs/CI.md](docs/CI.md)                                             | GitHub Actions, branch gates                  |
+| [docs/PRODUCTION_TLS.md](docs/PRODUCTION_TLS.md)                     | HTTPS, OAuth (API-port + handoff)             |
+| [docs/OPERATIONS.md](docs/OPERATIONS.md)                             | Runbooks, metrics, migrations                 |
+| [changelog/CHANGELOG.md](changelog/CHANGELOG.md)                     | Release history                               |
+
 
 ## License
 
@@ -232,4 +247,5 @@ Software in this repository is licensed under the [Regents of the University of 
 ### Attribution
 
 - **Original Chabot** — © The Regents of the University of California. Upstream: [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot).
-- **Author & maintainer** — [sandeep-jay](https://github.com/sandeep-jay) developed on the Berkeley ETS Chabot codebase and authored this **independent portfolio fork** (multicloud providers, Vue SPA, LangGraph, streaming chat, Alembic, tox/CI, RAGAS + LangSmith eval, and related extensions). This repo is **not** an official or endorsed UC Berkeley product.
+- **Author & maintainer** — [sandeep-jay](https://github.com/sandeep-jay) developed from the upstream [chabot](https://github.com/ets-berkeley-edu/chabot) campus chatbot and authored this **independent fork** (multicloud providers, Vue SPA, LangGraph, streaming chat, Alembic, tox/CI, RAGAS + LangSmith eval, and related extensions). This repo is **not** an official product of any single institution—configure corpus and branding for your own campus deployment.
+
