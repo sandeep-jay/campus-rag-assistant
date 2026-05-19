@@ -54,13 +54,9 @@ def _sse_payload(event: dict) -> str:
     return f'data: {json.dumps(event)}\n\n'
 
 
-
-
 def _history_limit() -> int | None:
     limit = int(getattr(settings, 'CHAT_HISTORY_MAX_MESSAGES', 0) or 0)
     return limit if limit > 0 else None
-
-
 
 
 def _resolve_tenant_rag_config(db_service: DatabaseService, user: User):
@@ -69,9 +65,11 @@ def _resolve_tenant_rag_config(db_service: DatabaseService, user: User):
         tenant = db_service.get_tenant(user.tenant_id)
     return load_tenant_rag_config(tenant)
 
+
 def _load_chat_history(db_service: DatabaseService, session_id: int) -> list:
     session_messages = db_service.get_session_messages(session_id, max_messages=_history_limit())
     return _format_chat_history(session_messages)
+
 
 def _format_chat_history(session_messages) -> list:
     chat_history = []

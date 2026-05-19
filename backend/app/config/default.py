@@ -129,12 +129,9 @@ class DefaultSettings(BaseSettings):
 
     # Tenant / assistant branding (defaults when user has no tenant or tenant.rag_config)
     ASSISTANT_NAME: str = 'EdTech Support Assistant'
-    SUPPORTED_TOPICS: str = (
-        'your learning platform, course tools, integrations, and support documentation'
-    )
+    SUPPORTED_TOPICS: str = 'your learning platform, course tools, integrations, and support documentation'
     OUT_OF_SCOPE_MESSAGE: str = (
-        'I can only answer questions covered by the knowledge base for '
-        '{{supported_topics}}. Please ask a question related to those topics.'
+        'I can only answer questions covered by the knowledge base for ' '{{supported_topics}}. Please ask a question related to those topics.'
     )
 
     # Performance / chat context
@@ -142,7 +139,6 @@ class DefaultSettings(BaseSettings):
     STREAM_ARTIFICIAL_DELAY_MS: int = 0  # Demo-only delay between streamed tokens; 0 = off
     SQLALCHEMY_POOL_SIZE: int = 5
     SQLALCHEMY_MAX_OVERFLOW: int = 10
-
 
     # Azure OpenAI (optional — for LLM_PROVIDER=azure)
     AZURE_OPENAI_ENDPOINT: str | None = None
@@ -155,7 +151,6 @@ class DefaultSettings(BaseSettings):
     AZURE_SEARCH_SERVICE_NAME: str | None = None
     AZURE_SEARCH_KEY: str | None = None
     AZURE_SEARCH_INDEX: str | None = None
-
 
     # Auth cookies (set AUTH_COOKIE_SECURE=true in production HTTPS)
     AUTH_COOKIE_SECURE: bool = False

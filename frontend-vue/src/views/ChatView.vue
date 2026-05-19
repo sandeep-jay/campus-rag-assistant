@@ -117,7 +117,12 @@ function handlePromptSelected(prompt: string): void {
     </div>
 
     <div class="flex-shrink-0 border-t border-border bg-background/95 backdrop-blur-sm shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.45)]">
-      <ChatInput ref="chatInputRef" :disabled="isSendingMessage" @submit="handleSend" />
+      <ChatInput
+        ref="chatInputRef"
+        v-model:research-mode="researchMode"
+        :disabled="isSendingMessage"
+        @submit="handleSend"
+      />
     </div>
   </main>
 </template>

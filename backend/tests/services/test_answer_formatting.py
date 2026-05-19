@@ -5,7 +5,7 @@ from backend.app.services.rag import RAGService
 
 def _fmt(text: str) -> str:
     rag = RAGService.__new__(RAGService)
-    return rag._normalize_answer_formatting(text)  # noqa: SLF001
+    return rag._normalize_answer_formatting(text)
 
 
 def test_sanitize_drops_prompt_leakage():
@@ -49,10 +49,7 @@ def test_preserves_model_markdown_structure():
 
 
 def test_strip_condensed_question_before_em_dash():
-    raw = (
-        "How do I submit an assignment in the learning platform?"
-        "— Students can submit assignments in bCourses."
-    )
+    raw = 'How do I submit an assignment in the learning platform?' '— Students can submit assignments in bCourses.'
     out = _fmt(raw)
-    assert not out.startswith("How do I submit")
-    assert "Students can submit" in out
+    assert not out.startswith('How do I submit')
+    assert 'Students can submit' in out

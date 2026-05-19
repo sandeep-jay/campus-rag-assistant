@@ -29,7 +29,7 @@ describe('RegisterForm', () => {
     await user.type(screen.getByLabelText(/password/i), 'password123')
     await user.click(screen.getByRole('button', { name: /create account/i }))
     await waitFor(() => {
-      expect(screen.getByText(/registered successfully/i)).toBeInTheDocument()
+      expect(screen.getByText(/account created/i)).toBeInTheDocument()
     })
   })
 

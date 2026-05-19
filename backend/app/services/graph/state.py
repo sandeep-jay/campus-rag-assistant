@@ -8,11 +8,11 @@ from langchain.schema import Document
 
 
 class RagState(TypedDict, total=False):
-  question: str
-  chat_history: list
-  research_mode: Literal["kb", "web"]
-  standalone_question: str
-  documents: list[Document]
-  answer: str
-  message: str
-  metadata: dict[str, Any]
+    question: str
+    chat_history: list
+    research_mode: Literal['kb', 'web']
+    standalone_question: str
+    documents: list[Document]
+    answer: str
+    message: str
+    metadata: dict[str, Any]

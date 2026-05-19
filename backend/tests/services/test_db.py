@@ -255,23 +255,23 @@ def test_delete_chat_session(db: Session) -> None:
     assert db_service.get_chat_session(session.id) is None
     assert len(db_service.get_session_messages(session.id)) == 0
 
+
 def test_get_session_messages_respects_max_messages(db: Session) -> None:
     """Only the most recent messages are returned when max_messages is set."""
     db_service = DatabaseService(db)
     user = db_service.create_user(
-        username="hist_cap",
-        email="hist_cap@example.com",
-        password="password",
+        username='hist_cap',
+        email='hist_cap@example.com',
+        password='password',
     )
-    session = db_service.create_chat_session(user_id=user.id, title="cap")
+    session = db_service.create_chat_session(user_id=user.id, title='cap')
     for i in range(5):
         db_service.create_chat_message(
             session_id=session.id,
-            content=f"msg-{i}",
-            role="user" if i % 2 == 0 else "assistant",
+            content=f'msg-{i}',
+            role='user' if i % 2 == 0 else 'assistant',
         )
     limited = db_service.get_session_messages(session.id, max_messages=3)
     assert len(limited) == 3
-    assert limited[0].content == "msg-2"
-    assert limited[-1].content == "msg-4"
-
+    assert limited[0].content == 'msg-2'
+    assert limited[-1].content == 'msg-4'
