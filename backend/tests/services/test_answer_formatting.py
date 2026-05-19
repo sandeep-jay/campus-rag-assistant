@@ -46,3 +46,13 @@ def test_preserves_model_markdown_structure():
     assert '## Discussion Tools' in out
     assert '1. Open bCourses' in out
     assert '  - Post announcements' in out
+
+
+def test_strip_condensed_question_before_em_dash():
+    raw = (
+        "How do I submit an assignment in the learning platform?"
+        "— Students can submit assignments in bCourses."
+    )
+    out = _fmt(raw)
+    assert not out.startswith("How do I submit")
+    assert "Students can submit" in out
