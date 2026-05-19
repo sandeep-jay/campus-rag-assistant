@@ -8,20 +8,18 @@ import pytest
 from backend.app.utils import simple_tracer
 
 
-
-
 def _quiet_vendor_loggers() -> None:
     """Reduce httpx/openai/ragas noise during eval (RAGAS telemetry is opt-out via RAGAS_DO_NOT_TRACK)."""
     for name in (
-        "httpx",
-        "httpcore",
-        "openai",
-        "openai._base_client",
-        "urllib3",
-        "ragas",
-        "ragas._analytics",
-        "botocore",
-        "boto3",
+        'httpx',
+        'httpcore',
+        'openai',
+        'openai._base_client',
+        'urllib3',
+        'ragas',
+        'ragas._analytics',
+        'botocore',
+        'boto3',
     ):
         logging.getLogger(name).setLevel(logging.WARNING)
 
