@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import * as chatApi from '@/api/chat'
-import type { ChatSession, DisplayMessage, OptimisticMessage, StreamingMessage } from '@/api/types'
+import type { ChatSession, DisplayMessage, OptimisticMessage, StreamingMessage, ResearchMode } from '@/api/types'
 import { normalizeAssistantContent } from '@/utils/normalizeAssistantContent'
 
 function generateOptimisticId(): string {
@@ -20,6 +20,7 @@ export const useChatStore = defineStore('chat', () => {
   const isSendingMessage = ref(false)
   const sessionsLoading = ref(false)
   const retryableSendContent = ref<string | null>(null)
+  const researchMode = ref<ResearchMode>('kb')
 
   // Streaming state — the in-progress assistant message while SSE is open
   const streamingMessage = ref<StreamingMessage | null>(null)
@@ -159,6 +160,7 @@ export const useChatStore = defineStore('chat', () => {
           (statusMsg) => {
             streamingStatus.value = statusMsg
           },
+          researchMode.value,
         )
       } catch {
         // Fetch-level failure (network, CORS, etc.) — fall through to fallback
@@ -167,7 +169,7 @@ export const useChatStore = defineStore('chat', () => {
       if (!streamSucceeded) {
         // Fallback: non-streaming endpoint
         streamingMessage.value = null
-        const res = await chatApi.sendMessage(content, activeSessionId.value)
+        const res = await chatApi.sendMessage(content, activeSessionId.value, researchMode.value)
         messages.value = messages.value.filter(
           (m) => !('isOptimistic' in m) || (m as OptimisticMessage).id !== optimisticId,
         )
@@ -225,6 +227,7 @@ export const useChatStore = defineStore('chat', () => {
     isSendingMessage,
     sessionsLoading,
     retryableSendContent,
+    researchMode,
     activeSession,
     fetchSessions,
     loadSession,
