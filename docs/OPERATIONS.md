@@ -109,8 +109,7 @@ Included metrics:
 ## OAuth and local development
 
 - Enable providers in `.env`: `OAUTH_ENABLED_PROVIDERS=github` (or `google,github`) plus client ID/secret vars (see `.env.example`).
-- **Browser URL, `FRONTEND_URL`, and `OAUTH_REDIRECT_BASE_URL` must use the same host** (e.g. all `127.0.0.1`, not `localhost` mixed with `127.0.0.1`) or OAuth state cookies will not match (`MismatchingStateError`).
-- Vue dev server defaults to `http://127.0.0.1:5173` (`frontend-vue/vite.config.ts`). GitHub OAuth app callback: `http://127.0.0.1:5173/api/auth/oauth/github/callback` (proxied to the API).
-- Verify setup: `./scripts/verify_oauth.py` (from repo root with venv active).
+- **Local dev:** OAuth runs on the API (`OAUTH_REDIRECT_BASE_URL=http://127.0.0.1:8000`); Vue uses `VITE_OAUTH_API_URL` and `/oauth/handoff`. Full checklist: [PRODUCTION_TLS.md — Local OAuth](./PRODUCTION_TLS.md#local-oauth-development-vite--github).
+- Verify setup: `./scripts/verify_oauth.py` (repo root, venv active).
 - Production HTTPS, redirect URIs, and `AUTH_COOKIE_SECURE`: [PRODUCTION_TLS.md](./PRODUCTION_TLS.md).
 
