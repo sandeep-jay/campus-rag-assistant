@@ -25,7 +25,14 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 - **Web research (UI)** — disclaimer banner, `source_kind` on SSE done; LangSmith session-tagged chat runs.
 
 ### Changed
+- **OAuth (dev)** — API-port OAuth + one-time handoff to Vue (`/oauth/handoff`) fixes GitHub `state_mismatch` when Vite proxy drops session cookies.
+- **Phase 5 retrieval** — multi-query fusion, metadata filters, LangGraph rerank node (FlashRank + keyword).
 
+### Changed
+
+---
+
+## [2026-05-19] — GitHub Actions CI/CD
 ### Added
 
 - **CI/CD** — GitHub Actions: [`ci.yml`](../.github/workflows/ci.yml) (tox on `main` + PRs), [`cd.yml`](../.github/workflows/cd.yml) (Vue build + optional EB deploy on `qa`/`release`); [docs/CI.md](../docs/CI.md). Removed `.travis.yml`.
