@@ -38,6 +38,7 @@ from langchain.prompts import PromptTemplate
 from langchain.schema import AIMessage, HumanMessage
 
 from backend.app.core.config_manager import settings
+from backend.app.core.log_redaction import query_log_preview
 from backend.app.services.graph.runner import run_rag_graph
 from backend.app.services.providers import get_llm_provider, get_retriever_provider
 from backend.app.services.providers.llm.aws import AwsLlmProvider
@@ -237,7 +238,8 @@ Standalone Question (one line only, no labels):""")
             response = self.llm.invoke(intent_prompt.format(query))
             improved_query = response.strip()
             if improved_query and improved_query != query:
-                logger.info(f"Improved query: '{query}' -> '{improved_query}'")
+                logger.info('Improved query: %s -> %s', query_log_preview(query), query_log_preview(improved_query))
+                logger.debug('Improved query full: %r -> %r', query, improved_query)
                 return improved_query
             return query
         except Exception as e:
@@ -628,7 +630,8 @@ Standalone Question (one line only, no labels):""")
         if not chat_history:
             chat_history = []
 
-        logger.info(f"Processing query: '{query}'")
+        logger.info('Processing query: %s', query_log_preview(query))
+        logger.debug('Processing query full: %r', query)
         start_time = time.time()
 
         if self.is_mock:
