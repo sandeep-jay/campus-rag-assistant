@@ -26,6 +26,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Fixed
 
+- **CI** — pin `@rollup/rollup-*` platform packages in `frontend-vue` optionalDependencies (fixes Linux `npm ci` optional-deps bug).
 - **CI** — use `HUSKY=0 npm ci` (not `--ignore-scripts`) so Rollup native bindings install on Linux runners.
 - **CI** — `frontend-vue` tox env skips `nvm use` when `CI=true` (GHA) or nvm is absent; CI workflow runs tox sequentially.
 
