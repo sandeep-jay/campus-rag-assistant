@@ -42,6 +42,7 @@ def graph_rag_mocks():
     mock_settings.RAG_ENGINE = 'langgraph'
     mock_settings.WEB_RESEARCH_ENABLED = False
     mock_settings.LANGCHAIN_API_KEY = None
+    mock_settings.RERANK_ENABLED = False
 
     yield mock_llm, mock_retriever
 
@@ -80,3 +81,25 @@ def test_run_rag_graph_web_path(mock_node_settings, graph_rag_mocks):
     )
     assert result['metadata'].get('source_kind') == 'web'
     assert result['metadata'].get('disclaimer')
+
+
+@patch('backend.app.services.graph.nodes.settings')
+def test_run_rag_graph_rerank_node(mock_node_settings, graph_rag_mocks):
+    mock_node_settings.RERANK_ENABLED = True
+    mock_node_settings.WEB_RESEARCH_ENABLED = False
+    mock_retriever = graph_rag_mocks[1]
+    mock_retriever.invoke.return_value = [
+        Document(page_content='noise document', metadata={'source': 'n'}),
+        Document(page_content='bCourses password reset instructions', metadata={'source': 'kb-2'}),
+    ]
+    with patch('backend.app.services.rerank.settings') as mock_rerank_settings:
+        mock_rerank_settings.RERANK_ENABLED = True
+        mock_rerank_settings.RERANK_BACKEND = 'keyword'
+        mock_rerank_settings.RERANK_TOP_N = 1
+        from backend.app.services import rag as rag_mod
+
+        rag_mod._rag_service_instance = None
+        service = RAGService()
+        result = run_rag_graph(service, 'How do I reset my password?', chat_history=[], research_mode='kb')
+    assert result['message']
+    assert result['metadata'].get('source_kind') == 'kb'

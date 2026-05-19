@@ -45,7 +45,12 @@ app = FastAPI(
 initialize_logger(app)
 logger.info('Enhanced logging system initialized with FastAPI app')
 
-app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.SECRET_KEY,
+    same_site='lax',
+    https_only=False,
+)
 
 logger.info('Configuring CORS middleware')
 app.add_middleware(
