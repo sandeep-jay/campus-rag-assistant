@@ -35,6 +35,8 @@ export interface ChatMessage {
   metadata?: {
     sources?: Source[]
     document_contents?: DocContent[]
+    source_kind?: ResearchMode
+    disclaimer?: string | null
   }
   created_at: string
 }
@@ -109,7 +111,14 @@ export interface MessageSourcesResponse {
 export type StreamEvent =
   | { type: 'status'; message: string }
   | { type: 'token'; token: string }
-  | { type: 'done'; sources: Source[]; document_contents: DocContent[]; session_id: number }
+  | {
+      type: 'done'
+      sources: Source[]
+      document_contents: DocContent[]
+      session_id: number
+      source_kind?: ResearchMode
+      disclaimer?: string | null
+    }
   | { type: 'error'; message: string }
 
 // Streaming message being assembled in real-time (displayed while SSE is open)

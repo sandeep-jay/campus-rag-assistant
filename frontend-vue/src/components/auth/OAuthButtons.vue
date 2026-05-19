@@ -5,8 +5,16 @@ defineProps<{
 
 const providers = ['github'] as const
 
+function oauthApiBase(): string {
+  const fromEnv = import.meta.env.VITE_OAUTH_API_URL
+  if (fromEnv && String(fromEnv).trim()) {
+    return String(fromEnv).replace(/\/$/, '')
+  }
+  return `${window.location.protocol}//${window.location.hostname}:8000`
+}
+
 function oauthLogin(provider: string): void {
-  window.location.href = `/api/auth/oauth/${provider}`
+  window.location.href = `${oauthApiBase()}/api/auth/oauth/${provider}`
 }
 
 function label(provider: string): string {

@@ -85,7 +85,7 @@ function toggleWeb(): void {
         </button>
         <span v-else class="text-chat-caption text-muted-foreground">Knowledge base only</span>
         <span class="text-chat-caption text-muted-foreground">
-          {{ researchMode === 'web' ? 'Web + KB when enabled on server' : 'Answers from your knowledge base' }}
+          {{ researchMode === 'web' ? 'Public web search only (not your knowledge base)' : 'Answers from your knowledge base' }}
         </span>
       </div>
     </div>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
 import OAuthButtons from '@/components/auth/OAuthButtons.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -10,7 +11,19 @@ const authStore = useAuthStore()
 const username = ref('')
 const password = ref('')
 const error = ref<string | null>(null)
+const route = useRoute()
 const isLoading = ref(false)
+
+const oauthErrorMessage = computed(() => {
+  const code = route.query.oauth_error
+  if (code === 'state_mismatch') {
+    return 'Sign-in expired. Use Continue with GitHub again (OAuth runs on port 8000). Ensure GitHub callback is http://127.0.0.1:8000/api/auth/oauth/github/callback.'
+  }
+  if (code === 'failed') {
+    return 'GitHub sign-in failed. Check API logs and that your GitHub account has a verified email.'
+  }
+  return null
+})
 
 async function handleSubmit(): Promise<void> {
   error.value = null
@@ -28,6 +41,13 @@ async function handleSubmit(): Promise<void> {
 
 <template>
   <form class="space-y-4" @submit.prevent="handleSubmit">
+    <p
+      v-if="oauthErrorMessage"
+      class="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+      role="alert"
+    >
+      {{ oauthErrorMessage }}
+    </p>
     <OAuthButtons :disabled="isLoading" />
 
     <div class="relative py-2">

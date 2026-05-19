@@ -4,17 +4,22 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 from urllib.parse import urlparse
 
+from authlib.integrations.base_client.errors import MismatchingStateError
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
 from backend.app.core.auth_cookies import set_access_token_cookie
 from backend.app.core.config_manager import settings
 from backend.app.core.rate_limit import limit_login
 from backend.app.core.security import create_access_token
+from backend.app.db.database import get_db
 from backend.app.services.db import DatabaseService
+from backend.app.services.oauth_handoff import consume_handoff_code, create_handoff_code
 from backend.app.services.oauth_service import (
     enabled_oauth_providers,
     ensure_oauth_client,
@@ -23,14 +28,13 @@ from backend.app.services.oauth_service import (
     oauth_callback_url,
 )
 
-if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
-
-    from backend.app.db.database import get_db
-
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+class OAuthHandoffRequest(BaseModel):
+    code: str = Field(min_length=16, max_length=256)
 
 
 def _is_development() -> bool:
@@ -49,17 +53,37 @@ def _warn_oauth_redirect_host_mismatch(request: Request, provider: str) -> None:
     if redirect_host and request_host and redirect_host != request_host:
         logger.warning(
             'OAuth redirect host "%s" does not match request host "%s" (provider=%s). '
-            'Use the same host in the browser, OAUTH_REDIRECT_BASE_URL, and the provider '
-            'callback URL (localhost ≠ 127.0.0.1).',
+            'OAuth should hit the API directly (port 8000); see OAUTH_REDIRECT_BASE_URL.',
             redirect_host,
             request_host,
             provider,
         )
 
 
-def _frontend_chat_url() -> str:
+def _frontend_handoff_url(code: str) -> str:
     base = settings.FRONTEND_URL.rstrip('/')
-    return f'{base}/chat'
+    return f'{base}/oauth/handoff?code={code}'
+
+
+def _frontend_login_url(error: str | None = None) -> str:
+    base = settings.FRONTEND_URL.rstrip('/')
+    if error:
+        return f'{base}/login?oauth_error={error}'
+    return f'{base}/login'
+
+
+@router.post('/handoff', dependencies=[Depends(limit_login)])
+async def oauth_handoff_complete(body: OAuthHandoffRequest) -> JSONResponse:
+    """Exchange a one-time OAuth handoff code for an access_token cookie (Vue on :5173)."""
+    access_token = consume_handoff_code(body.code)
+    if not access_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Invalid or expired handoff code',
+        )
+    response = JSONResponse({'status': 'ok'})
+    set_access_token_cookie(response, access_token)
+    return response
 
 
 @router.get('/{provider}', dependencies=[Depends(limit_login)])
@@ -111,12 +135,21 @@ async def oauth_callback(
     try:
         token = await client.authorize_access_token(request)
         profile = await fetch_oauth_profile(provider, token)
-    except Exception as exc:
+    except MismatchingStateError:
+        logger.warning(
+            'OAuth state mismatch for provider=%s (stale session, refresh, or host mismatch)',
+            provider,
+        )
+        return RedirectResponse(
+            url=_frontend_login_url('state_mismatch'),
+            status_code=status.HTTP_302_FOUND,
+        )
+    except Exception:
         logger.exception('OAuth callback failed for provider=%s', provider)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='OAuth sign-in failed',
-        ) from exc
+        return RedirectResponse(
+            url=_frontend_login_url('failed'),
+            status_code=status.HTTP_302_FOUND,
+        )
 
     db_service = DatabaseService(db)
     try:
@@ -136,6 +169,5 @@ async def oauth_callback(
         data={'sub': user.username},
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     )
-    redirect = RedirectResponse(url=_frontend_chat_url(), status_code=status.HTTP_302_FOUND)
-    set_access_token_cookie(redirect, access_token)
-    return redirect
+    handoff = create_handoff_code(access_token)
+    return RedirectResponse(url=_frontend_handoff_url(handoff), status_code=status.HTTP_302_FOUND)

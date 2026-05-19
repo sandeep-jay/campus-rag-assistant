@@ -124,3 +124,26 @@ def trace_rag(func: Callable[..., T]) -> Callable[..., T]:
             return func(*args, **kwargs)
 
     return wrapper
+
+
+def trace_rag_run(
+    func: Callable[[], T],
+    *,
+    run_name: str,
+    tags: list[str] | None = None,
+) -> T:
+    """Execute a RAG call with a LangSmith run name and tags (e.g. session_id)."""
+    merged_tags = ['rag', *(tags or [])]
+    if not settings.LANGCHAIN_TRACING_V2:
+        return func()
+    current_client = get_client()
+    if not current_client:
+        return func()
+    traced = traceable(
+        run_type='chain',
+        name=run_name,
+        tags=merged_tags,
+        client=current_client,
+        project_name=settings.LANGCHAIN_PROJECT,
+    )(func)
+    return traced()
