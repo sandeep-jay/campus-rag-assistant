@@ -66,8 +66,8 @@ sequenceDiagram
 
 - **Entry**: [`backend/app/main.py`](../backend/app/main.py) builds the FastAPI app; runs SQLAlchemy `create_all` only in dev/test (production uses Alembic); configures CORS, and mounts routers under `/api/auth` and `/api/chat`.
 - **Configuration**: Pydantic settings in [`backend/app/config/default.py`](../backend/app/config/default.py), loaded via [`backend/app/core/config_manager.py`](../backend/app/core/config_manager.py) from layered `.env` files (`APP_ENV`, repo root `.env`, `.env.{APP_ENV}`).
-- **Auth**: JWT plus HTTP-only cookies (`/api/auth/login-json`, etc.). Cookie `Secure` and `SameSite` follow `AUTH_COOKIE_*` settings (see `.env.example`).
-- **RAG**: [`backend/app/services/rag.py`](../backend/app/services/rag.py) builds a LangChain conversational retrieval chain. **One shared instance** is returned by `get_rag_service()` (thread-safe singleton) for all chat handlers.
+- **Auth**: JWT plus HTTP-only cookies (`/api/auth/login-json`, register, **OAuth** via `/api/auth/oauth/{provider}/…`). Cookie `Secure` and `SameSite` follow `AUTH_COOKIE_*` settings (see `.env.example`, [PRODUCTION_TLS.md](./PRODUCTION_TLS.md)).
+- **RAG**: [`backend/app/services/rag.py`](../backend/app/services/rag.py) builds a LangChain conversational retrieval chain. Optional **LangGraph** runner under [`backend/app/services/graph/`](../backend/app/services/graph/) when `RAG_ENGINE=langgraph` (default `chain`). **One shared instance** is returned by `get_rag_service()` (thread-safe singleton) for all chat handlers.
 - **Providers**: [`backend/app/services/providers/`](../backend/app/services/providers/) registers LLM and retriever implementations (`aws`, `azure`, `mock`) selected by `LLM_PROVIDER`, `RETRIEVER_PROVIDER`, optional `RAG_PROVIDER`, and `RAG_FORCE_MOCK`. When both `LLM_PROVIDER` and `RETRIEVER_PROVIDER` are set, they take precedence over `RAG_PROVIDER`.
 
 ### Chat API surface (summary)
@@ -78,12 +78,14 @@ sequenceDiagram
 | `POST /api/chat/chat` | Buffered reply |
 | `GET/POST/DELETE /api/chat/sessions` | Conversation CRUD |
 | `POST /api/chat/feedback` | Thumbs up/down |
+| `GET /api/auth/oauth/{provider}/start` | OAuth redirect (e.g. `github`) |
+| `GET /api/auth/oauth/{provider}/callback` | OAuth callback; sets session cookie |
 | `GET /api/chat/messages/{id}/sources` | Source metadata for a message |
 
 ## Frontend (`frontend-vue/`)
 
 - **Data flow**: Axios client (`src/api/`) → Pinia stores (`src/stores/`) → views/components. Cookies sent with `withCredentials`.
-- **Chat UI**: `ChatView` + sidebar session list, `MessageBubble` (Markdown via `markdown.ts` + `normalizeAssistantContent.ts`), `SourcesPanel`, `MessageFeedback`, streaming placeholder with typing indicator.
+- **Chat UI**: `ChatView` + sidebar session list; `MessageBubble` (Markdown, user/assistant lanes, accessible accent); `SourcesPanel` / `SourcesSummary` below assistant replies; `MessageFeedback`; SSE streaming with typing/status indicator. Dev server: `http://127.0.0.1:5173`.
 - **Routing**: Vue Router guards call `fetchCurrentUser` for protected routes.
 - **Testing**: Vitest + MSW (`src/mocks/`) for unit/integration tests; Playwright under `e2e/` (see [E2E.md](./E2E.md)).
 
