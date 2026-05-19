@@ -6,10 +6,15 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from langchain.prompts import PromptTemplate
-from langchain.schema import Document
 
 from backend.app.core.config_manager import settings
 from backend.app.services.graph.state import RagState
+from backend.app.services.rerank import is_rerank_enabled, rerank_documents
+from backend.app.services.retrieval import (
+    apply_client_metadata_filter,
+    expand_search_queries,
+    retrieve_with_queries,
+)
 from backend.app.services.tools.web_search import web_search_documents
 
 if TYPE_CHECKING:
@@ -62,23 +67,41 @@ def make_condense_node(rag_service: RAGService, tenant_config=None):
     return condense_question
 
 
+def make_multi_query_node(rag_service: RAGService):
+    def multi_query(state: RagState) -> dict[str, Any]:
+        standalone = state.get('standalone_question') or state['question']
+        queries = expand_search_queries(rag_service, standalone)
+        return {'search_queries': queries}
+
+    multi_query.__name__ = 'rag_multi_query'
+    return multi_query
+
+
 def make_retrieve_node(rag_service: RAGService):
     def retrieve(state: RagState) -> dict[str, Any]:
         standalone = state.get('standalone_question') or state['question']
-        retriever = rag_service.retriever
-        if hasattr(retriever, 'invoke'):
-            documents = retriever.invoke(standalone)
-        elif hasattr(retriever, 'get_relevant_documents'):
-            documents = retriever.get_relevant_documents(standalone)
-        else:
-            documents = []
-        if documents and not isinstance(documents[0], Document):
-            documents = [Document(page_content=getattr(d, 'page_content', str(d)), metadata=getattr(d, 'metadata', {})) for d in documents]
+        queries = state.get('search_queries') or [standalone]
+        documents = retrieve_with_queries(rag_service.retriever, queries)
+        documents = apply_client_metadata_filter(documents)
         logger.info('Graph retrieve: %s documents for %r', len(documents), standalone[:80])
         return {'documents': documents}
 
     retrieve.__name__ = 'rag_retrieve'
     return retrieve
+
+
+def make_rerank_node():
+    def rerank(state: RagState) -> dict[str, Any]:
+        documents = state.get('documents') or []
+        if not documents or not is_rerank_enabled():
+            return {}
+        standalone = state.get('standalone_question') or state['question']
+        reranked = rerank_documents(standalone, documents)
+        logger.info('Graph rerank: %s -> %s documents', len(documents), len(reranked))
+        return {'documents': reranked}
+
+    rerank.__name__ = 'rag_rerank'
+    return rerank
 
 
 def make_web_search_node(rag_service: RAGService):
@@ -135,4 +158,4 @@ def route_research_mode(state: RagState) -> str:
     mode = (state.get('research_mode') or 'kb').lower()
     if mode == 'web' and getattr(settings, 'WEB_RESEARCH_ENABLED', False):
         return 'web_search'
-    return 'retrieve'
+    return 'multi_query'

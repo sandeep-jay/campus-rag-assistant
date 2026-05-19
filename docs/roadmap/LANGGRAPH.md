@@ -2,9 +2,7 @@
 
 Deterministic RAG orchestration behind `RAGService.process_query` — **not** multi-agent by default.
 
-**Status:** KB graph shipped on live AWS; paced SSE. See [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md).
-
-**Order:** Phase 4 (this doc) **before** Phase 3 RAGAS gates. Web branch: [WEB_RESEARCH.md](./WEB_RESEARCH.md).
+**Status (2026-05-19):** Shipped on live AWS KB (portfolio Phase 4). Retrieval stack (multi-query, metadata filters, rerank) shipped as graph nodes (portfolio Phase 5). Web branch: [WEB_RESEARCH.md](./WEB_RESEARCH.md).
 
 ---
 
@@ -16,7 +14,7 @@ Deterministic RAG orchestration behind `RAGService.process_query` — **not** mu
 | Web branch | `research_mode=web` → web_search tool node |
 | Testability | Unit test each node |
 | LangSmith | Per-node spans |
-| Extensibility | Phase 5 adds rerank / multi-query as nodes |
+| Extensibility | Rerank / multi-query as nodes (shipped) |
 
 LangChain runs **inside each node** (`llm.invoke`, `retriever.invoke`).
 
@@ -31,7 +29,7 @@ flowchart TB
   Engine -->|chain| Legacy[ConversationalRetrievalChain]
   Engine -->|langgraph| Graph[RagGraph]
   Graph --> Route{research_mode}
-  Route -->|kb| Condense --> Retrieve --> Generate
+  Route -->|kb| MQ[multi_query] --> Retrieve --> Rerank --> Generate
   Route -->|web| CondenseW --> WebSearch --> Generate
   Generate --> Format[format_response]
 ```
@@ -58,38 +56,40 @@ backend/app/services/tools/
 
 ---
 
+## KB path (portfolio Phase 5)
+
+```text
+condense → multi_query → retrieve → rerank → generate → format
+```
+
+| Node | Flags |
+|------|--------|
+| multi_query | `MULTI_QUERY_ENABLED`, `MULTI_QUERY_COUNT` |
+| retrieve | `METADATA_FILTER_*`, fetches `RERANK_CANDIDATE_K` when rerank on |
+| rerank | `RERANK_ENABLED`, `RERANK_BACKEND` (`flashrank` or `keyword`) |
+
+Web branch skips rerank: `condense → web_search → generate → format`.
+
+Tuned eval profile: `./scripts/run_eval_phase5.sh` — see [eval_baseline_2026-05-19.md](../eval_baseline_2026-05-19.md).
+
+---
+
 ## Configuration
 
 ```bash
 RAG_ENGINE=chain              # chain | langgraph (default chain)
 WEB_RESEARCH_ENABLED=false
 WEB_SEARCH_PROVIDER=mock      # mock | tavily
-RAG_AGENTIC_ENABLED=false     # rewrite loop — later
+RAG_AGENTIC_ENABLED=false     # rewrite loop — portfolio Phase 6
 ```
 
 ---
 
-## Today MVP scope
+## Streaming and follow-ups
 
-| In scope | Out of scope |
-|----------|----------------|
-| Buffered `process_query` on graph | LangGraph SSE |
-| KB linear path + web branch | RAGAS ±0.02 gate |
-| Mock web search | Delete chain path |
-| Unit tests (mock) | Auto web without user flag |
-
----
-
-## Rollout
-
-| Step | Action |
-|------|--------|
-| 1 | Graph module + `RAG_ENGINE` (default `chain`) |
-| 2 | Wire `process_query`; tests green |
-| 3 | Web tool + `research_mode` |
-| 4 | Optional: flip default to `langgraph` after spot-check |
-
-Full RAGAS parity: Phase 3 lite (deferred).
+- **SSE today:** status event + paced token chunks after `graph.invoke()` (simulated streaming).
+- **Phase 6a (optional):** wire LangGraph `astream_events` to the same SSE shape as the chain path.
+- **Latency (LangSmith):** Typical run ~4–8s — `generate` dominates; `retrieve` ~0.5s. See [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md).
 
 ---
 
@@ -98,10 +98,4 @@ Full RAGAS parity: Phase 3 lite (deferred).
 - [WEB_RESEARCH.md](./WEB_RESEARCH.md)
 - [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md)
 - [EVALUATION.md](../EVALUATION.md)
-
-
-## Live validation
-
-- **AWS KB parity (2026-05-18):** `RAG_ENGINE=langgraph` returns real `metadata.sources` on Bedrock + Knowledge Base; validated against `chain` on the same prompts.
-- **Latency (LangSmith):** Typical run ~4–8s — `generate` (~6s) dominates; `condense` (~1.3s) on follow-ups only; `retrieve` ~0.5s. See [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md).
-- **Streaming:** SSE uses status + paced chunks after `graph.invoke()`; native graph/Bedrock streaming is a follow-up.
+- [archive/SPRINT_2026-05-18_LANGGRAPH.md](./archive/SPRINT_2026-05-18_LANGGRAPH.md) — sprint log
