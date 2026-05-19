@@ -22,11 +22,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Added
 
-- **Web research (UI)** — disclaimer banner, `source_kind` on SSE done; LangSmith session-tagged chat runs.
-
-### Changed
-- **OAuth (dev)** — API-port OAuth + one-time handoff to Vue (`/oauth/handoff`) fixes GitHub `state_mismatch` when Vite proxy drops session cookies.
-- **Phase 5 retrieval** — multi-query fusion, metadata filters, LangGraph rerank node (FlashRank + keyword).
+- **RAGAS eval** — golden bootstrap scripts, 10-row baseline, Phase 3 lite policy in EVALUATION.md.
 
 ### Changed
 
