@@ -6,9 +6,9 @@ Campus RAG Assistant uses **environment branches** to trigger stack-specific CI/
 
 | Branch | Role | Typical CI/CD |
 |--------|------|----------------|
-| `main` | Integration; feature PRs merge here | Lint, unit tests (`tox`), optional dev deploy |
-| `qa` | QA / staging snapshot | Deploy QA API + QA frontend; smoke / integration tests |
-| `release` | Production-ready line | Deploy production; stricter gates (e.g. `RAGAS_QUALITY_GATE=1`) |
+| `main` | Integration; feature PRs merge here | [CI](../.github/workflows/ci.yml): `tox` on PR/push |
+| `qa` | QA / staging snapshot | [CD](../.github/workflows/cd.yml): build Vue + optional EB deploy |
+| `release` | Production-ready line | CD + optional RAGAS gate (`RAGAS_QUALITY_GATE=1`) |
 
 **Source of truth:** `main`. Do not land feature work only on `qa` or `release`.
 
@@ -71,6 +71,7 @@ Tag the same commit `release` points to after promotion.
 
 ## Related docs
 
+- [CI.md](./CI.md) — GitHub Actions variables, secrets, workflows
 - [changelog/CHANGELOG.md](../changelog/CHANGELOG.md) — release notes
 - [OPERATIONS.md](./OPERATIONS.md) — deploy order, metrics
 - [LOAD_TESTING.md](./LOAD_TESTING.md) — pre-release load validation

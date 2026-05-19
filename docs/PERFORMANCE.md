@@ -1,6 +1,6 @@
 # Performance and scale
 
-Operational tuning for latency, throughput, and cost. Roadmap phases align with [roadmap/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/PHASED_IMPROVEMENT_ROADMAP.md).
+Operational tuning for latency, throughput, and cost. Roadmap phases align with [roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md).
 
 ## Phase 0 — Shipped on `main`
 
@@ -27,7 +27,7 @@ Runbooks: [OPERATIONS.md](./OPERATIONS.md) (SLOs split: auth/session vs live RAG
 | [OPERATIONS.md](./OPERATIONS.md) | Cache hit rate metric, invalidation on KB deploy, bypass for support |
 | [LOAD_TESTING.md](./LOAD_TESTING.md) | Mixed scenario (sessions + stream + feedback); note cache warm vs cold |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Optional cache layer in chat sequence / diagram notes |
-| [roadmap/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/PHASED_IMPROVEMENT_ROADMAP.md) | Mark 1a–1c complete; link env names |
+| [roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md) | Mark 1a–1c complete; link env names |
 | [EVALUATION.md](./EVALUATION.md) | Whether cached answers are excluded from RAGAS runs |
 | [changelog/CHANGELOG.md](../changelog/CHANGELOG.md) | Release notes |
 
@@ -43,7 +43,7 @@ Runbooks: [OPERATIONS.md](./OPERATIONS.md) (SLOs split: auth/session vs live RAG
 |-----|---------------------------|
 | [.env.example](../.env.example) | `RERANK_ENABLED`, `RERANK_*`, multi-query / filter flags |
 | [EVALUATION.md](./EVALUATION.md) | RAGAS gates with rerank on/off; baseline comparison |
-| [roadmap/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/PHASED_IMPROVEMENT_ROADMAP.md) | 2a–2d status; **note:** FlashRank is roadmap-only until wired in `rag.py` |
+| [roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md) | 2a–2d status; **note:** FlashRank is roadmap-only until wired in `rag.py` |
 | [roadmap/PORTFOLIO_PHASED_ROADMAP.md](./roadmap/PORTFOLIO_PHASED_ROADMAP.md) | Portfolio eval / LangGraph alignment |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Retrieval subgraph (expand, filter, rerank) |
 | [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md) | If nodes move to graph runner |
@@ -64,7 +64,7 @@ Runbooks: [OPERATIONS.md](./OPERATIONS.md) (SLOs split: auth/session vs live RAG
 | [RELEASE.md](./RELEASE.md) | Promote + cache flush / migration notes |
 | [LOAD_TESTING.md](./LOAD_TESTING.md) | Retry / duplicate POST scenarios |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Redis HA, horizontal workers, optional read path |
-| [roadmap/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/PHASED_IMPROVEMENT_ROADMAP.md) | Phase 3–4 items |
+| [roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md) | Phase 3–4 items |
 | [docs/RELEASE.md](./RELEASE.md) | Deploy order if schema adds `client_message_id` |
 | [changelog/CHANGELOG.md](../changelog/CHANGELOG.md) | Release notes |
 

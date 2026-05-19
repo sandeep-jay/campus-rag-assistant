@@ -1,4 +1,8 @@
-# Phased improvement roadmap (RAG chatbot platform)
+# Campus / production scale roadmap
+
+> **Archived track.** Portfolio priorities: [PORTFOLIO_PHASED_ROADMAP.md](../PORTFOLIO_PHASED_ROADMAP.md). This document is the original org-scale plan (Redis HA, EB, tenant budgets).
+
+# Phased improvement roadmap (campus track) (RAG chatbot platform)
 
 > **Portfolio / independent work:** use **[PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md)** for publish, RAGAS, LangGraph, and commit strategy. This document is the **campus production and scale** track (Redis HA, tenant budgets, Elastic Beanstalk).
 

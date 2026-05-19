@@ -2,7 +2,7 @@
 
 Deterministic RAG orchestration behind `RAGService.process_query` — **not** multi-agent by default.
 
-**Status:** In progress — see [TODAY_SPRINT.md](./TODAY_SPRINT.md).
+**Status:** KB graph shipped on live AWS; paced SSE. See [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md).
 
 **Order:** Phase 4 (this doc) **before** Phase 3 RAGAS gates. Web branch: [WEB_RESEARCH.md](./WEB_RESEARCH.md).
 
@@ -95,7 +95,6 @@ Full RAGAS parity: Phase 3 lite (deferred).
 
 ## Related
 
-- [TODAY_SPRINT.md](./TODAY_SPRINT.md)
 - [WEB_RESEARCH.md](./WEB_RESEARCH.md)
 - [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md)
 - [EVALUATION.md](../EVALUATION.md)
@@ -104,5 +103,5 @@ Full RAGAS parity: Phase 3 lite (deferred).
 ## Live validation
 
 - **AWS KB parity (2026-05-18):** `RAG_ENGINE=langgraph` returns real `metadata.sources` on Bedrock + Knowledge Base; validated against `chain` on the same prompts.
-- **Latency (LangSmith):** Typical run ~4–8s — `generate` (~6s) dominates; `condense` (~1.3s) on follow-ups only; `retrieve` ~0.5s. See [TODAY_SPRINT.md](./TODAY_SPRINT.md).
+- **Latency (LangSmith):** Typical run ~4–8s — `generate` (~6s) dominates; `condense` (~1.3s) on follow-ups only; `retrieve` ~0.5s. See [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md).
 - **Streaming:** SSE uses status + paced chunks after `graph.invoke()`; native graph/Bedrock streaming is a follow-up.

@@ -1,6 +1,6 @@
 # Web research tool (opt-in)
 
-**Status:** MVP in [today sprint](./TODAY_SPRINT.md) — mock provider first; Tavily optional.
+**Status:** MVP shipped (API + Vue toggle); Tavily live optional. See [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md).
 
 User chooses **KB** (default) or **web** per message. Not silent open-web mode.
 
@@ -56,5 +56,5 @@ Opt-in only; disclaimer; rate limits; no arbitrary URL fetch in v1.
 
 ## Related
 
-- [TODAY_SPRINT.md](./TODAY_SPRINT.md)
+- [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md)
 - [LANGGRAPH.md](./LANGGRAPH.md)
