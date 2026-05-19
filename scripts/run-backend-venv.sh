@@ -24,4 +24,4 @@ if [ "${PIP_SYNC:-1}" = "1" ]; then
 fi
 
 echo "Starting uvicorn on http://127.0.0.1:8000 (venv active)"
-exec uvicorn backend.app.main:app --reload --reload-dir backend/app --host 127.0.0.1 --port 8000
+exec ./venv/bin/python -m uvicorn backend.app.main:app --reload --reload-dir backend/app --host 127.0.0.1 --port 8000
