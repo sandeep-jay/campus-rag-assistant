@@ -13,7 +13,7 @@ Automated checks replace Travis CI. **Tox** remains the source of truth for what
 
 1. PostgreSQL 15 service + test DB bootstrap (same as former Travis).
 2. Python 3.11 + Node 20 (from `frontend-vue/.nvmrc`).
-3. `tox -e lint,backend,frontend-streamlit,frontend-vue -p auto`
+3. `tox -e lint,backend,frontend-streamlit,frontend-vue` (sequential — no `-p auto`)
 
 ### CD pipeline
 
@@ -69,6 +69,14 @@ promote → release  →  CD (+ optional RAGAS gate)
 ```
 
 See [RELEASE.md](./RELEASE.md) for promotion commands and tagging.
+
+## CI gotchas (frontend-vue)
+
+| Issue | Fix |
+|-------|-----|
+| `nvm: command not found` on GHA | Tox skips `nvm use` when `CI=true`; Node comes from `setup-node` |
+| `Cannot find module @rollup/rollup-linux-x64-gnu` | Use `HUSKY=0 npm ci` (not `--ignore-scripts`); `@rollup/rollup-*` pinned in `frontend-vue` optionalDependencies |
+| Slow `frontend-vue` tox setup | Env no longer installs root `requirements.txt` — Node/npm only |
 
 ## Migrating from Travis
 
