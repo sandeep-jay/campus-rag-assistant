@@ -45,6 +45,7 @@ from backend.app.services.providers.llm.mock import MockLlmProvider
 from backend.app.services.providers.retriever.aws import AwsRetrieverProvider
 from backend.app.services.providers.retriever.mock import MockRetrieverProvider
 from backend.app.services.tenant_rag_config import TenantRagConfig
+from backend.app.services.graph.runner import run_rag_graph
 from backend.app.utils.simple_tracer import trace_rag
 
 # Configure logging
@@ -293,6 +294,18 @@ Standalone Question (one line only, no labels):""")
         if not text:
             return text
         stripped = text.strip()
+        max_q_words = 35
+
+        # "Question?— Answer" / "Question? - Answer" (common RAG chain leak)
+        m = re.match(r'^(.+\?)\s*[\u2014\u2013\-]+\s*(.+)$', stripped, re.DOTALL)
+        if m and len(m.group(1).split()) <= max_q_words:
+            return m.group(2).strip()
+
+        # "Question? Answer continues" when answer starts with a capital letter
+        m = re.match(r'^(.+\?)\s+([A-Z][\s\S]+)$', stripped)
+        if m and len(m.group(1).split()) <= max_q_words:
+            return m.group(2).strip()
+
         oos_markers = (
             'I can only answer questions',
             'I can only help with',
@@ -302,18 +315,13 @@ Standalone Question (one line only, no labels):""")
             idx = stripped.find(marker)
             if idx <= 0:
                 continue
-            prefix = stripped[:idx].strip().rstrip('?.!')
-            # Condensed question is usually one short interrogative sentence.
-            if prefix and (stripped[:idx].strip().endswith('?') or len(prefix.split()) <= 20):
+            prefix = stripped[:idx].strip()
+            if prefix.endswith('?') and len(prefix.split()) <= max_q_words:
                 return stripped[idx:].strip()
-        # Single leading interrogative sentence before the real answer.
+
         parts = re.split(r'(?<=[.!?])\s+', stripped, maxsplit=1)
-        if len(parts) == 2 and parts[0].strip().endswith('?') and len(parts[0].split()) <= 20:
+        if len(parts) == 2 and parts[0].strip().endswith('?') and len(parts[0].split()) <= max_q_words:
             return parts[1].strip()
-        # "Question?— Answer" or "Question? Answer continues" leakage from RAG chain
-        m = re.match(r'^(.+\?)[\s\u2014\u2013-]+(.+)$', stripped, re.DOTALL)
-        if m and len(m.group(1).split()) <= 25:
-            return m.group(2).strip()
         return stripped
 
     def _sanitize_answer_text(self, text: str) -> str:
