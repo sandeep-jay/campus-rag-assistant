@@ -4,18 +4,16 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
 
 from backend.app.core.auth_cookies import set_access_token_cookie
 from backend.app.core.config_manager import settings
 from backend.app.core.rate_limit import limit_login
 from backend.app.core.security import create_access_token
-from backend.app.db.database import get_db
 from backend.app.services.db import DatabaseService
 from backend.app.services.oauth_service import (
     enabled_oauth_providers,
@@ -24,6 +22,11 @@ from backend.app.services.oauth_service import (
     oauth,
     oauth_callback_url,
 )
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
+
+    from backend.app.db.database import get_db
 
 logger = logging.getLogger(__name__)
 

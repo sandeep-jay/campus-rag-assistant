@@ -31,10 +31,10 @@ from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
+from backend.app.core.auth_cookies import clear_access_token_cookie, set_access_token_cookie
 from backend.app.core.config_manager import settings
 from backend.app.core.dev_routes import require_dev_api_routes
 from backend.app.core.rate_limit import limit_login, limit_register
-from backend.app.core.auth_cookies import clear_access_token_cookie, set_access_token_cookie
 from backend.app.core.security import create_access_token, get_current_user, verify_token
 from backend.app.db.database import get_db
 from backend.app.models.user import User

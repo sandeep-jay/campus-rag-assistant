@@ -16,22 +16,22 @@ def run_rag_graph(
     query: str,
     chat_history: list | None = None,
     tenant_config: TenantRagConfig | None = None,
-    research_mode: str = "kb",
+    research_mode: str = 'kb',
 ) -> dict[str, Any]:
     if chat_history is None:
         chat_history = []
-    mode = (research_mode or "kb").lower()
-    if mode not in ("kb", "web"):
-        mode = "kb"
+    mode = (research_mode or 'kb').lower()
+    if mode not in ('kb', 'web'):
+        mode = 'kb'
 
     graph = build_rag_graph(rag_service, tenant_config)
     initial_state = {
-        "question": query,
-        "chat_history": chat_history,
-        "research_mode": mode,
+        'question': query,
+        'chat_history': chat_history,
+        'research_mode': mode,
     }
     final_state = graph.invoke(initial_state)
     return {
-        "message": final_state.get("message", ""),
-        "metadata": final_state.get("metadata", {"sources": [], "document_contents": []}),
+        'message': final_state.get('message', ''),
+        'metadata': final_state.get('metadata', {'sources': [], 'document_contents': []}),
     }

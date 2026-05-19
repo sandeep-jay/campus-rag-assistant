@@ -3,9 +3,9 @@ Copyright ©2025. The Regents of the University of California (Regents). All Rig
 """
 
 from fastapi import FastAPI
-from starlette.middleware.sessions import SessionMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
+from starlette.middleware.sessions import SessionMiddleware
 
 from backend.app.api import auth, chat, oauth_routes
 from backend.app.core.config_manager import settings

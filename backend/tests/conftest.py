@@ -242,6 +242,6 @@ def mock_rag_service():
             yield {'type': 'done', 'metadata': mock_rag.process_query.return_value['metadata']}
 
         mock_rag.stream_query.side_effect = _default_stream
-        mock_rag._normalize_answer_formatting.side_effect = lambda text, _sources=None: text  # noqa: SLF001
+        mock_rag._normalize_answer_formatting.side_effect = lambda text, _sources=None: text
         mock_get_rag_service.return_value = mock_rag
         yield mock_rag

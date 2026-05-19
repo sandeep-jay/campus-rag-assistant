@@ -26,11 +26,7 @@ def oauth_callback_url(provider: str) -> str:
 
 
 def enabled_oauth_providers() -> list[str]:
-    configured = {
-        p.strip().lower()
-        for p in (settings.OAUTH_ENABLED_PROVIDERS or '').split(',')
-        if p.strip()
-    }
+    configured = {p.strip().lower() for p in (settings.OAUTH_ENABLED_PROVIDERS or '').split(',') if p.strip()}
     available: list[str] = []
     if 'google' in configured and settings.OAUTH_GOOGLE_CLIENT_ID and settings.OAUTH_GOOGLE_CLIENT_SECRET:
         available.append('google')

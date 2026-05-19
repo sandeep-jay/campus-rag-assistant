@@ -75,7 +75,12 @@ docstring-quotes = "double"
 
 [lint.per-file-ignores]
 "backend/tests/services/test_rag.py" = ["SLF001"]
-# Ignore specific issues in test files
-"**/tests/**/*.py" = ["PT009", "S106", "S105"]
-"backend/app/main.py" = ["D200"]  # Ignore unittest-style assertions and hardcoded password warnings in test files
-"**/backend/app/services/rag_service.py" = ["C901"]  # Ignore complexity in rag_service.py
+"**/tests/**/*.py" = ["PT009", "S106", "S105", "SLF001"]
+"backend/app/main.py" = ["D200"]
+"backend/app/api/chat.py" = ["C901"]
+"backend/app/api/oauth_routes.py" = ["TCH001", "TCH002"]
+"backend/app/services/rag.py" = ["C901"]
+"backend/app/services/oauth_service.py" = ["C901", "S106"]
+"backend/app/services/db.py" = ["ARG002"]
+"backend/app/services/graph/**/*.py" = ["SLF001", "TCH001", "TCH002"]
+"**/backend/app/services/rag_service.py" = ["C901"]

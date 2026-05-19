@@ -178,7 +178,6 @@ class DatabaseService:
         logger.info('OAuth user created: %s via %s', db_user.username, provider)
         return db_user
 
-
     # Chat session methods
     def create_chat_session(
         self,

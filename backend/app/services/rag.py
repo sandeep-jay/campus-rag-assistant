@@ -27,7 +27,6 @@ import json
 import logging
 import re
 import threading
-import asyncio
 import time
 from pathlib import Path
 from typing import Any
@@ -39,13 +38,13 @@ from langchain.prompts import PromptTemplate
 from langchain.schema import AIMessage, HumanMessage
 
 from backend.app.core.config_manager import settings
+from backend.app.services.graph.runner import run_rag_graph
 from backend.app.services.providers import get_llm_provider, get_retriever_provider
 from backend.app.services.providers.llm.aws import AwsLlmProvider
 from backend.app.services.providers.llm.mock import MockLlmProvider
 from backend.app.services.providers.retriever.aws import AwsRetrieverProvider
 from backend.app.services.providers.retriever.mock import MockRetrieverProvider
 from backend.app.services.tenant_rag_config import TenantRagConfig
-from backend.app.services.graph.runner import run_rag_graph
 from backend.app.utils.simple_tracer import trace_rag
 
 # Configure logging
@@ -86,7 +85,6 @@ def _token_from_chat_stream_chunk(chunk: Any) -> str:
                 parts.append(getattr(block, 'text', None) or str(block))
         return ''.join(parts)
     return str(content)
-
 
 
 class RAGService:
@@ -400,7 +398,6 @@ Standalone Question (one line only, no labels):""")
         text = re.sub(r'\n{3,}', '\n\n', text)
         return self._enhance_response(text.strip(), metadata_list)
 
-
     def _chunk_for_stream(self, text: str, size: int = 16):
         for i in range(0, len(text), size):
             yield text[i : i + size]
@@ -474,13 +471,9 @@ Standalone Question (one line only, no labels):""")
                 _stream_artificial_delay()
             yield {'type': 'done', 'metadata': result['metadata']}
 
-
-
     def _use_langgraph_engine(self) -> bool:
         engine = (getattr(settings, 'RAG_ENGINE', None) or 'chain').strip().lower()
         return engine == 'langgraph'
-
-
 
     async def stream_query_async(
         self,
@@ -554,7 +547,6 @@ Standalone Question (one line only, no labels):""")
                 yield {'type': 'token', 'token': chunk}
                 _stream_artificial_delay()
             yield {'type': 'done', 'metadata': result['metadata']}
-
 
     def _create_mock_response(self, query: str, tenant_config: TenantRagConfig | None = None):
         # Create an improved mock response using few-shot examples if available
