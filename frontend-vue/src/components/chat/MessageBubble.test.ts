@@ -127,6 +127,23 @@ describe('MessageBubble', () => {
     expect(userRow!.className).not.toContain('bg-muted/20')
   })
 
+  it('shows web disclaimer when metadata.disclaimer is set', () => {
+    const webMessage: ChatMessage = {
+      id: 6,
+      content: 'Web answer',
+      role: 'assistant',
+      metadata: {
+        disclaimer: 'This answer used public web search results. Verify against official sources.',
+        source_kind: 'web',
+        sources: [],
+        document_contents: [],
+      },
+      created_at: '',
+    }
+    renderWithProviders(MessageBubble, { props: { message: webMessage } })
+    expect(screen.getByTestId('web-disclaimer')).toHaveTextContent(/public web search/i)
+  })
+
   it('does NOT show feedback buttons for user messages', () => {
     renderWithProviders(MessageBubble, { props: { message: userMessage } })
     expect(screen.queryByRole('button', { name: /mark as helpful/i })).not.toBeInTheDocument()

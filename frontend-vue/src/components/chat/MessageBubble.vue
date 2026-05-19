@@ -31,6 +31,8 @@ const hasSources = computed(
   () => sources.value.length > 0 || documentContents.value.length > 0,
 )
 
+const disclaimer = computed(() => getSources(props.message)?.disclaimer ?? null)
+
 const panelId = computed(() => {
   const id = 'id' in props.message ? String((props.message as { id: number | string }).id) : 'opt'
   return `sources-panel-${id}`
@@ -92,6 +94,15 @@ function formatTime(dateStr: string): string {
         <div v-else class="w-full rounded-lg border border-border bg-card px-5 py-4 shadow-sm">
           <div class="chat-prose dark:prose-invert max-w-none text-foreground" v-html="renderMarkdown(message.content)" />
         </div>
+
+        <p
+          v-if="disclaimer && !isStreaming"
+          class="w-full rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-chat-caption text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+          role="note"
+          data-testid="web-disclaimer"
+        >
+          {{ disclaimer }}
+        </p>
 
         <span class="text-chat-meta text-muted-foreground px-1">
           {{ formatTime(message.created_at) }}

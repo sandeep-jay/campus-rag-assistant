@@ -1,6 +1,6 @@
 # Web research tool (opt-in)
 
-**Status:** MVP shipped (API + Vue toggle); Tavily live optional. See [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md).
+**Status:** Portfolio MVP complete (API + Vue toggle + disclaimer UI); Tavily live optional (`tavily-python`). See [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md).
 
 User chooses **KB** (default) or **web** per message. Not silent open-web mode.
 
