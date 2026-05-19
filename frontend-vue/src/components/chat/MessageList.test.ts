@@ -35,6 +35,6 @@ describe('MessageList', () => {
 
   it('shows empty state when no messages', () => {
     renderWithProviders(MessageList, { props: { messages: [] } })
-    expect(screen.getByText(/start a new conversation/i)).toBeInTheDocument()
+    expect(screen.getByText(/campus knowledge assistant/i)).toBeInTheDocument()
   })
 })

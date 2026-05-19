@@ -40,6 +40,7 @@ class ChatMessageBase(BaseModel):
 class ChatMessageCreate(BaseModel):
     content: str
     session_id: int | None = None
+    research_mode: str = 'kb'  # kb | web
 
 
 class ChatMessage(ChatMessageBase):

@@ -110,3 +110,32 @@ def test_login_wrong_password(client: TestClient, test_user: dict[str, str]) -> 
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert 'Incorrect username or password' in response.json()['detail']
+
+
+def test_oauth_start_provider_unavailable(client) -> None:
+    response = client.get('/api/auth/oauth/google', follow_redirects=False)
+    assert response.status_code in (404, 503)
+
+
+def test_get_or_create_oauth_user(db) -> None:
+    from backend.app.services.db import DatabaseService
+
+    db_service = DatabaseService(db)
+    user = db_service.get_or_create_oauth_user(
+        email='oauth-test@example.com',
+        provider='google',
+        provider_subject='sub-123',
+        display_name='OAuth Test',
+    )
+    assert user.id is not None
+    assert user.auth_provider == 'google'
+    assert user.provider_subject == 'sub-123'
+    assert user.hashed_password is None
+
+    same = db_service.get_or_create_oauth_user(
+        email='oauth-test@example.com',
+        provider='google',
+        provider_subject='sub-123',
+        display_name='OAuth Test',
+    )
+    assert same.id == user.id

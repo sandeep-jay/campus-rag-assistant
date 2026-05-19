@@ -12,5 +12,5 @@ if [ -s "${NVM_DIR:-$HOME/.nvm}/nvm.sh" ]; then
   [ -f ".nvmrc" ] && nvm use 2>/dev/null || true
 fi
 
-echo "Starting Vite on http://localhost:5173/"
-exec npm run dev -- --host 127.0.0.1
+echo "Starting Vite on http://127.0.0.1:5173/"
+exec npm run dev

@@ -1,10 +1,12 @@
 # Portfolio phased roadmap
 
-**Last updated:** 2026-05-18  
+**Last updated:** 2026-05-18 (execution order: LangGraph → web tool → Phase 3 deferred)  
 **Audience:** Independent continuation of the RAG chatbot (portfolio edition).  
 **Supersedes for portfolio work:** execution order and priorities here; campus-scale items remain in [PHASED_IMPROVEMENT_ROADMAP.md](./PHASED_IMPROVEMENT_ROADMAP.md).
 
-**Publish and platform wiring are complete** on [`main`](https://github.com/sandeep-jay/campus-rag-assistant). Remaining work: **RAGAS gates**, **LangGraph**, retrieval quality, optional LangGraph streaming/agentic.
+**Publish and platform wiring are complete** on [`main`](https://github.com/sandeep-jay/campus-rag-assistant).
+
+**Active plan:** [TODAY_SPRINT.md](./TODAY_SPRINT.md) — LangGraph KB parity on **live AWS**, then web research. **Deferred:** full Phase 3 RAGAS gates until after graph ships.
 
 ---
 
@@ -26,20 +28,22 @@ flowchart LR
   P0[Phase0_Publish]
   P1[Phase1_CommitAndDemo]
   P2[Phase2_PlatformProviders]
-  P3[Phase3_EvalAndObs]
-  P4[Phase4_LangGraphParity]
+  P4[Phase4_LangGraph]
+  P6W[Phase6b_WebResearch]
+  P3[Phase3_EvalDeferred]
   P5[Phase5_RAGQuality]
-  P6[Phase6_AgenticOptional]
-  P0 --> P1 --> P2 --> P3 --> P4 --> P5 --> P6
+  P6[Phase6_SSE_Agentic]
+  P0 --> P1 --> P2 --> P4 --> P6W --> P3 --> P5 --> P6
 ```
 
 | Phase | Focus | Status |
 |-------|--------|--------|
-| **0–2** | Publish repo, logical PR history, platform + providers + tox | **Done** (PR1–#9 on `main`) |
-| **3** | RAGAS golden set; LangSmith; metrics/SLOs sketch | **Next** |
-| **4** | LangGraph parity graph (`RAG_ENGINE`); per-node traces | Planned |
-| **5** | Retrieval quality nodes (multi-query, rerank, filters) | Planned |
-| **6** | Bounded agentic graph; LangGraph SSE | Optional — after RAGAS stable |
+| **0–2** | Publish repo, platform + providers + tox | **Done** |
+| **4** | LangGraph KB graph (`RAG_ENGINE`); per-node traces | **In progress** — [TODAY_SPRINT.md](./TODAY_SPRINT.md) |
+| **6b** | Opt-in web research tool (`research_mode=web`) | **In progress** — same sprint |
+| **3** | RAGAS gates; README quality section | **Deferred** — after graph + web MVP |
+| **5** | Retrieval nodes (rerank, multi-query) | Planned |
+| **6** | LangGraph SSE; bounded rewrite loop | Optional |
 
 Campus production concerns (Redis HA, tenant budgets, Elastic Beanstalk) stay in [PHASED_IMPROVEMENT_ROADMAP.md](./PHASED_IMPROVEMENT_ROADMAP.md) Phases 1–4 org track.
 
@@ -55,7 +59,7 @@ Campus production concerns (Redis HA, tenant budgets, Elastic Beanstalk) stay in
 
 ---
 
-## Phase 3 — Evaluation and observability (RAGAS + LangSmith)
+## Phase 3 — Evaluation and observability (RAGAS + LangSmith) — **deferred**
 
 **Goal:** Prove quality and debuggability — **not** interchangeable tools.
 
@@ -84,6 +88,8 @@ See [EVALUATION.md](../EVALUATION.md).
 
 **Exit criteria:** Eval runs locally; trace visible; README "Quality" section.
 
+> Run **after** Phase 4 + 6b MVP. LangSmith per-node traces ship **with LangGraph** (partial 3b).
+
 ---
 
 ## Phase 4 — LangGraph (deterministic parity)
@@ -107,14 +113,14 @@ Each node calls **LangChain** primitives (`llm.invoke`, `retriever.invoke`) via 
 ### 4b. Feature flag
 
 ```bash
-RAG_ENGINE=chain      # default until RAGAS parity
+RAG_ENGINE=chain      # default; flip after spot-check (RAGAS optional)
 RAG_ENGINE=langgraph
 ```
 
 ### 4c. Exit criteria
 
 - Unit tests per node + graph runner tests.
-- RAGAS within **±0.02** of chain on full golden set.
+- RAGAS within **±0.02** of chain — **optional for portfolio sprint**; manual mock compare OK for today.
 - LangSmith shows **condense / retrieve / generate** spans.
 - Then flip default to `langgraph`; remove chain in follow-up when confident.
 
@@ -143,31 +149,36 @@ Aligns with org roadmap Phase 2 in [PHASED_IMPROVEMENT_ROADMAP.md](./PHASED_IMPR
 
 ---
 
+## Phase 6b — Web research tool (opt-in) — **in today sprint**
+
+**Goal:** User-selected public web search when KB is not the right source.
+
+- `research_mode`: `kb` (default) | `web` on chat API + Vue toggle
+- LangGraph branch: condense → `web_search` tool → generate → format
+- Mock provider for demo; optional Tavily when `WEB_RESEARCH_ENABLED=true`
+- Metadata: `source_kind`, `disclaimer`
+
+Detail: [WEB_RESEARCH.md](./WEB_RESEARCH.md).
+
+**Not:** silent auto-web; multi-agent; unbounded tool loops.
+
+---
+
 ## Phase 6 — Optional: streaming and bounded agentic
 
-**Only after Phase 5 RAGAS stable week-over-week.**
+**After Phase 5 or when SSE on graph is needed.**
 
 ### 6a. LangGraph streaming
 
-> **Status:** LangChain path already exposes `POST /api/chat/stream` (SSE) with Vue consumer and buffered fallback. Phase 6a wires the same contract to a LangGraph graph.
+> LangChain path already exposes `POST /api/chat/stream` (SSE). Phase 6a wires LangGraph `astream_events` to the same event shape.
 
-- `graph.astream_events` + `get_streaming_llm()`
-- Keep Vue / E2E aligned with existing `/api/chat/stream` event shape
-
-### 6b. Bounded agentic (`RAG_AGENTIC_ENABLED=false` default)
+### 6c. Bounded agentic (`RAG_AGENTIC_ENABLED=false` default)
 
 ```text
-route_query → condense → retrieve → grade_documents
-  → (rewrite once max) → generate → format
+condense → retrieve → grade_documents → (rewrite once max) → generate → format
 ```
 
 - **Not** multi-agent — conditional edges with hard caps.
-- Extra LLM calls: monitor p95 latency and cost.
-
-### 6c. JD keywords without overbuilding
-
-- One optional **tool** (e.g. `search_kb`) if needed for demos.
-- README: deterministic default; agentic opt-in.
 
 ---
 
@@ -196,19 +207,21 @@ route_query → condense → retrieve → grade_documents
 
 ---
 
-## Suggested timeline (solo, part-time)
+## Suggested timeline
 
-| Weeks | Focus |
-|-------|--------|
-| 1 | Phase 3: RAGAS baseline + LangSmith trace in README |
-| 2 | Phase 4: LangGraph parity + eval gate |
-| 3+ | Phase 5–6 as needed for target roles |
+| When | Focus |
+|------|--------|
+| **Today** | [TODAY_SPRINT.md](./TODAY_SPRINT.md) — LangGraph + web MVP |
+| **Next session** | Phase 3 lite — RAGAS spot-check; grow golden set |
+| **Later** | Phase 5 retrieval nodes; Phase 6a SSE |
 
 ---
 
 ## Related docs
 
 - [EVALUATION.md](../EVALUATION.md) — RAGAS vs LangSmith
+- [TODAY_SPRINT.md](./TODAY_SPRINT.md) — compressed same-day plan
 - [LANGGRAPH.md](./LANGGRAPH.md) — graph design and flags
+- [WEB_RESEARCH.md](./WEB_RESEARCH.md) — opt-in web tool
 - [PHASED_IMPROVEMENT_ROADMAP.md](./PHASED_IMPROVEMENT_ROADMAP.md) — campus / scale track
 - [README.md](../../README.md) — quick start and attribution

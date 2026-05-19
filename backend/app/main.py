@@ -3,10 +3,11 @@ Copyright ©2025. The Regents of the University of California (Regents). All Rig
 """
 
 from fastapi import FastAPI
+from starlette.middleware.sessions import SessionMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 
-from backend.app.api import auth, chat
+from backend.app.api import auth, chat, oauth_routes
 from backend.app.core.config_manager import settings
 from backend.app.core.logger import initialize_logger, logger
 from backend.app.core.metrics import metrics_middleware, metrics_response, refresh_db_pool_metrics
@@ -44,6 +45,8 @@ app = FastAPI(
 initialize_logger(app)
 logger.info('Enhanced logging system initialized with FastAPI app')
 
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+
 logger.info('Configuring CORS middleware')
 app.add_middleware(
     CORSMiddleware,
@@ -65,6 +68,7 @@ app.add_middleware(RequestContextMiddleware)
 
 logger.info('Including API routers')
 app.include_router(auth.router, prefix='/api/auth', tags=['auth'])
+app.include_router(oauth_routes.router, prefix='/api/auth/oauth', tags=['auth'])
 app.include_router(chat.router, prefix='/api/chat', tags=['chat'])
 logger.info('API setup complete')
 

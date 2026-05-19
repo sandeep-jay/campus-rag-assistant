@@ -10,7 +10,7 @@ const safeSources: Source[] = [
     kb_number: 'KB-123',
     kb_category: 'Course Management',
     short_description: 'How to submit assignments',
-    project: 'BCourses',
+    project: 'Campus RAG Assistant',
     score: 0.92,
   },
 ]
@@ -36,7 +36,7 @@ const noScoreSources: Source[] = [
     kb_number: 'KB-999',
     kb_category: 'Course Management',
     short_description: 'Source without score',
-    project: 'BCourses',
+    project: 'Campus RAG Assistant',
   },
 ]
 

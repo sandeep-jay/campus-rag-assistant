@@ -16,10 +16,12 @@ Narrative, chat/SSE flow, and API surface: [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 | Doc | Description |
 |-----|-------------|
-| [roadmap/PORTFOLIO_PHASED_ROADMAP.md](./roadmap/PORTFOLIO_PHASED_ROADMAP.md) | **Primary roadmap** — RAGAS, LangGraph, retrieval |
+| [roadmap/TODAY_SPRINT.md](./roadmap/TODAY_SPRINT.md) | **Active sprint** — LangGraph + web research (same day) |
+| [roadmap/PORTFOLIO_PHASED_ROADMAP.md](./roadmap/PORTFOLIO_PHASED_ROADMAP.md) | **Primary roadmap** — phases and deferrals |
 | [EVALUATION.md](./EVALUATION.md) | RAGAS vs LangSmith; quality scorecard |
 | [../changelog/CHANGELOG.md](../changelog/CHANGELOG.md) | Release history |
-| [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md) | LangGraph design (planned) |
+| [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md) | LangGraph design |
+| [roadmap/WEB_RESEARCH.md](./roadmap/WEB_RESEARCH.md) | Opt-in web research tool |
 
 ## Architecture and operations
 

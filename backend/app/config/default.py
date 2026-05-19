@@ -108,6 +108,13 @@ class DefaultSettings(BaseSettings):
     LLM_PROVIDER: str = 'mock'
     RETRIEVER_PROVIDER: str = 'mock'
 
+    # RAG orchestration: chain (LangChain) | langgraph
+    RAG_ENGINE: str = 'chain'
+    WEB_RESEARCH_ENABLED: bool = False
+    WEB_SEARCH_PROVIDER: str = 'mock'  # mock | tavily
+    TAVILY_API_KEY: str | None = None
+    WEB_SEARCH_MAX_RESULTS: int = 5
+
     # Observability and platform
     LOG_JSON: bool = False
     ENABLE_DEV_API_ROUTES: bool = False
@@ -148,6 +155,19 @@ class DefaultSettings(BaseSettings):
     AZURE_SEARCH_SERVICE_NAME: str | None = None
     AZURE_SEARCH_KEY: str | None = None
     AZURE_SEARCH_INDEX: str | None = None
+
+
+    # Auth cookies (set AUTH_COOKIE_SECURE=true in production HTTPS)
+    AUTH_COOKIE_SECURE: bool = False
+    AUTH_COOKIE_SAMESITE: str = 'lax'
+
+    # Social OAuth (Google / GitHub)
+    OAUTH_REDIRECT_BASE_URL: str | None = None
+    OAUTH_ENABLED_PROVIDERS: str = 'google,github'
+    OAUTH_GOOGLE_CLIENT_ID: str | None = None
+    OAUTH_GOOGLE_CLIENT_SECRET: str | None = None
+    OAUTH_GITHUB_CLIENT_ID: str | None = None
+    OAUTH_GITHUB_CLIENT_SECRET: str | None = None
 
     model_config = {
         'extra': 'allow',

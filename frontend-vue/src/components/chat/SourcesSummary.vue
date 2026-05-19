@@ -39,7 +39,7 @@ function chipLabel(source: Source): string {
 <template>
   <div
     v-if="sources.length > 0 || documentContentsCount > 0"
-    class="flex flex-wrap items-center gap-2 pt-1"
+    class="flex w-full flex-col items-start gap-2 pt-1 sm:flex-row sm:flex-wrap sm:items-center"
     data-testid="sources-summary"
   >
     <button

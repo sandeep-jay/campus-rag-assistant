@@ -34,6 +34,7 @@ from sqlalchemy.orm import Session
 from backend.app.core.config_manager import settings
 from backend.app.core.dev_routes import require_dev_api_routes
 from backend.app.core.rate_limit import limit_login, limit_register
+from backend.app.core.auth_cookies import clear_access_token_cookie, set_access_token_cookie
 from backend.app.core.security import create_access_token, get_current_user, verify_token
 from backend.app.db.database import get_db
 from backend.app.models.user import User
@@ -128,16 +129,7 @@ async def login_with_cookie(
         expires_delta=access_token_expires,
     )
 
-    # Set cookie
-    response.set_cookie(
-        key='access_token',
-        value=access_token,
-        httponly=True,
-        secure=False,  # Set to False for local development without HTTPS
-        samesite='lax',
-        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        path='/',
-    )
+    set_access_token_cookie(response, access_token)
 
     return {
         'user_id': user.id,
@@ -172,17 +164,7 @@ async def login_with_json(
         expires_delta=access_token_expires,
     )
 
-    # Set cookie
-    response.set_cookie(
-        key='access_token',
-        value=access_token,
-        httponly=True,
-        secure=False,  # Set to False for local development without HTTPS
-        samesite='lax',
-        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        path='/',
-        domain=None,
-    )
+    set_access_token_cookie(response, access_token)
 
     logger.info(f'Successful JSON login for user: {user_data.username}')
     return {
@@ -195,13 +177,7 @@ async def login_with_json(
 @router.post('/logout')
 async def logout(response: Response) -> dict[str, Any]:
     """Clear the authentication cookie."""
-    response.delete_cookie(
-        key='access_token',
-        path='/',
-        httponly=True,
-        secure=False,
-        samesite='lax',
-    )
+    clear_access_token_cookie(response)
     return {'status': 'success'}
 
 

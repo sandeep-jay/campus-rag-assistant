@@ -38,9 +38,10 @@ Optional **Streamlit** client (`frontend-streamlit/`) uses the same API.
 - **Providers:** `LLM_PROVIDER` / `RETRIEVER_PROVIDER` — `mock` | `aws` | `azure`; `RAG_FORCE_MOCK` for local demos
 - **Eval:** RAGAS harness (`backend/tests/eval/`), k6 load tests
 
-## Known gaps
+## Roadmap (in progress)
 
-- **LangGraph** — not implemented ([docs/roadmap/LANGGRAPH.md](docs/roadmap/LANGGRAPH.md)); RAG uses the LangChain path today.
+- **LangGraph + web research** — [today sprint](docs/roadmap/TODAY_SPRINT.md): `RAG_ENGINE=langgraph`, opt-in `research_mode=web`. Default remains LangChain until graph MVP ships.
+- **RAGAS quality gates** — deferred until after graph; harness exists under `backend/tests/eval/`.
 
 ## Prerequisites
 

@@ -27,6 +27,7 @@ import json
 import logging
 import re
 import threading
+import asyncio
 import time
 from pathlib import Path
 from typing import Any
@@ -63,6 +64,28 @@ TEMPLATES_DIR = Path(__file__).parent.parent / 'templates'
 # Singleton instance with thread safety
 _rag_service_instance = None
 _instance_lock = threading.Lock()
+
+
+def _token_from_chat_stream_chunk(chunk: Any) -> str:
+    """Extract text from LangChain/Bedrock on_chat_model_stream chunks."""
+    if chunk is None:
+        return ''
+    content = getattr(chunk, 'content', None)
+    if content is None:
+        raw = str(chunk).strip()
+        return '' if raw in ('', "content=''") else raw
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, dict):
+                parts.append(block.get('text') or block.get('content') or '')
+            else:
+                parts.append(getattr(block, 'text', None) or str(block))
+        return ''.join(parts)
+    return str(content)
+
 
 
 class RAGService:
@@ -265,11 +288,40 @@ Standalone Question (one line only, no labels):""")
             document_contents.append({'content': doc.page_content, 'metadata': doc_metadata})
         return metadata_list, document_contents
 
+    def _strip_condensed_question_leakage(self, text: str) -> str:
+        """Remove standalone reformulated question leaked before out-of-scope or answers."""
+        if not text:
+            return text
+        stripped = text.strip()
+        oos_markers = (
+            'I can only answer questions',
+            'I can only help with',
+            'Please ask a question related to',
+        )
+        for marker in oos_markers:
+            idx = stripped.find(marker)
+            if idx <= 0:
+                continue
+            prefix = stripped[:idx].strip().rstrip('?.!')
+            # Condensed question is usually one short interrogative sentence.
+            if prefix and (stripped[:idx].strip().endswith('?') or len(prefix.split()) <= 20):
+                return stripped[idx:].strip()
+        # Single leading interrogative sentence before the real answer.
+        parts = re.split(r'(?<=[.!?])\s+', stripped, maxsplit=1)
+        if len(parts) == 2 and parts[0].strip().endswith('?') and len(parts[0].split()) <= 20:
+            return parts[1].strip()
+        # "Question?— Answer" or "Question? Answer continues" leakage from RAG chain
+        m = re.match(r'^(.+\?)[\s\u2014\u2013-]+(.+)$', stripped, re.DOTALL)
+        if m and len(m.group(1).split()) <= 25:
+            return m.group(2).strip()
+        return stripped
+
     def _sanitize_answer_text(self, text: str) -> str:
         """Remove prompt leakage, inline citations, and broken lines from model output."""
         if not text:
             return text
         text = self._extract_answer_text(text)
+        text = self._strip_condensed_question_leakage(text)
         if text.startswith("content='") and 'additional_kwargs=' in text:
             m = re.match(r"content='(.*)' additional_kwargs=", text, re.DOTALL)
             if m:
@@ -340,6 +392,7 @@ Standalone Question (one line only, no labels):""")
         text = re.sub(r'\n{3,}', '\n\n', text)
         return self._enhance_response(text.strip(), metadata_list)
 
+
     def _chunk_for_stream(self, text: str, size: int = 16):
         for i in range(0, len(text), size):
             yield text[i : i + size]
@@ -367,6 +420,7 @@ Standalone Question (one line only, no labels):""")
             return
 
         try:
+            yield {'type': 'status', 'message': 'Searching the knowledge base…'}
             memory = self._build_memory(chat_history)
             streaming_llm = self.llm_provider.get_streaming_llm()
             if streaming_llm is None:
@@ -391,12 +445,9 @@ Standalone Question (one line only, no labels):""")
                 delta = current[len(last_answer) :]
                 last_answer = current
                 if delta:
-                    if len(delta) > 80:
-                        for piece in self._chunk_for_stream(delta, size=12):
-                            yield {'type': 'token', 'token': piece}
-                            _stream_artificial_delay()
-                    else:
-                        yield {'type': 'token', 'token': delta}
+                    for piece in self._chunk_for_stream(delta, size=12):
+                        yield {'type': 'token', 'token': piece}
+                        _stream_artificial_delay()
 
             metadata_list, document_contents = self._format_source_documents(source_documents)
             logger.info('Retrieved %s documents from knowledge base', len(source_documents))
@@ -414,6 +465,88 @@ Standalone Question (one line only, no labels):""")
                 yield {'type': 'token', 'token': chunk}
                 _stream_artificial_delay()
             yield {'type': 'done', 'metadata': result['metadata']}
+
+
+
+    def _use_langgraph_engine(self) -> bool:
+        engine = (getattr(settings, 'RAG_ENGINE', None) or 'chain').strip().lower()
+        return engine == 'langgraph'
+
+
+
+    async def stream_query_async(
+        self,
+        query: str,
+        chat_history: list | None = None,
+        tenant_config: TenantRagConfig | None = None,
+    ):
+        """Async token stream via LangChain astream_events (true Bedrock streaming)."""
+        if chat_history is None:
+            chat_history = []
+
+        if self.is_mock:
+            mock = self._create_mock_response(query, tenant_config)
+            message = self._normalize_answer_formatting(
+                mock['message'],
+                mock['metadata'].get('sources', []),
+            )
+            for chunk in self._chunk_for_stream(message, size=12):
+                yield {'type': 'token', 'token': chunk}
+                _stream_artificial_delay()
+            yield {'type': 'done', 'metadata': mock['metadata']}
+            return
+
+        try:
+            yield {'type': 'status', 'message': 'Searching the knowledge base…'}
+            memory = self._build_memory(chat_history)
+            streaming_llm = self.llm_provider.get_streaming_llm()
+            if streaming_llm is None:
+                streaming_llm = self.llm_provider.get_llm()
+            qa_prompt, condense_question_prompt = self._create_prompt_templates(tenant_config)
+            qa_chain = ConversationalRetrievalChain.from_llm(
+                llm=streaming_llm,
+                retriever=self.retriever,
+                return_source_documents=True,
+                memory=memory,
+                combine_docs_chain_kwargs={'prompt': qa_prompt},
+                condense_question_prompt=condense_question_prompt,
+            )
+            source_documents: list = []
+            async for event in qa_chain.astream_events({'question': query}, version='v2'):
+                kind = event.get('event')
+                if kind == 'on_retriever_end':
+                    output = event.get('data', {}).get('output')
+                    if output is not None:
+                        if isinstance(output, list):
+                            source_documents = output
+                        elif hasattr(output, 'documents'):
+                            source_documents = list(output.documents)
+                elif kind == 'on_chat_model_stream':
+                    token = _token_from_chat_stream_chunk(event.get('data', {}).get('chunk'))
+                    if token:
+                        yield {'type': 'token', 'token': token}
+                elif kind == 'on_chain_end' and not source_documents:
+                    output = event.get('data', {}).get('output')
+                    if isinstance(output, dict) and output.get('source_documents'):
+                        source_documents = output['source_documents']
+
+            metadata_list, document_contents = self._format_source_documents(source_documents)
+            logger.info('Retrieved %s documents from knowledge base', len(source_documents))
+            yield {
+                'type': 'done',
+                'metadata': {
+                    'sources': metadata_list,
+                    'document_contents': document_contents,
+                },
+            }
+        except Exception as e:
+            logger.exception('Async stream query failed, using buffered fallback: %s', e)
+            result = self.process_query(query, chat_history, tenant_config)
+            for chunk in self._chunk_for_stream(result['message'], size=12):
+                yield {'type': 'token', 'token': chunk}
+                _stream_artificial_delay()
+            yield {'type': 'done', 'metadata': result['metadata']}
+
 
     def _create_mock_response(self, query: str, tenant_config: TenantRagConfig | None = None):
         # Create an improved mock response using few-shot examples if available
@@ -489,6 +622,7 @@ Standalone Question (one line only, no labels):""")
         query: str,
         chat_history: list | None = None,
         tenant_config: TenantRagConfig | None = None,
+        research_mode: str = 'kb',
     ) -> dict[str, Any]:
         # Process a user query through the RAG pipeline with conversation memory.
         if not chat_history:
@@ -503,6 +637,16 @@ Standalone Question (one line only, no labels):""")
             return mock_response
 
         try:
+            if self._use_langgraph_engine():
+                logger.info('Processing query via LangGraph (research_mode=%s)', research_mode)
+                return run_rag_graph(
+                    self,
+                    query,
+                    chat_history=chat_history,
+                    tenant_config=tenant_config,
+                    research_mode=research_mode,
+                )
+
             memory = self._build_memory(chat_history)
             improved_query = query
             # Initialize the conversational chain for each request

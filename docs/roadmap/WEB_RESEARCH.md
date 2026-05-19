@@ -1,0 +1,60 @@
+# Web research tool (opt-in)
+
+**Status:** MVP in [today sprint](./TODAY_SPRINT.md) — mock provider first; Tavily optional.
+
+User chooses **KB** (default) or **web** per message. Not silent open-web mode.
+
+---
+
+## Flow
+
+```mermaid
+flowchart TB
+  START --> Route{research_mode}
+  Route -->|kb| C1[condense] --> KB[retrieve_kb]
+  Route -->|web| C2[condense] --> WEB[web_search]
+  KB --> GEN[generate]
+  WEB --> GEN
+  GEN --> FMT[format]
+```
+
+---
+
+## API
+
+```json
+{ "content": "...", "research_mode": "kb" }
+```
+
+Metadata: `source_kind` (`kb`|`web`), optional `disclaimer` for web.
+
+---
+
+## Config
+
+```bash
+WEB_RESEARCH_ENABLED=false
+WEB_SEARCH_PROVIDER=mock
+TAVILY_API_KEY=
+WEB_SEARCH_MAX_RESULTS=5
+```
+
+---
+
+## Modules
+
+- `backend/app/services/tools/web_search.py`
+- Graph node `web_search` in `graph/nodes.py`
+
+---
+
+## Security
+
+Opt-in only; disclaimer; rate limits; no arbitrary URL fetch in v1.
+
+---
+
+## Related
+
+- [TODAY_SPRINT.md](./TODAY_SPRINT.md)
+- [LANGGRAPH.md](./LANGGRAPH.md)

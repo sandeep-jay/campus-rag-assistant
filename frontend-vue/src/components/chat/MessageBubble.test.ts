@@ -118,13 +118,13 @@ describe('MessageBubble', () => {
     const { container, unmount } = renderWithProviders(MessageBubble, { props: { message: assistantMessage } })
     const assistantRow = container.querySelector('[data-testid="assistant-bubble"]') as HTMLElement | null
     expect(assistantRow).toBeTruthy()
-    expect(assistantRow!.className).toContain('bg-muted/30')
+    expect(assistantRow!.className).toContain('bg-muted/20')
     unmount()
 
     const { container: c2 } = renderWithProviders(MessageBubble, { props: { message: userMessage } })
     const userRow = c2.querySelector('[data-testid="user-bubble"]') as HTMLElement | null
     expect(userRow).toBeTruthy()
-    expect(userRow!.className).not.toContain('bg-muted/30')
+    expect(userRow!.className).not.toContain('bg-muted/20')
   })
 
   it('does NOT show feedback buttons for user messages', () => {

@@ -279,3 +279,19 @@ def test_rag_and_bedrock_service_compatibility(rag_mocks):
     response = service.process_query('Test query')
     assert response['message'] == 'Test answer'
     rag_mocks[2].from_llm.return_value.invoke.assert_called_once()
+
+
+@patch("backend.app.services.rag.run_rag_graph")
+def test_process_query_uses_langgraph_when_configured(mock_run_graph, rag_mocks):
+    mock_run_graph.return_value = {
+        "message": "Graph answer",
+        "metadata": {"sources": [], "document_contents": [], "source_kind": "kb"},
+    }
+    rag_mocks[3].RAG_ENGINE = "langgraph"
+    from backend.app.services import rag as rag_mod
+
+    rag_mod._rag_service_instance = None
+    service = RAGService()
+    result = service.process_query("test question", [])
+    mock_run_graph.assert_called_once()
+    assert result["message"] == "Graph answer"
