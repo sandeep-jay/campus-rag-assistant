@@ -5,6 +5,8 @@
 
 **Order (strict):** Scaffold → **KB LangGraph** → **live AWS smoke** → unit tests (mock) → web branch → UI/docs.
 
+**Status (2026-05-18):** KB LangGraph validated on live AWS; branch merged to `main`. Web toggle shipped (mock/Tavily when enabled). LangGraph SSE is paced post-graph; true graph streaming deferred.
+
 > **Do not start web or RAGAS until KB graph returns real KB sources on AWS.**
 
 ---
@@ -68,9 +70,9 @@ If chain fails on AWS, fix credentials/KB before building the graph.
 
 ## Live acceptance checklist (KB path)
 
-- [ ] `RAG_ENGINE=chain` — answer + `metadata.sources` from your KB (not mock text)
-- [ ] `RAG_ENGINE=langgraph` — same question, sources present, answer coherent
-- [ ] Source fields populated: `kb_url` / `kb_number` / `short_description` where KB provides them
+- [x] `RAG_ENGINE=chain` — answer + `metadata.sources` from your KB (not mock text)
+- [x] `RAG_ENGINE=langgraph` — same question, sources present, answer coherent
+- [x] Source fields populated: `kb_url` / `kb_number` / `short_description` where KB provides them
 - [ ] No regression: empty sources, 500s, or obvious hallucination vs chain on same prompt
 - [ ] Optional: LangSmith shows condense → retrieve → generate spans on graph run
 
@@ -90,13 +92,13 @@ If chain fails on AWS, fix credentials/KB before building the graph.
 
 - [ ] `state.py`, `nodes.py`, `graph.py`, `runner.py`
 - [ ] Reuse `RAGService` prompt templates + `_format_source_documents` + `_normalize_answer_formatting`
-- [ ] `rag.py`: `process_query` → `run_rag_graph` when `RAG_ENGINE=langgraph`
+- [x] `rag.py`: `process_query` → `run_rag_graph` when `RAG_ENGINE=langgraph`
 - [ ] Mock path in `RAGService` unchanged for unit tests
 
 ### B2. Live AWS validation
 
-- [ ] Chain baseline on 2–3 real questions
-- [ ] Graph same questions — document in PR/changelog if minor wording diff OK
+- [x] Chain baseline on 2–3 real questions
+- [x] Graph same questions — document in PR/changelog if minor wording diff OK
 - [ ] Keep default `RAG_ENGINE=chain` until you are satisfied
 
 ### C. Tests (mock only in CI)
@@ -106,7 +108,7 @@ If chain fails on AWS, fix credentials/KB before building the graph.
 
 ### D. Web (after B2)
 
-- [ ] `research_mode` on API; graph branch
+- [x] `research_mode` on API; graph branch
 - [ ] Mock web for CI; Tavily only if key ready
 - [ ] KB live + web live are independent — web does not replace KB smoke
 

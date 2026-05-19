@@ -24,6 +24,29 @@ _No pending changes._
 
 ---
 
+## [2026-05-18] — LangGraph live validation (AWS KB parity)
+
+### Added
+
+- **LangGraph live path** — `run_rag_graph` import fix; live AWS KB smoke validated with `RAG_ENGINE=langgraph` (sources + coherent answers).
+- **LangGraph SSE** — status event while graph runs in `asyncio.to_thread`; paced token chunks for progressive UI (simulated streaming until graph-native stream).
+- **Web research (frontend)** — `research_mode` on API; Pinia + `ChatInput` toggle when `VITE_WEB_RESEARCH_ENABLED=true` (server `WEB_RESEARCH_ENABLED` required).
+- **Docs** — sprint checklist updates; LangGraph latency notes in [LANGGRAPH.md](../docs/roadmap/LANGGRAPH.md).
+
+### Changed
+
+- **Dependencies** — pin `langgraph` 0.2.x + `langgraph-checkpoint` 2.x for LangChain 0.3 compatibility (see upcoming security branch for broader bumps).
+- **`scripts/run-backend-venv.sh`** — start via `./venv/bin/python -m uvicorn` so reload uses project venv.
+
+### Fixed
+
+- **Answer leakage** — stronger `_strip_condensed_question_leakage` (backend + `normalizeAssistantContent`).
+- **Empty-state prompts** — `{{ prompt }}` mustache in `MessageList.vue`.
+- **SSE burst render** — `requestAnimationFrame` between tokens in `chat.ts`.
+- **Graph unit tests** — mock patch fixture and KB-path LLM stub.
+
+---
+
 ## [2026-05-18] — GitHub OAuth, LangGraph scaffold, and chat UI polish
 
 ### Added

@@ -99,3 +99,10 @@ Full RAGAS parity: Phase 3 lite (deferred).
 - [WEB_RESEARCH.md](./WEB_RESEARCH.md)
 - [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md)
 - [EVALUATION.md](../EVALUATION.md)
+
+
+## Live validation
+
+- **AWS KB parity (2026-05-18):** `RAG_ENGINE=langgraph` returns real `metadata.sources` on Bedrock + Knowledge Base; validated against `chain` on the same prompts.
+- **Latency (LangSmith):** Typical run ~4–8s — `generate` (~6s) dominates; `condense` (~1.3s) on follow-ups only; `retrieve` ~0.5s. See [TODAY_SPRINT.md](./TODAY_SPRINT.md).
+- **Streaming:** SSE uses status + paced chunks after `graph.invoke()`; native graph/Bedrock streaming is a follow-up.
