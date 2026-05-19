@@ -37,6 +37,7 @@ from backend.app.core.dev_routes import require_dev_api_routes
 from backend.app.core.logger import logger
 from backend.app.core.metrics import CHAT_FIRST_TOKEN_LATENCY_SECONDS
 from backend.app.core.rate_limit import limit_chat
+from backend.app.core.request_context import get_request_id
 from backend.app.core.security import get_current_user
 from backend.app.db.database import get_db
 from backend.app.models.user import User
@@ -45,9 +46,27 @@ from backend.app.schemas.feedback import Feedback, FeedbackCreate
 from backend.app.services.db import DatabaseService
 from backend.app.services.rag import RAGService
 from backend.app.services.tenant_rag_config import load_tenant_rag_config
-from backend.app.utils.simple_tracer import trace_rag
+from backend.app.utils.simple_tracer import trace_rag, trace_rag_run
 
 router = APIRouter()
+
+
+def _stream_status_message(research_mode: str) -> str:
+    if research_mode == 'web':
+        return 'Searching the web…'
+    return 'Searching the knowledge base…'
+
+
+def _stream_done_payload(session_id: int, metadata: dict) -> dict:
+    """SSE done event including web disclaimer when present."""
+    return {
+        'type': 'done',
+        'session_id': session_id,
+        'sources': metadata.get('sources', []),
+        'document_contents': metadata.get('document_contents', []),
+        'source_kind': metadata.get('source_kind', 'kb'),
+        'disclaimer': metadata.get('disclaimer'),
+    }
 
 
 def _sse_payload(event: dict) -> str:
@@ -76,6 +95,26 @@ def _format_chat_history(session_messages) -> list:
     for msg in session_messages:
         chat_history.append((msg.content, '') if msg.role == 'user' else ('', msg.content))
     return chat_history
+
+
+def _traced_process_query(
+    rag_service,
+    content: str,
+    chat_history: list,
+    tenant_config,
+    research_mode: str,
+    session_id: int,
+) -> dict:
+    """Run process_query with LangSmith run name session_id and request tags."""
+    tags = ['chat', f'session_id:{session_id}', f'research_mode:{research_mode}']
+    request_id = get_request_id()
+    if request_id:
+        tags.append(f'request_id:{request_id}')
+    return trace_rag_run(
+        lambda: rag_service.process_query(content, chat_history, tenant_config, research_mode=research_mode),
+        run_name=f'chat-session-{session_id}',
+        tags=tags,
+    )
 
 
 def _resolve_or_create_session(
@@ -241,14 +280,19 @@ async def create_chat_message(
         role='user',
     )
 
-    # Initialize the RAG service for this request
+    chat_history = _load_chat_history(db_service, session_id)
     rag_service = get_rag_service()
+    tenant_config = _resolve_tenant_rag_config(db_service, current_user)
+    _research_mode = getattr(message, 'research_mode', 'kb') or 'kb'
 
-    @trace_rag
-    def process_message(content):
-        return rag_service.process_query(content)
-
-    rag_response = process_message(message.content)
+    rag_response = _traced_process_query(
+        rag_service,
+        message.content,
+        chat_history,
+        tenant_config,
+        _research_mode,
+        session_id,
+    )
     logger.debug('RAG processing complete, storing assistant message')
 
     # Create assistant message
@@ -355,10 +399,6 @@ async def chat(
     rag_service = get_rag_service()
     tenant_config = _resolve_tenant_rag_config(db_service, current_user)
 
-    @trace_rag
-    def process_chat(content, history, mode='kb'):
-        return rag_service.process_query(content, history, tenant_config, research_mode=mode)
-
     try:
         _research_mode = getattr(message, 'research_mode', 'kb') or 'kb'
         if _research_mode == 'web' and not getattr(settings, 'WEB_RESEARCH_ENABLED', False):
@@ -366,7 +406,14 @@ async def chat(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail='Web research is not enabled on this server',
             )
-        rag_response = process_chat(message.content, chat_history, _research_mode)
+        rag_response = _traced_process_query(
+            rag_service,
+            message.content,
+            chat_history,
+            tenant_config,
+            _research_mode,
+            session_id,
+        )
 
         # Create assistant message
         assistant_msg = db_service.create_chat_message(
@@ -434,14 +481,16 @@ async def chat_stream(
         first_token_recorded = False
         try:
             if (getattr(settings, 'RAG_ENGINE', 'chain') or 'chain').strip().lower() == 'langgraph':
-                yield _sse_payload({'type': 'status', 'message': 'Searching the knowledge base…'})
+                yield _sse_payload({'type': 'status', 'message': _stream_status_message(_research_mode)})
                 await asyncio.sleep(0)
                 result = await asyncio.to_thread(
-                    rag_service.process_query,
+                    _traced_process_query,
+                    rag_service,
                     message.content,
                     chat_history,
                     tenant_config,
                     _research_mode,
+                    session_id,
                 )
                 chunk_delay_s = max(
                     0.0,
@@ -467,14 +516,7 @@ async def chat_stream(
                     role='assistant',
                     metadata=metadata,
                 )
-                yield _sse_payload(
-                    {
-                        'type': 'done',
-                        'session_id': session_id,
-                        'sources': metadata.get('sources', []),
-                        'document_contents': metadata.get('document_contents', []),
-                    },
-                )
+                yield _sse_payload(_stream_done_payload(session_id, metadata))
                 await asyncio.sleep(0)
                 return
 
@@ -506,14 +548,7 @@ async def chat_stream(
                         role='assistant',
                         metadata=metadata,
                     )
-                    yield _sse_payload(
-                        {
-                            'type': 'done',
-                            'session_id': session_id,
-                            'sources': metadata.get('sources', []),
-                            'document_contents': metadata.get('document_contents', []),
-                        },
-                    )
+                    yield _sse_payload(_stream_done_payload(session_id, metadata))
                     await asyncio.sleep(0)
         except Exception as e:
             logger.exception('Streaming chat failed: %s', e)
