@@ -12,6 +12,7 @@ class RagState(TypedDict, total=False):
     chat_history: list
     research_mode: Literal['kb', 'web']
     standalone_question: str
+    search_queries: list[str]
     documents: list[Document]
     answer: str
     message: str
