@@ -103,3 +103,8 @@ frontend-vue/coverage/
 frontend-vue/playwright-report/
 frontend-vue/test-results/
 frontend-vue/e2e/.auth/
+
+# Local Cursor context (rules, handoff) — not for the public repo
+.cursor/
+# RAGAS bootstrap output (regenerate locally)
+backend/tests/eval/golden_dataset.draft.json
