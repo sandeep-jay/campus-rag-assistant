@@ -1,6 +1,6 @@
 # RAGAS eval baseline — 2026-05-19
 
-Bootstrap of `backend/tests/eval/golden_dataset.json` from live AWS Bedrock KB (`RAG_ENGINE=langgraph`).
+Bootstrap of `backend/tests/eval/golden_dataset.json` from live AWS Bedrock Knowledge Base (OpenSearch-backed index, `RAG_ENGINE=langgraph`).
 
 ## Dataset
 
@@ -45,5 +45,5 @@ RAGAS_QUALITY_GATE=1 ./scripts/run_eval_phase5.sh
 ## Related
 
 - [EVALUATION.md](./EVALUATION.md)
-- [roadmap/PORTFOLIO_PHASED_ROADMAP.md](./roadmap/PORTFOLIO_PHASED_ROADMAP.md)
+- [roadmap/PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md)
 - `scripts/bootstrap_golden_dataset.py`

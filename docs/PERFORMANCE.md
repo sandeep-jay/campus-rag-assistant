@@ -2,7 +2,7 @@
 
 Operational tuning for latency, throughput, and cost.
 
-> **Phase numbering:** This doc uses the **campus / production scale** track in [roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md). **Portfolio** retrieval work (multi-query, rerank) is **portfolio Phase 5** — done on `main`; see [roadmap/PORTFOLIO_PHASED_ROADMAP.md](./roadmap/PORTFOLIO_PHASED_ROADMAP.md) and [LANGGRAPH.md](./roadmap/LANGGRAPH.md).
+> **Phase numbering:** [PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md) tracks **product delivery** (RAG features on `main`). This doc and [archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md) describe a separate **campus production scale** track (Redis HA, caching, EB hardening). **Phase 5 (retrieval stack)** — multi-query, rerank — is **shipped** on `main`; see [LANGGRAPH.md](./roadmap/LANGGRAPH.md).
 
 ## Campus track Phase 0 — Shipped on `main`
 
@@ -37,7 +37,7 @@ Runbooks: [OPERATIONS.md](./OPERATIONS.md). Load validation: [LOAD_TESTING.md](.
 
 **Goal (campus track):** retrieval quality at scale.
 
-Portfolio **Phase 5** already shipped multi-query, metadata filters, and LangGraph **rerank** (FlashRank + keyword) on `main`. When implementing **remaining** campus Phase 2 items (e.g. semantic cache, ingestion pipeline), update:
+**Phase 5** already shipped multi-query, metadata filters, and LangGraph **rerank** (FlashRank + keyword) on `main`. When implementing **remaining** campus Phase 2 items (e.g. semantic cache, ingestion pipeline), update:
 
 | Doc | Update |
 |-----|--------|

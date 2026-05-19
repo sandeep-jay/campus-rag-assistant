@@ -2,7 +2,7 @@
 
 Deterministic RAG orchestration behind `RAGService.process_query` — **not** multi-agent by default.
 
-**Status (2026-05-19):** Shipped on live AWS KB (portfolio Phase 4). Retrieval stack (multi-query, metadata filters, rerank) shipped as graph nodes (portfolio Phase 5). Web branch: [WEB_RESEARCH.md](./WEB_RESEARCH.md).
+**Status (2026-05-19):** Shipped on live AWS KB. Retrieval stack (multi-query, metadata filters, rerank) implemented as graph nodes. Web branch: [WEB_RESEARCH.md](./WEB_RESEARCH.md).
 
 ---
 
@@ -10,7 +10,7 @@ Deterministic RAG orchestration behind `RAGService.process_query` — **not** mu
 
 | Benefit | Notes |
 |---------|--------|
-| Explicit steps | condense → retrieve → generate → format |
+| Explicit steps | KB: condense → multi_query → retrieve → rerank → generate → format |
 | Web branch | `research_mode=web` → web_search tool node |
 | Testability | Unit test each node |
 | LangSmith | Per-node spans |
@@ -56,7 +56,7 @@ backend/app/services/tools/
 
 ---
 
-## KB path (portfolio Phase 5)
+## KB path (retrieval stack)
 
 ```text
 condense → multi_query → retrieve → rerank → generate → format
@@ -80,7 +80,7 @@ Tuned eval profile: `./scripts/run_eval_phase5.sh` — see [eval_baseline_2026-0
 RAG_ENGINE=chain              # chain | langgraph (default chain)
 WEB_RESEARCH_ENABLED=false
 WEB_SEARCH_PROVIDER=mock      # mock | tavily
-RAG_AGENTIC_ENABLED=false     # rewrite loop — portfolio Phase 6
+RAG_AGENTIC_ENABLED=false     # rewrite loop — optional Phase 6
 ```
 
 ---
@@ -89,13 +89,13 @@ RAG_AGENTIC_ENABLED=false     # rewrite loop — portfolio Phase 6
 
 - **SSE today:** status event + paced token chunks after `graph.invoke()` (simulated streaming).
 - **Phase 6a (optional):** wire LangGraph `astream_events` to the same SSE shape as the chain path.
-- **Latency (LangSmith):** Typical run ~4–8s — `generate` dominates; `retrieve` ~0.5s. See [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md).
+- **Latency (LangSmith):** Typical run ~4–8s — `generate` dominates; `retrieve` ~0.5s. See [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md).
 
 ---
 
 ## Related
 
 - [WEB_RESEARCH.md](./WEB_RESEARCH.md)
-- [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md)
+- [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md)
 - [EVALUATION.md](../EVALUATION.md)
 - [archive/SPRINT_2026-05-18_LANGGRAPH.md](./archive/SPRINT_2026-05-18_LANGGRAPH.md) — sprint log
