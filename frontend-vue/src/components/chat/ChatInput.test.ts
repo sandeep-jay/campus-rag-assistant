@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { screen } from '@testing-library/vue'
 import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from '@/test/utils'
@@ -53,6 +53,13 @@ describe('ChatInput', () => {
     const { emitted } = renderWithProviders(ChatInput)
     await user.keyboard('{Enter}')
     expect(emitted('submit')).toBeFalsy()
+  })
+
+  it('shows web-only helper text when research mode is web', () => {
+    vi.stubEnv('VITE_WEB_RESEARCH_ENABLED', 'true')
+    renderWithProviders(ChatInput, { props: { researchMode: 'web' } })
+    expect(screen.getByText(/public web search only/i)).toBeInTheDocument()
+    vi.unstubAllEnvs()
   })
 
   it('disables send button when disabled prop is true', () => {
