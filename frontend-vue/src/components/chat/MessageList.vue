@@ -51,7 +51,7 @@ const samplePrompts = ['How do I submit an assignment in the learning platform?'
               class="text-chat-ui text-left p-3 rounded-lg border border-border hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               @click="$emit('prompt-selected', prompt)"
             >
-              { prompt }
+              {{ prompt }}
             </button>
           </div>
         </div>
