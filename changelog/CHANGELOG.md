@@ -22,6 +22,12 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Added
 
+- **Phase 5 retrieval** — multi-query fusion, metadata filters, LangGraph rerank node (FlashRank + keyword).
+
+### Changed
+
+### Added
+
 - **CI/CD** — GitHub Actions: [`ci.yml`](../.github/workflows/ci.yml) (tox on `main` + PRs), [`cd.yml`](../.github/workflows/cd.yml) (Vue build + optional EB deploy on `qa`/`release`); [docs/CI.md](../docs/CI.md). Removed `.travis.yml`.
 
 ### Fixed
