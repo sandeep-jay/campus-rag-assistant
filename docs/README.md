@@ -30,6 +30,7 @@ Narrative, chat/SSE flow, and API surface: [ARCHITECTURE.md](./ARCHITECTURE.md).
 | [RELEASE.md](./RELEASE.md) | `main` → `qa` → `release` promotion, tags, CI/CD branches |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | System design, chat/SSE flow, API surface |
 | [OPERATIONS.md](./OPERATIONS.md) | Runbooks, metrics, migrations |
+| [PRODUCTION_TLS.md](./PRODUCTION_TLS.md) | HTTPS, OAuth callbacks, local `127.0.0.1` dev checklist |
 | [LOAD_TESTING.md](./LOAD_TESTING.md) | k6 load tests |
 | [TENANT_CONFIG.md](./TENANT_CONFIG.md) | Per-tenant RAG prompts (`tenant.rag_config`, env defaults) |
 | [PERFORMANCE.md](./PERFORMANCE.md) | Phase 0 tuning + Phase 1–3 doc checklists |

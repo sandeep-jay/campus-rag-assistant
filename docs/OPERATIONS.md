@@ -93,3 +93,12 @@ Included metrics:
 1. Inspect `/api/metrics/db-pool` and dashboard for `usage_ratio` and overflow.
 2. Reduce worker count or per-worker concurrency to lower connection demand.
 3. Increase DB max connections and corresponding app pool settings.
+
+## OAuth and local development
+
+- Enable providers in `.env`: `OAUTH_ENABLED_PROVIDERS=github` (or `google,github`) plus client ID/secret vars (see `.env.example`).
+- **Browser URL, `FRONTEND_URL`, and `OAUTH_REDIRECT_BASE_URL` must use the same host** (e.g. all `127.0.0.1`, not `localhost` mixed with `127.0.0.1`) or OAuth state cookies will not match (`MismatchingStateError`).
+- Vue dev server defaults to `http://127.0.0.1:5173` (`frontend-vue/vite.config.ts`). GitHub OAuth app callback: `http://127.0.0.1:5173/api/auth/oauth/github/callback` (proxied to the API).
+- Verify setup: `./scripts/verify_oauth.py` (from repo root with venv active).
+- Production HTTPS, redirect URIs, and `AUTH_COOKIE_SECURE`: [PRODUCTION_TLS.md](./PRODUCTION_TLS.md).
+

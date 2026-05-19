@@ -20,24 +20,29 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ## [Unreleased]
 
+_No pending changes._
+
+---
+
+## [2026-05-18] — GitHub OAuth, LangGraph scaffold, and chat UI polish
+
 ### Added
 
-- **`docs/assets/`** — architecture diagrams v1 (upstream chabot), v2 overview, and v2 detailed; v2 overview in README, detailed + v1 in `docs/ARCHITECTURE.md`.
-- **`POST /api/chat/stream`** — SSE token streaming; Vue consumer with fallback to `POST /api/chat/chat`.
-- **Answer formatting** — generic Markdown prompt template; light sanitization (`_sanitize_answer_text`, `_promote_bold_headings`).
-- **`tox -e eval`** — RAGAS golden-dataset suite (`ragas>=0.2` in eval env).
-- **`tox -e e2e`** — Playwright (requires running API).
-- `backend/tests/services/test_answer_formatting.py`, `backend/tests/api/test_chat_stream.py`.
+- **GitHub OAuth** — `POST /api/auth/oauth/{provider}/start` and callback routes; `OAuthButtons.vue`; Alembic `0003` user OAuth fields; `scripts/verify_oauth.py`.
+- **`backend/app/core/auth_cookies.py`** — shared HTTP-only JWT cookie helpers for login and OAuth.
+- **RAG streaming** — `stream_query_async()` via LangChain `astream_events`; SSE `status` events; condensed-question leakage stripping in `rag.py`.
+- **LangGraph scaffold** — `backend/app/services/graph/` (runner, nodes, state); opt-in `web_search` tool; `RAG_ENGINE=langgraph` config (default remains `chain`).
+- **Docs** — [PRODUCTION_TLS.md](../docs/PRODUCTION_TLS.md) (HTTPS + OAuth redirects); [TODAY_SPRINT.md](../docs/roadmap/TODAY_SPRINT.md); [WEB_RESEARCH.md](../docs/roadmap/WEB_RESEARCH.md).
+- **Vue chat UI** — typography scale (`text-chat-*`, `.chat-prose`); wider layout; mobile sidebar overlay; accessible user message accent; assistant sources stacked below replies; sticky composer.
 
 ### Changed
 
-- Provider resolution: explicit `LLM_PROVIDER` / `RETRIEVER_PROVIDER` override `RAG_PROVIDER`.
-- **README** — balanced product + technical overview; restored License/Attribution.
-- **docs/** — architecture chat flow, evaluation/E2E tox commands, roadmap SSE status.
-- **Architecture docs** — static PNG diagrams replace Mermaid system flowchart; `docs/README.md` indexes diagram placement.
-- Tests and ruff formatting aligned with no inline References footer in answers.
+- **Local dev defaults** — Vite on `http://127.0.0.1:5173` (`strictPort`); `FRONTEND_URL` / `OAUTH_REDIRECT_BASE_URL` aligned to avoid `MismatchingStateError` (see [PRODUCTION_TLS.md](../docs/PRODUCTION_TLS.md#local-oauth-development)).
+- **Frontend** — Pinia chat store appends stream tokens immediately; dedicated `/api/chat/stream` Vite proxy (no buffering).
+- **Auth API** — login/register use shared cookie helpers; OAuth links or creates users by provider subject.
+- **Roadmap docs** — LangGraph and portfolio roadmap updated for sprint status.
+- **`requirements.txt`** — LangGraph-related dependencies for graph scaffold.
 
----
 
 
 

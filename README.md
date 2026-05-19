@@ -26,7 +26,8 @@ Ask questions in natural language; the app retrieves relevant docs, streams a ci
 - **Sources** — KB chips and expandable excerpt panel per message
 - **Sessions** — multi-turn history; sidebar to create, switch, and delete chats
 - **Feedback** — thumbs up/down on assistant messages
-- **UI** — copy answer, dark/light mode, JWT auth (HTTP-only cookies)
+- **Auth** — email/password or **GitHub OAuth** (Google-ready); JWT in HTTP-only cookies
+- **UI** — streaming chat, copy answer, sources panel, dark/light mode, mobile-friendly layout
 
 Optional **Streamlit** client (`frontend-streamlit/`) uses the same API.
 
@@ -34,7 +35,7 @@ Optional **Streamlit** client (`frontend-streamlit/`) uses the same API.
 
 - **Backend:** FastAPI, SQLAlchemy, Alembic, JWT auth, rate limiting, Prometheus (`/api/metrics`)
 - **Frontend:** Vue 3, TypeScript, Pinia, Tailwind, Vitest, Playwright (`frontend-vue/`)
-- **RAG:** LangChain conversational chain in `backend/app/services/rag.py`
+- **RAG:** LangChain conversational chain in `backend/app/services/rag.py` (optional LangGraph scaffold via `RAG_ENGINE=langgraph`)
 - **Providers:** `LLM_PROVIDER` / `RETRIEVER_PROVIDER` — `mock` | `aws` | `azure`; `RAG_FORCE_MOCK` for local demos
 - **Eval:** RAGAS harness (`backend/tests/eval/`), k6 load tests
 
@@ -64,8 +65,9 @@ alembic upgrade head
 
 ./scripts/run-backend-venv.sh          # terminal 1 — http://127.0.0.1:8000
 cp frontend-vue/.env.example frontend-vue/.env.local
-# VITE_API_URL=http://localhost:8000
-./scripts/run-frontend-vue.sh        # terminal 2 — http://localhost:5173
+# VITE_API_URL=http://127.0.0.1:8000
+# For GitHub OAuth, use 127.0.0.1 (not localhost) in the browser — see docs/PRODUCTION_TLS.md
+./scripts/run-frontend-vue.sh        # terminal 2 — http://127.0.0.1:5173
 ```
 
 Register a user and start a chat. Responses use the mock provider.
