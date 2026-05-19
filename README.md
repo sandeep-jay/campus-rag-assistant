@@ -2,9 +2,18 @@
 
 [![CI](https://github.com/sandeep-jay/campus-rag-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/sandeep-jay/campus-rag-assistant/actions/workflows/ci.yml)
 
-Production-style **retrieval-augmented chat** over your knowledge base, with **tenant-hydrated** prompts (generic defaults; per-tenant `rag_config` in Postgres). **FastAPI** backend, **Vue 3** SPA, and pluggable **AWS / Azure / mock** LLM and retriever providers.
+Production-style **retrieval-augmented chat** over a campus knowledge base (Berkeley bCourses / ServiceNow KB on AWS Bedrock), with **tenant-hydrated** prompts (`tenant.rag_config` in Postgres). **FastAPI** backend, **Vue 3** SPA, pluggable **AWS / Azure / mock** providers, and a **LangGraph** RAG pipeline with evaluation and observability built in.
 
 Ask questions in natural language; the app retrieves relevant docs, streams a cited answer, and keeps conversation history per user.
+
+## Highlights
+
+- **Full-stack** — Vue 3 + FastAPI + PostgreSQL (Alembic), JWT auth, GitHub OAuth, Prometheus metrics
+- **LangGraph RAG** — `RAG_ENGINE=langgraph`: condense → multi-query → retrieve → rerank → generate (KB path); optional web branch
+- **Retrieval quality** — multi-query fusion (RRF), metadata filters, FlashRank / keyword rerank
+- **Opt-in web research** — per-message `research_mode=web`, disclaimer UI, optional Tavily
+- **Eval discipline** — RAGAS golden set (10 rows), baseline scores, optional CI gates; LangSmith per-node traces
+- **Portfolio-ready** — mock mode in <15 min; live AWS via `.env`; screenshots and demo script in [docs/assets/](docs/assets/README.md)
 
 ## Architecture
 
@@ -18,19 +27,31 @@ Ask questions in natural language; the app retrieves relevant docs, streams a ci
 
 <p align="center"><em>High-level v2 overview.</em> Detailed diagram and upstream v1: <a href="docs/ARCHITECTURE.md">docs/ARCHITECTURE.md</a></p>
 
+## Features
 
-## Chatbot features
+### Knowledge-base chat (default)
 
-- **RAG answers** — retrieval + generation from your KB (not open-web search)
-- **Scoped topics** — declines off-topic questions using `SUPPORTED_TOPICS` / `tenant.rag_config`
-- **Markdown replies** — summary, `##` sections, bullets, numbered steps
-- **SSE streaming** — `POST /api/chat/stream` with fallback to `POST /api/chat/chat`
-- **Sources** — KB chips and expandable excerpt panel per message
+- **RAG over Bedrock Knowledge Base** — retrieval + grounded generation with cited sources
+- **LangGraph pipeline** — `condense` → `multi_query` → `retrieve` → `rerank` → `generate` → `format` when `RAG_ENGINE=langgraph`
+- **Legacy chain path** — `RAG_ENGINE=chain` (default) for true Bedrock token streaming via LangChain
+- **Scoped topics** — declines off-topic questions via `SUPPORTED_TOPICS` / `tenant.rag_config`
+- **Structured markdown** — summary, `##` sections, bullets, numbered steps
+- **Sources panel** — KB article chips, scores, expandable excerpt (Sources / Content tabs)
+
+### Web research (opt-in)
+
+- **Per-message toggle** — `research_mode=web` (Vue + API); not silent open-web mode
+- **Disclaimer banner** on web answers; sources labeled **WEB**
+- **Providers** — mock for demos; **Tavily** when `WEB_SEARCH_PROVIDER=tavily` and `WEB_RESEARCH_ENABLED=true`
+
+### App and platform
+
+- **SSE streaming** — `POST /api/chat/stream` with buffered fallback to `POST /api/chat/chat`
 - **Sessions** — multi-turn history; sidebar to create, switch, and delete chats
 - **Feedback** — thumbs up/down on assistant messages
-- **Auth** — email/password or **GitHub OAuth** (Google-ready); JWT in HTTP-only cookies
-- **UI** — streaming chat, copy answer, sources panel, dark/light mode, mobile-friendly layout
-
+- **Auth** — email/password or **GitHub OAuth** (Google-ready); JWT in HTTP-only cookies; local dev uses API-port OAuth + handoff to Vue ([docs/PRODUCTION_TLS.md](docs/PRODUCTION_TLS.md))
+- **UI** — dark/light mode, mobile-friendly layout, copy answer
+- **Ops** — rate limiting, `X-Request-ID`, Alembic migrations, optional Streamlit client on the same API
 
 ## Screenshots
 
@@ -52,26 +73,26 @@ Ask questions in natural language; the app retrieves relevant docs, streams a ci
 <p align="center">
   <img src="docs/assets/product/chat-web-research-answer.png" alt="Web research mode with disclaimer" width="720" />
 </p>
-<p align="center"><em>Opt-in web research (Phase 6b) with an explicit disclaimer banner.</em></p>
+<p align="center"><em>Opt-in web research with an explicit disclaimer banner.</em></p>
 
-Demo script: [docs/assets/README.md#product-demo-script-23-min](docs/assets/README.md#product-demo-script-23-min).
-
-Optional **Streamlit** client (`frontend-streamlit/`) uses the same API.
+**Demo script (~2–3 min):** [docs/assets/README.md#product-demo-script-23-min](docs/assets/README.md#product-demo-script-23-min).
 
 ## Stack
 
-- **Backend:** FastAPI, SQLAlchemy, Alembic, JWT auth, rate limiting, Prometheus (`/api/metrics`)
-- **Frontend:** Vue 3, TypeScript, Pinia, Tailwind, Vitest, Playwright (`frontend-vue/`)
-- **RAG:** LangChain conversational chain in `backend/app/services/rag.py` (optional LangGraph scaffold via `RAG_ENGINE=langgraph`)
-- **Providers:** `LLM_PROVIDER` / `RETRIEVER_PROVIDER` — `mock` | `aws` | `azure`; `RAG_FORCE_MOCK` for local demos
-- **Eval:** RAGAS harness (`backend/tests/eval/`), k6 load tests
+| Layer | Technologies |
+|-------|----------------|
+| **Backend** | FastAPI, SQLAlchemy, Alembic, JWT auth, rate limiting, Prometheus (`/api/metrics`) |
+| **Frontend** | Vue 3, TypeScript, Pinia, Tailwind, Vitest, Playwright (`frontend-vue/`) |
+| **RAG orchestration** | **LangGraph** (`RAG_ENGINE=langgraph`) or LangChain **ConversationalRetrievalChain** (`RAG_ENGINE=chain`) |
+| **Retrieval** | AWS Bedrock Knowledge Base, Azure AI Search; multi-query + RRF; optional FlashRank / keyword rerank |
+| **LLM** | AWS Bedrock, Azure OpenAI, or **mock** (`LLM_PROVIDER` / `RETRIEVER_PROVIDER`) |
+| **Web search** | Mock or **Tavily** (`tavily-python`) behind `research_mode=web` |
+| **Eval** | **RAGAS** harness (`backend/tests/eval/`), golden dataset, `tox -e eval` |
+| **Observability** | **LangSmith** (`LANGCHAIN_TRACING_V2`), structured logs, first-token latency metric |
+| **CI/CD** | GitHub Actions — `tox -e lint,backend,frontend-vue` on PRs and `main` ([docs/CI.md](docs/CI.md)) |
+| **Load tests** | k6 ([docs/LOAD_TESTING.md](docs/LOAD_TESTING.md)) |
 
-## Roadmap
-
-Portfolio phases **3–5** and **6b** (web research) are **done** on `main`. Optional next: LangGraph-native SSE (Phase 6a). Full status: [docs/roadmap/PORTFOLIO_PHASED_ROADMAP.md](docs/roadmap/PORTFOLIO_PHASED_ROADMAP.md).
-
-- **LangGraph** — `RAG_ENGINE=langgraph` on live AWS KB; default `chain` for true Bedrock token streaming.
-- **Eval** — RAGAS golden set + [baseline](docs/eval_baseline_2026-05-19.md); LangSmith traces; strict gates on release only ([EVALUATION.md](docs/EVALUATION.md)).
+Local demos: `RAG_FORCE_MOCK=true` with no cloud credentials. Design detail: [docs/roadmap/LANGGRAPH.md](docs/roadmap/LANGGRAPH.md), [docs/roadmap/WEB_RESEARCH.md](docs/roadmap/WEB_RESEARCH.md).
 
 ## Prerequisites
 
@@ -95,8 +116,8 @@ alembic upgrade head
 ./scripts/run-backend-venv.sh          # terminal 1 — http://127.0.0.1:8000
 cp frontend-vue/.env.example frontend-vue/.env.local
 # VITE_API_URL=http://127.0.0.1:8000
-# GitHub OAuth: VITE_OAUTH_API_URL=http://127.0.0.1:8000 in frontend-vue/.env.local — see docs/PRODUCTION_TLS.md
-./scripts/run-frontend-vue.sh        # terminal 2 — http://127.0.0.1:5173
+# GitHub OAuth: VITE_OAUTH_API_URL=http://127.0.0.1:8000 — see docs/PRODUCTION_TLS.md
+./scripts/run-frontend-vue.sh          # terminal 2 — http://127.0.0.1:5173
 ```
 
 Register a user and start a chat. Responses use the mock provider.
@@ -105,7 +126,7 @@ Register a user and start a chat. Responses use the mock provider.
 
 ```bash
 source venv/bin/activate
-export API_URL=http://localhost:8000
+export API_URL=http://127.0.0.1:8000
 streamlit run frontend-streamlit/app/main.py
 ```
 
@@ -115,31 +136,33 @@ Set `RAG_FORCE_MOCK=false` and configure providers in `.env` (see [docs/OPERATIO
 
 | Variable | Purpose |
 |----------|---------|
+| `RAG_ENGINE` | `chain` (default, true streaming) or `langgraph` (graph + per-node LangSmith spans) |
 | `LLM_PROVIDER` | `aws` \| `azure` \| `mock` |
 | `RETRIEVER_PROVIDER` | `aws` \| `azure` \| `mock` |
 | `BEDROCK_KNOWLEDGE_BASE_ID` | AWS Knowledge Base |
+| `RERANK_ENABLED`, `MULTI_QUERY_ENABLED` | Phase 5 retrieval tuning — see `.env.example` |
+| `WEB_RESEARCH_ENABLED`, `WEB_SEARCH_PROVIDER` | Opt-in web mode (`mock` \| `tavily`) |
 | Azure OpenAI / Search vars | Per `backend/app/config/` and `.env.example` |
 
-When both `LLM_PROVIDER` and `RETRIEVER_PROVIDER` are set, they override `RAG_PROVIDER`.
+**Tuned eval profile (live AWS):** `./scripts/run_eval_phase5.sh` — see [docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md).
 
 ## Testing
 
-**CI:** GitHub Actions runs the same suite on push to `main` and on PRs ([`ci.yml`](.github/workflows/ci.yml)). CD on `qa` / `release` is documented in [docs/CI.md](docs/CI.md).
+**CI:** GitHub Actions on push to `main` and on PRs ([`ci.yml`](.github/workflows/ci.yml)). CD on `qa` / `release`: [docs/CI.md](docs/CI.md), [docs/RELEASE.md](docs/RELEASE.md).
 
-**Default CI-style suite** (local) (lint + unit tests):
+**CI-style suite (local):**
 
 ```bash
-tox -e lint,backend,frontend-streamlit,frontend-vue
+tox -e lint,backend,frontend-vue
 ```
 
-**Optional suites** (not in default `envlist`):
+**Optional suites:**
 
 ```bash
-tox -e eval    # RAGAS golden-dataset eval (slow; needs ragas + judge LLM — see docs/EVALUATION.md)
+tox -e eval    # RAGAS golden-dataset eval (slow; judge LLM — docs/EVALUATION.md)
 tox -e e2e     # Playwright; start API first: ./scripts/run-backend-venv.sh
+tox -e lint,backend,frontend-streamlit,frontend-vue   # include Streamlit client
 ```
-
-Manual equivalents:
 
 ```bash
 pytest backend/tests/ -m "not slow"
@@ -148,7 +171,6 @@ cd frontend-vue && npm run e2e
 ```
 
 Load tests: [docs/LOAD_TESTING.md](docs/LOAD_TESTING.md).
-
 
 ## Quality and observability
 
@@ -174,7 +196,7 @@ Enable `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, and `LANGCHAIN_PROJECT` in `
 
 ![LangSmith trace — KB path](docs/assets/observability/langsmith-trace-kb-waterfall.png)
 
-Web path: [langsmith-trace-web-waterfall.png](docs/assets/observability/langsmith-trace-web-waterfall.png). Capture steps: [EVALUATION.md — LangSmith](docs/EVALUATION.md#langsmith-run-naming-and-traces).
+Web path: [langsmith-trace-web-waterfall.png](docs/assets/observability/langsmith-trace-web-waterfall.png). Capture steps: [EVALUATION.md — LangSmith](docs/EVALUATION.md#capture-a-trace-for-docs).
 
 ### Ops quick reference
 
@@ -184,16 +206,23 @@ Web path: [langsmith-trace-web-waterfall.png](docs/assets/observability/langsmit
 | Metrics | `GET /api/metrics` (Prometheus) |
 | Mock vs live RAG | `RAG_FORCE_MOCK`, `LLM_PROVIDER`, `RETRIEVER_PROVIDER` in `.env.example` |
 
+## What's next
+
+Optional follow-ups (not required for portfolio demo): **LangGraph-native SSE** (Phase 6a), stricter RAGAS gates after ingestion improvements, campus-scale ops (Redis HA, EB). Status: [docs/roadmap/PORTFOLIO_PHASED_ROADMAP.md](docs/roadmap/PORTFOLIO_PHASED_ROADMAP.md).
 
 ## Documentation
 
 | Doc | Description |
 |-----|-------------|
-| [docs/README.md](docs/README.md) | Index |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System overview, diagrams ([v2](./docs/assets/architecture_v2.png)), chat/SSE flow |
-| [docs/OPERATIONS.md](docs/OPERATIONS.md) | Runbooks, metrics, migrations |
-| [docs/EVALUATION.md](docs/EVALUATION.md) | RAGAS + LangSmith |
+| [docs/README.md](docs/README.md) | Documentation index |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design, chat/SSE flow, API surface |
+| [docs/assets/README.md](docs/assets/README.md) | Screenshots catalog + demo script |
+| [docs/EVALUATION.md](docs/EVALUATION.md) | RAGAS vs LangSmith, bootstrap, CI gates |
 | [docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md) | RAGAS baseline scores |
+| [docs/roadmap/PORTFOLIO_PHASED_ROADMAP.md](docs/roadmap/PORTFOLIO_PHASED_ROADMAP.md) | Phases shipped vs optional |
+| [docs/CI.md](docs/CI.md) | GitHub Actions, branch gates |
+| [docs/PRODUCTION_TLS.md](docs/PRODUCTION_TLS.md) | HTTPS, OAuth (API-port + handoff) |
+| [docs/OPERATIONS.md](docs/OPERATIONS.md) | Runbooks, metrics, migrations |
 | [changelog/CHANGELOG.md](changelog/CHANGELOG.md) | Release history |
 
 ## License
@@ -203,4 +232,4 @@ Software in this repository is licensed under the [Regents of the University of 
 ### Attribution
 
 - **Original Chabot** — © The Regents of the University of California. Upstream: [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot).
-- **Author & maintainer** — [sandeep-jay](https://github.com/sandeep-jay) developed on the Berkeley ETS Chabot codebase and authored this **independent portfolio fork** (multicloud providers, Vue SPA, streaming chat, Alembic, tox/CI, eval harness, and related extensions). This repo is **not** an official or endorsed UC Berkeley product.
+- **Author & maintainer** — [sandeep-jay](https://github.com/sandeep-jay) developed on the Berkeley ETS Chabot codebase and authored this **independent portfolio fork** (multicloud providers, Vue SPA, LangGraph, streaming chat, Alembic, tox/CI, RAGAS + LangSmith eval, and related extensions). This repo is **not** an official or endorsed UC Berkeley product.
