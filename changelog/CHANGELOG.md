@@ -20,7 +20,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
-- **Docs:** Screenshot gallery under `docs/assets/{product,observability,auth}/`; documentation audit (OAuth handoff, roadmap status, README gallery); `.gitignore` for `.cursor/` and golden draft.
+- **Docs:** README refresh (highlights, LangGraph/web/eval features, stack table); screenshot gallery under `docs/assets/{product,observability,auth}/`; documentation audit (OAuth handoff, roadmap status, README gallery); `.gitignore` for `.cursor/` and golden draft.
 
 ---
 
