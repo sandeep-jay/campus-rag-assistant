@@ -18,7 +18,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ---
 
-## [Unreleased]
+## [2026-05-19] — GitHub Actions CI/CD
 
 ### Added
 
@@ -48,6 +48,26 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 ### Added
 
 - **[docs/SECURITY.md](../docs/SECURITY.md)** — audit commands, production hardening checklist, dependency policy.
+
+---
+
+## [Unreleased]
+
+### Added
+
+- **Phase 5 retrieval** — multi-query expansion/fusion, optional Bedrock/client metadata filters, rerank node (condense → multi_query → retrieve → rerank → generate).
+- **Phase 5 rerank** — LangGraph `rerank` node; FlashRank + keyword fallback; `RERANK_*` settings; candidate fetch via `RERANK_CANDIDATE_K`.
+- **Phase 3 lite** — README Quality & observability; LangSmith `chat-session-*` run names; curated golden `ground_truth`; `scripts/promote_golden_draft.py`.
+- **RAGAS golden bootstrap** — `scripts/bootstrap_golden_dataset.py`, `backend/tests/eval/seed_questions.json`; golden set refreshed from live AWS KB (10 rows).
+- **OAuth (dev)** — API-port OAuth + one-time handoff to Vue (`/oauth/handoff`) fixes GitHub `state_mismatch` across Vite proxy ports.
+
+### Changed
+
+- **Docs** — screenshot gallery under `docs/assets/{product,observability,auth}/`; doc audit (OAuth handoff, roadmap status, deduped CHANGELOG, trimmed sprint archive); consolidated LangSmith capture in [EVALUATION.md](docs/EVALUATION.md).
+- **Phase 5 retrieval tuning** — RRF document fusion, keyword prefilter before rerank; tuned eval profile in `scripts/run_eval_phase5.sh` (faithfulness/recall up vs initial Phase 5; precision still below gate).
+- **Phase 3 lite** — portfolio RAGAS baseline policy; LangSmith trace screenshots in README; Phase 3 roadmap marked done (lite).
+
+### Fixed
 
 ---
 
