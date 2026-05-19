@@ -64,3 +64,5 @@ types-requests>=2.32.0  # urllib3 2.x
 urllib3>=2.2.0,<3.0.0
 uvicorn==0.27.1
 itsdangerous>=2.1.2
+# Optional: live web search when WEB_SEARCH_PROVIDER=tavily
+tavily-python>=0.5.0,<1.0.0

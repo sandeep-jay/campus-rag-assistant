@@ -145,6 +145,8 @@ export const useChatStore = defineStore('chat', () => {
                 metadata: {
                   sources: doneEvent.sources,
                   document_contents: doneEvent.document_contents,
+                  source_kind: doneEvent.source_kind,
+                  disclaimer: doneEvent.disclaimer ?? null,
                 },
                 created_at: new Date().toISOString(),
               },

@@ -22,6 +22,12 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Added
 
+- **Web research (UI)** — disclaimer banner, `source_kind` on SSE done; LangSmith session-tagged chat runs.
+
+### Changed
+
+### Added
+
 - **CI/CD** — GitHub Actions: [`ci.yml`](../.github/workflows/ci.yml) (tox on `main` + PRs), [`cd.yml`](../.github/workflows/cd.yml) (Vue build + optional EB deploy on `qa`/`release`); [docs/CI.md](../docs/CI.md). Removed `.travis.yml`.
 
 ### Fixed
