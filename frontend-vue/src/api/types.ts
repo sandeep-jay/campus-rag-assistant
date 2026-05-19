@@ -99,6 +99,7 @@ export interface MessageSourcesResponse {
 
 // Server-Sent Events shapes for POST /api/chat/stream
 export type StreamEvent =
+  | { type: 'status'; message: string }
   | { type: 'token'; token: string }
   | { type: 'done'; sources: Source[]; document_contents: DocContent[]; session_id: number }
   | { type: 'error'; message: string }

@@ -11,11 +11,17 @@ import TypingIndicator from '@/components/chat/TypingIndicator.vue'
 const route = useRoute()
 const router = useRouter()
 const chatStore = useChatStore()
-const { messages, streamingMessage, isSendingMessage, isLoading, activeSessionId, retryableSendContent } =
+const { messages, streamingMessage, streamingStatus, isSendingMessage, isLoading, activeSessionId, retryableSendContent } =
   storeToRefs(chatStore)
 
 const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null)
 const messageListRef = ref<HTMLElement | null>(null)
+
+async function scrollToBottom(): Promise<void> {
+  await nextTick()
+  const el = messageListRef.value
+  if (el) el.scrollTop = el.scrollHeight
+}
 
 watch(
   () => route.params.sessionId,
@@ -30,6 +36,7 @@ watch(
     } else {
       chatStore.startNewChat()
     }
+    await scrollToBottom()
   },
   { immediate: true },
 )
@@ -38,12 +45,8 @@ onMounted(async () => {
   await chatStore.fetchSessions()
 })
 
-watch(messages, async () => {
-  await nextTick()
-  if (messageListRef.value) {
-    messageListRef.value.scrollTop = messageListRef.value.scrollHeight
-  }
-})
+watch(messages, scrollToBottom, { deep: true })
+watch(streamingMessage, scrollToBottom, { deep: true })
 
 async function handleSend(content: string): Promise<void> {
   try {
@@ -54,7 +57,7 @@ async function handleSend(content: string): Promise<void> {
   } catch (err) {
     toast.error(err instanceof Error ? err.message : 'Failed to send message. Please try again.')
   } finally {
-    await nextTick()
+    await scrollToBottom()
     chatInputRef.value?.focus()
   }
 }
@@ -68,7 +71,7 @@ async function handleRetrySend(): Promise<void> {
   } catch (err) {
     toast.error(err instanceof Error ? err.message : 'Retry failed. Please try again.')
   } finally {
-    await nextTick()
+    await scrollToBottom()
     chatInputRef.value?.focus()
   }
 }
@@ -82,35 +85,39 @@ function handlePromptSelected(prompt: string): void {
   <main
     id="main-content"
     :aria-busy="isLoading || isSendingMessage"
-    class="flex flex-col flex-1 overflow-hidden"
+    class="flex flex-col flex-1 min-h-0 overflow-hidden bg-background"
   >
-    <div ref="messageListRef" class="flex-1 overflow-y-auto">
+    <div
+      ref="messageListRef"
+      class="flex-1 min-h-0 overflow-y-auto scroll-smooth"
+      tabindex="-1"
+    >
       <MessageList
         :messages="messages"
         :streaming-message="streamingMessage"
         @prompt-selected="handlePromptSelected"
       />
-      <!-- TypingIndicator shown only when no streaming content yet (initial wait) -->
-      <TypingIndicator v-if="isSendingMessage && !streamingMessage?.content" />
+      <TypingIndicator
+        v-if="isSendingMessage && !streamingMessage?.content"
+        :status="streamingStatus"
+      />
     </div>
 
     <div
       v-if="retryableSendContent"
-      class="border-t border-border bg-muted/30 px-4 py-2 text-sm flex items-center justify-between gap-3"
+      class="flex-shrink-0 border-t border-border bg-muted/30 px-4 py-2 text-chat-ui flex items-center justify-between gap-3"
       role="status"
       aria-live="polite"
     >
       <span>Last message failed to send.</span>
       <div class="flex items-center gap-2">
-        <button class="underline underline-offset-2" @click="handleRetrySend">Retry</button>
-        <button class="text-muted-foreground" @click="chatStore.dismissRetry">Dismiss</button>
+        <button type="button" class="underline underline-offset-2" @click="handleRetrySend">Retry</button>
+        <button type="button" class="text-muted-foreground" @click="chatStore.dismissRetry">Dismiss</button>
       </div>
     </div>
 
-    <ChatInput
-      ref="chatInputRef"
-      :disabled="isSendingMessage"
-      @submit="handleSend"
-    />
+    <div class="flex-shrink-0 border-t border-border bg-background/95 backdrop-blur-sm shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.45)]">
+      <ChatInput ref="chatInputRef" :disabled="isSendingMessage" @submit="handleSend" />
+    </div>
   </main>
 </template>

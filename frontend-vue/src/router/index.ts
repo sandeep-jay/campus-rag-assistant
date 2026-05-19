@@ -3,6 +3,10 @@ import { useAuthStore } from '@/stores/auth'
 
 export const routes: RouteRecordRaw[] = [
   {
+    path: '/',
+    redirect: '/login',
+  },
+  {
     path: '/login',
     name: 'login',
     component: () => import('@/views/LoginView.vue'),

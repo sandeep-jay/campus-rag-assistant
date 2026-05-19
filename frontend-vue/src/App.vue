@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { Toaster } from 'vue-sonner'
 import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
@@ -10,9 +11,16 @@ import AppSidebar from '@/components/sidebar/AppSidebar.vue'
 
 const authStore = useAuthStore()
 const { isAuthenticated } = storeToRefs(authStore)
+const route = useRoute()
 
 const sidebarOpen = ref(false)
 
+watch(
+  () => route.fullPath,
+  () => {
+    sidebarOpen.value = false
+  },
+)
 </script>
 
 <template>
@@ -20,11 +28,17 @@ const sidebarOpen = ref(false)
     <SkipLink />
     <Toaster position="top-right" richColors />
 
-    <!-- Authenticated layout -->
     <div v-if="isAuthenticated" class="flex h-screen overflow-hidden">
+      <div
+        v-if="sidebarOpen"
+        class="fixed inset-0 z-40 bg-black/50 md:hidden"
+        aria-hidden="true"
+        @click="sidebarOpen = false"
+      />
+
       <AppSidebar :open="sidebarOpen" @close="sidebarOpen = false" />
 
-      <div class="flex flex-col flex-1 overflow-hidden">
+      <div class="flex flex-col flex-1 min-w-0 overflow-hidden">
         <AppHeader @toggle-sidebar="sidebarOpen = !sidebarOpen">
           <template #user-menu>
             <UserMenu />
@@ -35,7 +49,6 @@ const sidebarOpen = ref(false)
       </div>
     </div>
 
-    <!-- Unauthenticated layout -->
     <RouterView v-else />
   </div>
 </template>

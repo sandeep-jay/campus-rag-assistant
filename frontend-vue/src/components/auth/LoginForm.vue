@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import OAuthButtons from '@/components/auth/OAuthButtons.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
@@ -27,6 +28,17 @@ async function handleSubmit(): Promise<void> {
 
 <template>
   <form class="space-y-4" @submit.prevent="handleSubmit">
+    <OAuthButtons :disabled="isLoading" />
+
+    <div class="relative py-2">
+      <div class="absolute inset-0 flex items-center" aria-hidden="true">
+        <div class="w-full border-t border-border" />
+      </div>
+      <div class="relative flex justify-center text-xs uppercase">
+        <span class="bg-card px-2 text-muted-foreground">Or use password</span>
+      </div>
+    </div>
+
     <div class="space-y-2">
       <label for="login-username" class="block text-sm font-medium text-foreground">
         Username

@@ -42,7 +42,7 @@ async function copyMessage(): Promise<void> {
     isCopied.value = true
     setTimeout(() => { isCopied.value = false }, 2000)
   } catch {
-    // clipboard not available in all contexts
+    // clipboard not available
   }
 }
 
@@ -53,79 +53,110 @@ function formatTime(dateStr: string): string {
 </script>
 
 <template>
-  <!-- Full-width stacked row; assistant gets subtle tint (ChatGPT-style lane) -->
-  <div
-    class="w-full px-4 md:px-6 py-4"
-    :class="isAssistant(message) ? 'bg-muted/30 dark:bg-muted/40' : ''"
+  <article
+    class="w-full py-3 px-4 sm:px-6 lg:px-8"
+    :class="isAssistant(message) ? 'bg-muted/20' : 'bg-background'"
     :data-testid="isAssistant(message) ? 'assistant-bubble' : 'user-bubble'"
   >
-    <div class="max-w-4xl mx-auto flex gap-4 items-start">
-      <!-- Avatar column: always left (U / AI) -->
+    <!-- Assistant: avatar left, content right -->
+    <div v-if="isAssistant(message)" class="chat-container flex gap-3 items-start">
       <div
-        class="flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold"
-        :class="isAssistant(message)
-          ? 'bg-primary text-primary-foreground'
-          : 'bg-secondary text-secondary-foreground'"
+        class="flex-shrink-0 h-9 w-9 rounded-full flex items-center justify-center text-chat-avatar font-bold uppercase bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-100"
         aria-hidden="true"
       >
-        {{ isAssistant(message) ? 'AI' : 'U' }}
+        AI
       </div>
 
-      <div
-        class="flex flex-col gap-2 flex-1 min-w-0 text-sm"
-        :class="isOptimistic(message) ? 'opacity-70' : ''"
-      >
-        <!-- Assistant: sanitized markdown — ONLY place v-html is used -->
-        <div
-          v-if="isAssistant(message)"
-          class="prose prose-sm dark:prose-invert max-w-none leading-relaxed [&_p]:mb-3 [&_h2]:mt-6 [&_h2]:mb-3 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:border-b [&_h2]:border-border [&_h2]:pb-1 [&_ul]:my-3 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-6 [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:space-y-2 [&_ol]:pl-6 [&_li]:leading-relaxed [&_strong]:font-semibold [&_pre]:overflow-x-auto [&_code]:text-xs"
-          v-html="renderMarkdown(message.content)"
-        />
-        <!-- Streaming cursor — only visible while SSE is open -->
-        <span
-          v-if="isStreaming"
-          class="inline-block w-2 h-4 ml-0.5 bg-current align-middle animate-pulse motion-reduce:animate-none"
-          aria-hidden="true"
-        />
-        <!-- User: plain text — no markdown rendering, no v-html -->
-        <p v-if="!isAssistant(message)" class="whitespace-pre-wrap break-words text-foreground leading-relaxed">
-          {{ message.content }}
-        </p>
+      <div class="group/bubble flex min-w-0 flex-1 flex-col gap-1.5 items-start max-w-[95%]">
+        <span class="text-chat-label text-muted-foreground px-1">Assistant</span>
 
-        <span class="text-xs text-muted-foreground">
+        <div
+          v-if="isStreaming"
+          class="w-full rounded-lg border border-border bg-card px-5 py-4 shadow-sm"
+          aria-live="polite"
+          aria-atomic="false"
+        >
+          <p
+            v-if="message.content"
+            class="whitespace-pre-wrap break-words text-chat-body text-foreground"
+          >
+            {{ message.content }}
+          </p>
+          <p v-else class="text-chat-caption text-muted-foreground">Preparing answer…</p>
+          <span
+            class="inline-block w-0.5 h-4 ml-0.5 bg-primary align-middle animate-pulse motion-reduce:animate-none"
+            aria-hidden="true"
+          />
+        </div>
+
+        <div v-else class="w-full rounded-lg border border-border bg-card px-5 py-4 shadow-sm">
+          <div class="chat-prose dark:prose-invert max-w-none text-foreground" v-html="renderMarkdown(message.content)" />
+        </div>
+
+        <span class="text-chat-meta text-muted-foreground px-1">
           {{ formatTime(message.created_at) }}
         </span>
 
-        <!-- Assistant actions: copy + feedback (hidden until persisted message id exists) -->
         <div
-          v-if="isAssistant(message) && !isOptimistic(message) && !isStreaming"
-          class="flex items-center justify-between gap-2"
+          v-if="!isOptimistic(message) && !isStreaming"
+          class="flex w-full flex-col gap-2"
         >
-          <MessageFeedback :message-id="message.id as number" />
-
-          <button
-            aria-label="Copy message to clipboard"
-            class="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            @click="copyMessage"
-          >
-            <Check v-if="isCopied" class="h-4 w-4 text-green-600" aria-hidden="true" />
-            <Copy v-else class="h-4 w-4" aria-hidden="true" />
-          </button>
-        </div>
-
-        <template v-if="isAssistant(message) && !isOptimistic(message) && hasSources && !isStreaming">
-          <SourcesSummary
-            :sources="sources"
-            :expanded="showSources"
-            :panel-id="panelId"
-            :document-contents-count="documentContents.length"
-            @toggle="showSources = !showSources"
-          />
-          <div :id="panelId" v-if="showSources" class="mt-2">
-            <SourcesPanel :sources="sources" :document-contents="documentContents" />
+          <div class="flex w-full items-center justify-between gap-2 opacity-100 sm:opacity-0 sm:group-hover/bubble:opacity-100 sm:focus-within:opacity-100 transition-opacity">
+            <MessageFeedback :message-id="message.id as number" />
+            <button
+              type="button"
+              aria-label="Copy message to clipboard"
+              class="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              @click="copyMessage"
+            >
+              <Check v-if="isCopied" class="h-4 w-4 text-green-600" aria-hidden="true" />
+              <Copy v-else class="h-4 w-4" aria-hidden="true" />
+            </button>
           </div>
-        </template>
+
+          <template v-if="hasSources">
+            <SourcesSummary
+              :sources="sources"
+              :expanded="showSources"
+              :panel-id="panelId"
+              :document-contents-count="documentContents.length"
+              @toggle="showSources = !showSources"
+            />
+            <div v-if="showSources" :id="panelId" class="w-full">
+              <SourcesPanel :sources="sources" :document-contents="documentContents" />
+            </div>
+          </template>
+        </div>
       </div>
     </div>
-  </div>
+
+    <!-- User: content + avatar grouped on the right -->
+    <div v-else class="chat-container flex justify-end">
+      <div class="flex max-w-[min(85%,40rem)] gap-3 items-end">
+        <div class="group/bubble flex min-w-0 flex-col gap-1.5 items-end">
+          <span class="text-chat-label user-message-label px-1">You</span>
+
+          <div
+            class="user-message-bubble rounded-lg px-4 py-3 shadow-sm"
+            :class="isOptimistic(message) ? 'opacity-70' : ''"
+          >
+            <p class="whitespace-pre-wrap break-words text-chat-body">
+              {{ message.content }}
+            </p>
+          </div>
+
+          <span class="text-chat-meta text-muted-foreground px-1">
+            {{ formatTime(message.created_at) }}
+          </span>
+        </div>
+
+        <div
+          class="flex-shrink-0 h-9 w-9 rounded-full flex items-center justify-center text-chat-avatar font-bold uppercase user-message-avatar"
+          aria-hidden="true"
+        >
+          Y
+        </div>
+      </div>
+    </div>
+  </article>
 </template>

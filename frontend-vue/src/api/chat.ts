@@ -55,6 +55,7 @@ export async function streamMessage(
   onToken: (token: string) => void,
   onDone: (event: Extract<StreamEvent, { type: 'done' }>) => void,
   onError?: (message: string) => void,
+  onStatus?: (message: string) => void,
   signal?: AbortSignal,
 ): Promise<void> {
   const csrfCookie = document.cookie
@@ -103,7 +104,9 @@ export async function streamMessage(
 
         try {
           const event = JSON.parse(rawJson) as StreamEvent
-          if (event.type === 'token') {
+          if (event.type === 'status') {
+            onStatus?.(event.message)
+          } else if (event.type === 'token') {
             onToken(event.token)
           } else if (event.type === 'done') {
             onDone(event)

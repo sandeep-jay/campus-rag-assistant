@@ -89,6 +89,7 @@ class DatabaseService:
             username=username,
             email=email,
             hashed_password=hashed_password,
+            auth_provider='local',
             tenant_id=tenant_id,
         )
         self.db.add(db_user)
@@ -122,12 +123,61 @@ class DatabaseService:
             .first()
         )
 
-        if not user or not user.verify_password(password):
+        if not user or not user.hashed_password or not user.verify_password(password):
             logger.warning(f'Authentication failed for user: {username}')
             return None
 
         logger.info(f'Authentication successful for user: {username}')
         return user
+
+    def get_user_by_oauth(self, provider: str, provider_subject: str) -> User | None:
+        return (
+            self.db.query(User)
+            .filter(
+                User.auth_provider == provider,
+                User.provider_subject == provider_subject,
+            )
+            .first()
+        )
+
+    def get_or_create_oauth_user(
+        self,
+        email: str,
+        provider: str,
+        provider_subject: str,
+        display_name: str,
+    ) -> User:
+        from backend.app.services.oauth_service import suggest_username
+
+        existing = self.get_user_by_oauth(provider, provider_subject)
+        if existing:
+            return existing
+
+        by_email = self.get_user_by_email(email)
+        if by_email:
+            if by_email.auth_provider == provider and by_email.provider_subject == provider_subject:
+                return by_email
+            raise ValueError(
+                'An account with this email already exists. Sign in with your password or linked provider.',
+            )
+
+        username = suggest_username(email, provider, provider_subject)
+        while self.get_user_by_username(username):
+            username = suggest_username(f'{email}.alt', provider, provider_subject)
+
+        db_user = User(
+            username=username,
+            email=email,
+            hashed_password=None,
+            auth_provider=provider,
+            provider_subject=provider_subject,
+        )
+        self.db.add(db_user)
+        self.db.commit()
+        self.db.refresh(db_user)
+        logger.info('OAuth user created: %s via %s', db_user.username, provider)
+        return db_user
+
 
     # Chat session methods
     def create_chat_session(

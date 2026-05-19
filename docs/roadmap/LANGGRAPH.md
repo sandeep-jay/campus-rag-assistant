@@ -2,9 +2,9 @@
 
 Deterministic RAG orchestration behind `RAGService.process_query` — **not** multi-agent by default.
 
-**Status:** Not implemented — design and rollout plan only.
+**Status:** In progress — see [TODAY_SPRINT.md](./TODAY_SPRINT.md).
 
-**Roadmap:** Portfolio [Phase 4](./PORTFOLIO_PHASED_ROADMAP.md#phase-4--langgraph-deterministic-parity); bounded agentic in [Phase 6](./PORTFOLIO_PHASED_ROADMAP.md#phase-6--optional-streaming-and-bounded-agentic).
+**Order:** Phase 4 (this doc) **before** Phase 3 RAGAS gates. Web branch: [WEB_RESEARCH.md](./WEB_RESEARCH.md).
 
 ---
 
@@ -13,38 +13,33 @@ Deterministic RAG orchestration behind `RAGService.process_query` — **not** mu
 | Benefit | Notes |
 |---------|--------|
 | Explicit steps | condense → retrieve → generate → format |
+| Web branch | `research_mode=web` → web_search tool node |
 | Testability | Unit test each node |
-| LangSmith | Per-node spans (vs one opaque chain) |
-| Extensibility | Phase 5 adds multi-query, rerank as nodes |
-| Streaming | `astream_events` for SSE (Phase 6) |
+| LangSmith | Per-node spans |
+| Extensibility | Phase 5 adds rerank / multi-query as nodes |
 
-**Parity graph does not improve RAGAS by itself** — same prompts/retriever, clearer structure.
-
-LangChain still runs **inside each node** (`llm.invoke`, `retriever.invoke` via providers).
+LangChain runs **inside each node** (`llm.invoke`, `retriever.invoke`).
 
 ---
 
-## Architecture
+## Architecture (KB + web)
 
 ```mermaid
 flowchart TB
   API[chat.py] --> RAG[RAGService.process_query]
   RAG --> Engine{RAG_ENGINE}
   Engine -->|chain| Legacy[ConversationalRetrievalChain]
-  Engine -->|langgraph| Graph[RagGraph.invoke]
-  Graph --> Condense[condense_question]
-  Graph --> Retrieve[retrieve]
-  Graph --> Generate[generate_answer]
-  Graph --> Format[format_response]
-  Condense --> LLM[get_llm_provider]
-  Retrieve --> Ret[get_retriever_provider]
-  Generate --> LLM
+  Engine -->|langgraph| Graph[RagGraph]
+  Graph --> Route{research_mode}
+  Route -->|kb| Condense --> Retrieve --> Generate
+  Route -->|web| CondenseW --> WebSearch --> Generate
+  Generate --> Format[format_response]
 ```
 
-**Stable contract:**
+**Contract:**
 
 ```json
-{ "message": "...", "metadata": { "sources": [], "document_contents": [] } }
+{ "message": "...", "metadata": { "sources": [], "document_contents": [], "source_kind": "kb" } }
 ```
 
 ---
@@ -53,22 +48,35 @@ flowchart TB
 
 ```
 backend/app/services/graph/
-  state.py    # TypedDict / state schema
-  nodes.py    # condense, retrieve, generate, format
-  graph.py    # build_rag_graph()
-  runner.py   # run_rag_graph(query, chat_history)
+  state.py
+  nodes.py
+  graph.py
+  runner.py
+backend/app/services/tools/
+  web_search.py
 ```
-
-**Prerequisite:** `rag.py` uses `get_llm_provider()` and `get_retriever_provider()` (PR4a).
 
 ---
 
 ## Configuration
 
 ```bash
-RAG_ENGINE=chain          # chain | langgraph
-RAG_AGENTIC_ENABLED=false # Phase 6 only
+RAG_ENGINE=chain              # chain | langgraph (default chain)
+WEB_RESEARCH_ENABLED=false
+WEB_SEARCH_PROVIDER=mock      # mock | tavily
+RAG_AGENTIC_ENABLED=false     # rewrite loop — later
 ```
+
+---
+
+## Today MVP scope
+
+| In scope | Out of scope |
+|----------|----------------|
+| Buffered `process_query` on graph | LangGraph SSE |
+| KB linear path + web branch | RAGAS ±0.02 gate |
+| Mock web search | Delete chain path |
+| Unit tests (mock) | Auto web without user flag |
 
 ---
 
@@ -76,22 +84,18 @@ RAG_AGENTIC_ENABLED=false # Phase 6 only
 
 | Step | Action |
 |------|--------|
-| 1 | PR4a — wire providers in `rag.py` |
-| 2 | PR4b — add graph module; flag default `chain` |
-| 3 | Tests + RAGAS within ±0.02 of chain |
-| 4 | PR4c — default `langgraph`; remove chain when confident |
+| 1 | Graph module + `RAG_ENGINE` (default `chain`) |
+| 2 | Wire `process_query`; tests green |
+| 3 | Web tool + `research_mode` |
+| 4 | Optional: flip default to `langgraph` after spot-check |
 
----
-
-## Phase 6 agentic (deferred)
-
-Conditional edges, **hard caps** (max one rewrite). **Not** multi-agent.
-
-Org roadmap "graph-augmented retrieval" = knowledge **graph** (entities), not LangGraph the library.
+Full RAGAS parity: Phase 3 lite (deferred).
 
 ---
 
 ## Related
 
-- [EVALUATION.md](../EVALUATION.md)
+- [TODAY_SPRINT.md](./TODAY_SPRINT.md)
+- [WEB_RESEARCH.md](./WEB_RESEARCH.md)
 - [PORTFOLIO_PHASED_ROADMAP.md](./PORTFOLIO_PHASED_ROADMAP.md)
+- [EVALUATION.md](../EVALUATION.md)

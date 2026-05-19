@@ -1,4 +1,4 @@
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import * as chatApi from '@/api/chat'
 import type { ChatSession, DisplayMessage, OptimisticMessage, StreamingMessage } from '@/api/types'
@@ -23,6 +23,7 @@ export const useChatStore = defineStore('chat', () => {
 
   // Streaming state — the in-progress assistant message while SSE is open
   const streamingMessage = ref<StreamingMessage | null>(null)
+  const streamingStatus = ref<string | null>(null)
 
   const activeSession = computed(() =>
     sessions.value.find((s) => s.id === activeSessionId.value) ?? null,
@@ -91,12 +92,21 @@ export const useChatStore = defineStore('chat', () => {
     isSendingMessage.value = true
 
     // Start with an empty streaming placeholder so the UI can show a live cursor
+    streamingStatus.value = null
     streamingMessage.value = {
       id: 'streaming',
       content: '',
       role: 'assistant',
       isStreaming: true,
       created_at: new Date().toISOString(),
+    }
+
+    const appendToken = (token: string): void => {
+      if (!streamingMessage.value) return
+      streamingMessage.value = {
+        ...streamingMessage.value,
+        content: streamingMessage.value.content + token,
+      }
     }
 
     try {
@@ -106,16 +116,12 @@ export const useChatStore = defineStore('chat', () => {
         await chatApi.streamMessage(
           content,
           activeSessionId.value,
-          async (token) => {
-            if (streamingMessage.value) {
-              streamingMessage.value = {
-                ...streamingMessage.value,
-                content: streamingMessage.value.content + token,
-              }
-              await nextTick()
-            }
+          (token) => {
+            streamingStatus.value = null
+            appendToken(token)
           },
           (doneEvent) => {
+            streamingStatus.value = null
             streamSucceeded = true
             // Remove optimistic user message
             messages.value = messages.value.filter(
@@ -150,6 +156,9 @@ export const useChatStore = defineStore('chat', () => {
           () => {
             // Streaming error event — fall through to non-streaming fallback below
           },
+          (statusMsg) => {
+            streamingStatus.value = statusMsg
+          },
         )
       } catch {
         // Fetch-level failure (network, CORS, etc.) — fall through to fallback
@@ -174,6 +183,7 @@ export const useChatStore = defineStore('chat', () => {
       throw err
     } finally {
       streamingMessage.value = null
+      streamingStatus.value = null
       isSendingMessage.value = false
     }
   }
@@ -210,6 +220,7 @@ export const useChatStore = defineStore('chat', () => {
     activeSessionId,
     messages,
     streamingMessage,
+    streamingStatus,
     isLoading,
     isSendingMessage,
     sessionsLoading,

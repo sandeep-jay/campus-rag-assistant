@@ -22,6 +22,27 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
+    --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+      'Helvetica Neue', Arial, sans-serif;
+    /* Chat type scale (rem @ 16px root) */
+    --text-chat-display: 1.25rem;
+    --text-chat-display-lh: 1.3;
+    --text-chat-title: 1.125rem;
+    --text-chat-title-lh: 1.35;
+    --text-chat-body: 0.9375rem;
+    --text-chat-body-lh: 1.6;
+    --text-chat-ui: 0.9375rem;
+    --text-chat-ui-lh: 1.5;
+    --text-chat-caption: 0.8125rem;
+    --text-chat-caption-lh: 1.5;
+    --text-chat-meta: 0.75rem;
+    --text-chat-meta-lh: 1.4;
+
+    --user-message: 214 41% 93%;
+    --user-message-foreground: 222 47% 12%;
+    --user-message-border: 214 28% 78%;
+    --user-accent: 214 38% 44%;
+    --user-accent-foreground: 210 40% 98%;
   }
 
   [data-theme='dark'] {
@@ -42,6 +63,11 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
+    --user-message: 214 28% 22%;
+    --user-message-foreground: 210 35% 96%;
+    --user-message-border: 214 22% 34%;
+    --user-accent: 214 35% 58%;
+    --user-accent-foreground: 222 47% 11%;
   }
 }
 
@@ -50,7 +76,150 @@
     border-color: hsl(var(--border));
   }
   body {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
+  }
+}
+
+
+@layer components {
+  .user-message-bubble {
+    background-color: hsl(var(--user-message));
+    color: hsl(var(--user-message-foreground));
+    border: 1px solid hsl(var(--user-message-border));
+  }
+
+  .user-message-avatar {
+    background-color: hsl(var(--user-accent));
+    color: hsl(var(--user-accent-foreground));
+  }
+
+  .user-message-label {
+    color: hsl(var(--user-accent));
+  }
+
+  .chat-container {
+    width: 100%;
+    max-width: 72rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  @media (min-width: 1280px) {
+    .chat-container {
+      max-width: 80rem;
+    }
+  }
+
+/* Shared chat typography utilities */
+  .text-chat-display {
+    font-size: var(--text-chat-display);
+    line-height: var(--text-chat-display-lh);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .text-chat-title {
+    font-size: var(--text-chat-title);
+    line-height: var(--text-chat-title-lh);
+    font-weight: 600;
+  }
+
+  .text-chat-body {
+    font-size: var(--text-chat-body);
+    line-height: var(--text-chat-body-lh);
+  }
+
+  .text-chat-ui {
+    font-size: var(--text-chat-ui);
+    line-height: var(--text-chat-ui-lh);
+  }
+
+  .text-chat-caption {
+    font-size: var(--text-chat-caption);
+    line-height: var(--text-chat-caption-lh);
+  }
+
+  .text-chat-meta {
+    font-size: var(--text-chat-meta);
+    line-height: var(--text-chat-meta-lh);
+  }
+
+  .text-chat-label {
+    font-size: var(--text-chat-meta);
+    line-height: var(--text-chat-meta-lh);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .text-chat-avatar {
+    font-size: 0.625rem;
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .chat-prose {
+    font-size: var(--text-chat-body);
+    line-height: var(--text-chat-body-lh);
+  }
+  .chat-prose :where(p):not(:where([class~='not-prose'] *)) {
+    margin-bottom: 0.75rem;
+  }
+  .chat-prose :where(p:last-child):not(:where([class~='not-prose'] *)) {
+    margin-bottom: 0;
+  }
+  .chat-prose :where(h1):not(:where([class~='not-prose'] *)) {
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+    font-size: var(--text-chat-title);
+    line-height: var(--text-chat-title-lh);
+    font-weight: 600;
+  }
+  .chat-prose :where(h2):not(:where([class~='not-prose'] *)) {
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+    font-size: var(--text-chat-title);
+    line-height: var(--text-chat-title-lh);
+    font-weight: 600;
+  }
+  .chat-prose :where(h3):not(:where([class~='not-prose'] *)) {
+    margin-top: 1rem;
+    margin-bottom: 0.375rem;
+    font-size: var(--text-chat-body);
+    line-height: var(--text-chat-body-lh);
+    font-weight: 600;
+  }
+  .chat-prose :where(ul, ol):not(:where([class~='not-prose'] *)) {
+    margin: 0.5rem 0;
+    padding-left: 1.25rem;
+  }
+  .chat-prose :where(ul):not(:where([class~='not-prose'] *)) {
+    list-style-type: disc;
+  }
+  .chat-prose :where(ol):not(:where([class~='not-prose'] *)) {
+    list-style-type: decimal;
+  }
+  .chat-prose :where(li):not(:where([class~='not-prose'] *)) {
+    margin: 0.25rem 0;
+  }
+  .chat-prose :where(pre):not(:where([class~='not-prose'] *)) {
+    overflow-x: auto;
+    border-radius: 0.375rem;
+    margin: 0.75rem 0;
+    font-size: var(--text-chat-caption);
+    line-height: var(--text-chat-caption-lh);
+  }
+  .chat-prose :where(code):not(:where([class~='not-prose'] *)) {
+    font-size: var(--text-chat-caption);
+  }
+  .chat-prose :where(strong):not(:where([class~='not-prose'] *)) {
+    font-weight: 600;
   }
 }

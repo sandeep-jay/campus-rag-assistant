@@ -42,7 +42,9 @@ class User(Base):
     )
     username = Column(String, unique=True, index=True, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
+    hashed_password = Column(String, nullable=True)
+    auth_provider = Column(String, nullable=False, default='local', index=True)
+    provider_subject = Column(String, nullable=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(
         DateTime,
@@ -65,4 +67,6 @@ class User(Base):
     )
 
     def verify_password(self, password: str) -> bool:
+        if not self.hashed_password:
+            return False
         return verify_password(password, self.hashed_password)

@@ -10,8 +10,8 @@ const activeTab = ref<'login' | 'register'>('login')
   <div class="min-h-screen flex items-center justify-center bg-background p-4">
     <div class="w-full max-w-md">
       <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-foreground">BCourses Chatbot</h1>
-        <p class="text-muted-foreground mt-2">Your AI-powered course support assistant</p>
+        <h1 class="text-3xl font-bold text-foreground">Campus RAG Assistant</h1>
+        <p class="text-muted-foreground mt-2">Your AI-powered campus knowledge assistant</p>
       </div>
 
       <div class="rounded-xl border border-border bg-card shadow-sm">

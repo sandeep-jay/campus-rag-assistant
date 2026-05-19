@@ -18,7 +18,7 @@ const { isDark, toggle } = useDarkMode()
         <PanelLeft class="h-5 w-5" aria-hidden="true" />
       </button>
       <div class="flex items-center gap-2">
-        <span class="font-semibold text-foreground">BCourses Chatbot</span>
+        <span class="text-chat-ui font-semibold text-foreground">Campus RAG Assistant</span>
         <span class="hidden sm:inline text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Beta</span>
       </div>
     </div>

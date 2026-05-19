@@ -23,6 +23,7 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
+import asyncio
 import json
 import time
 from typing import Annotated, Any
@@ -357,11 +358,17 @@ async def chat(
     tenant_config = _resolve_tenant_rag_config(db_service, current_user)
 
     @trace_rag
-    def process_chat(content, history):
-        return rag_service.process_query(content, history, tenant_config)
+    def process_chat(content, history, mode='kb'):
+        return rag_service.process_query(content, history, tenant_config, research_mode=mode)
 
     try:
-        rag_response = process_chat(message.content, chat_history)
+        _research_mode = getattr(message, 'research_mode', 'kb') or 'kb'
+        if _research_mode == 'web' and not getattr(settings, 'WEB_RESEARCH_ENABLED', False):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Web research is not enabled on this server',
+            )
+        rag_response = process_chat(message.content, chat_history, _research_mode)
 
         # Create assistant message
         assistant_msg = db_service.create_chat_message(
@@ -416,23 +423,70 @@ async def chat_stream(
     rag_service = get_rag_service()
     tenant_config = _resolve_tenant_rag_config(db_service, current_user)
 
-    def streaming_body():
+    _research_mode = getattr(message, 'research_mode', 'kb') or 'kb'
+    if _research_mode == 'web' and not getattr(settings, 'WEB_RESEARCH_ENABLED', False):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Web research is not enabled on this server',
+        )
+
+    async def streaming_body():
         assistant_chunks: list[str] = []
         stream_started = time.perf_counter()
         first_token_recorded = False
         try:
-            for event in rag_service.stream_query(message.content, chat_history, tenant_config):
-                if event['type'] == 'token':
+            if (getattr(settings, 'RAG_ENGINE', 'chain') or 'chain').strip().lower() == 'langgraph':
+                result = rag_service.process_query(
+                    message.content,
+                    chat_history,
+                    tenant_config,
+                    research_mode=_research_mode,
+                )
+                for chunk in rag_service._chunk_for_stream(result['message'], size=12):  # noqa: SLF001
+                    if not first_token_recorded:
+                        first_token_recorded = True
+                        CHAT_FIRST_TOKEN_LATENCY_SECONDS.observe(time.perf_counter() - stream_started)
+                    assistant_chunks.append(chunk)
+                    yield _sse_payload({'type': 'token', 'token': chunk})
+                    await asyncio.sleep(0)
+                metadata = result.get('metadata', {})
+                assistant_text = rag_service._normalize_answer_formatting(  # noqa: SLF001
+                    result['message'],
+                    metadata.get('sources', []),
+                )
+                db_service.create_chat_message(
+                    session_id=session_id,
+                    content=assistant_text,
+                    role='assistant',
+                    metadata=metadata,
+                )
+                yield _sse_payload(
+                    {
+                        'type': 'done',
+                        'session_id': session_id,
+                        'sources': metadata.get('sources', []),
+                        'document_contents': metadata.get('document_contents', []),
+                    },
+                )
+                await asyncio.sleep(0)
+                return
+
+            async for event in rag_service.stream_query_async(message.content, chat_history, tenant_config):
+                if event['type'] == 'status':
+                    yield _sse_payload({'type': 'status', 'message': event.get('message', '')})
+                    await asyncio.sleep(0)
+                elif event['type'] == 'token':
                     if not first_token_recorded:
                         first_token_recorded = True
                         CHAT_FIRST_TOKEN_LATENCY_SECONDS.observe(time.perf_counter() - stream_started)
                     assistant_chunks.append(event['token'])
                     yield _sse_payload({'type': 'token', 'token': event['token']})
+                    await asyncio.sleep(0)
                 elif event['type'] == 'done':
                     metadata = event.get('metadata', {})
                     assistant_text = ''.join(assistant_chunks)
                     if not assistant_text.strip():
-                        buffered = rag_service.process_query(message.content, chat_history, tenant_config)
+                        buffered = rag_service.process_query(message.content, chat_history, tenant_config, research_mode=_research_mode)
                         assistant_text = buffered['message']
                         metadata = buffered.get('metadata', metadata)
                     assistant_text = rag_service._normalize_answer_formatting(  # noqa: SLF001
@@ -453,9 +507,11 @@ async def chat_stream(
                             'document_contents': metadata.get('document_contents', []),
                         },
                     )
+                    await asyncio.sleep(0)
         except Exception as e:
             logger.exception('Streaming chat failed: %s', e)
             yield _sse_payload({'type': 'error', 'message': 'Error generating response.'})
+            await asyncio.sleep(0)
 
     return StreamingResponse(
         streaming_body(),
