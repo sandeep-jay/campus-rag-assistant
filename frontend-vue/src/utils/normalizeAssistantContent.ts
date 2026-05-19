@@ -2,6 +2,33 @@
  * Light cleanup of assistant markdown before render (no structural rewriting).
  */
 
+const MAX_LEAKED_QUESTION_WORDS = 35
+
+/** Drop leading condensed question echoed before the real answer. */
+function stripLeadingCondensedQuestion(text: string): string {
+  const stripped = text.trim()
+  if (!stripped) return stripped
+
+  const dashMatch = stripped.match(/^(.+\?)\s*[\u2014\u2013-]+\s*([\s\S]+)$/u)
+  if (dashMatch && dashMatch[1].split(/\s+/).length <= MAX_LEAKED_QUESTION_WORDS) {
+    return dashMatch[2].trim()
+  }
+
+  const capMatch = stripped.match(/^(.+\?)\s+([A-Z][\s\S]+)$/)
+  if (capMatch && capMatch[1].split(/\s+/).length <= MAX_LEAKED_QUESTION_WORDS) {
+    return capMatch[2].trim()
+  }
+
+  const parts = stripped.split(/(?<=[.!?])\s+/)
+  if (parts.length >= 2 && parts[0].trim().endsWith('?')) {
+    const first = parts[0].trim()
+    if (first.split(/\s+/).length <= MAX_LEAKED_QUESTION_WORDS) {
+      return parts.slice(1).join(' ').trim()
+    }
+  }
+  return stripped
+}
+
 function dropLine(line: string): boolean {
   const s = line.trim()
   if (!s) return false
@@ -26,7 +53,6 @@ function dropLine(line: string): boolean {
   )
 }
 
-/** Standalone **Title** → ## Title; keep **Label:** lead-ins unchanged. */
 function promoteBoldHeadings(text: string): string {
   return text
     .split('\n')
@@ -44,8 +70,7 @@ function promoteBoldHeadings(text: string): string {
 export function normalizeAssistantContent(raw: string): string {
   if (!raw) return raw
 
-  let text = raw
-    .trim()
+  let text = stripLeadingCondensedQuestion(raw)
     .split('\n')
     .filter((line) => !dropLine(line))
     .join('\n')
