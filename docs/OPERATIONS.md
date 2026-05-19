@@ -41,6 +41,10 @@ alembic downgrade -1
 3. Start/restart API workers.
 4. Verify `/api/health` and `/api/metrics`.
 
+## Security
+
+See [SECURITY.md](./SECURITY.md) for `pip-audit`, bandit, and production hardening.
+
 ## Metrics baseline
 
 Exposed endpoints:

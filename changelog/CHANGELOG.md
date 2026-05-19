@@ -24,6 +24,19 @@ _No pending changes._
 
 ---
 
+## [2026-05-18] — Security dependency bumps
+
+### Changed
+
+- **Runtime dependencies** — FastAPI 0.115.x (Starlette CVE fixes), `python-multipart>=0.0.27`, `python-jose>=3.4`, `PyJWT>=2.12`, `requests`/`urllib3`/`httpx` upgrades, `gunicorn>=22`, `python-dotenv>=1.2.2`.
+- **LangGraph pins** — exact `langgraph==0.2.76` + `langgraph-checkpoint==2.0.26` (resolves `httpx` conflict with LangChain 0.3).
+
+### Added
+
+- **[docs/SECURITY.md](../docs/SECURITY.md)** — audit commands, production hardening checklist, dependency policy.
+
+---
+
 ## [2026-05-18] — LangGraph live validation (AWS KB parity)
 
 ### Added
