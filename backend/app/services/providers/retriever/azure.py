@@ -75,12 +75,12 @@ class AzureRetrieverProvider(BaseRetrieverProvider):
         self._search_client = SearchClient(
             endpoint=endpoint,
             index_name=settings.AZURE_SEARCH_INDEX,
-            credential=AzureKeyCredential(settings.AZURE_SEARCH_KEY),
+            credential=AzureKeyCredential(settings.AZURE_SEARCH_KEY.get_secret_value() if settings.AZURE_SEARCH_KEY else ''),
         )
         self._embeddings = AzureOpenAIEmbeddings(
             azure_deployment=getattr(settings, 'AZURE_EMBEDDING_DEPLOYMENT', 'text-embedding-ada-002'),
             azure_endpoint=str(settings.AZURE_OPENAI_ENDPOINT).rstrip('/'),
-            api_key=settings.AZURE_OPENAI_API_KEY,
+            api_key=(settings.AZURE_OPENAI_API_KEY.get_secret_value() if settings.AZURE_OPENAI_API_KEY else None),
             api_version=getattr(settings, 'AZURE_OPENAI_API_VERSION', '2024-02-01'),
         )
         self._vector_field = getattr(settings, 'AZURE_SEARCH_VECTOR_FIELD', 'text_vector')

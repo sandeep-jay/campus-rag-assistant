@@ -45,7 +45,7 @@ initialize_logger(app)
 
 app.add_middleware(
     SessionMiddleware,
-    secret_key=settings.SECRET_KEY,
+    secret_key=settings.SECRET_KEY.get_secret_value(),
     same_site='lax',
     https_only=False,
 )

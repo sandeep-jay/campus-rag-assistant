@@ -63,7 +63,7 @@ def get_ragas_judge_embeddings():
         return AzureOpenAIEmbeddings(
             azure_deployment=deployment,
             azure_endpoint=str(settings.AZURE_OPENAI_ENDPOINT).rstrip('/'),
-            api_key=settings.AZURE_OPENAI_API_KEY,
+            api_key=(settings.AZURE_OPENAI_API_KEY.get_secret_value() if settings.AZURE_OPENAI_API_KEY else None),
             api_version=settings.AZURE_OPENAI_API_VERSION,
         )
     from langchain_aws import BedrockEmbeddings
