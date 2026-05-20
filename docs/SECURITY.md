@@ -46,7 +46,7 @@ they make accidental disclosure vanishingly unlikely.
 | 2 | **CI guard for env template** | `backend/tests/core/test_env_template.py` | Every `Settings` field must appear in `.env.example`; no `SecretStr` field may carry a real-looking uncommented value. Fails `tox -e backend`. |
 | 3 | **Local `pre-push` gitleaks hook** | `.githooks/pre-push` | Blocks `git push` if `gitleaks detect` finds a credential in the commits being uploaded. Wired by `./scripts/install-hooks.sh` (and `--global` for every repo on the workstation). |
 | 4 | **CI `secrets-scan` job** | `.github/workflows/ci.yml` (job `secrets-scan`) + `tox -e secrets` | Runs `gitleaks detect --log-opts="--all --reflog --no-merges"` on every PR and push to `main`. Fails the build on any finding. |
-| 5 | **GitHub Push Protection** | repo Settings → Code security & analysis | Even `git push --no-verify` is rejected by GitHub if the push contains a known-provider credential pattern (AWS, Google, Slack, Stripe, GitHub PATs, …). Secret Scanning, Push Protection, and Dependabot Security Updates are all enabled on this repo. |
+| 5 | **GitHub Push Protection** | repo Settings → Code security & analysis | Even `git push --no-verify` is rejected by GitHub if the push contains a known-provider credential pattern (AWS, Google, Slack, Stripe, GitHub PATs, …). Secret Scanning, Push Protection, and Dependabot **alerts** are enabled on this repo. Dependabot **security updates** (auto-PRs that bump versions) are intentionally left **off** — they were observed to break the build mid-sprint, so vulnerabilities are triaged manually from the alert queue instead. |
 
 ### How to run gitleaks locally
 
