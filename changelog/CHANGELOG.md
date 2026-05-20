@@ -18,6 +18,15 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ## [Unreleased]
 
+### Security
+
+- **Vulnerable Python pins bumped to patched releases** (closes 7 Dependabot alerts on `main`):
+  - `authlib==1.3.2` → `1.6.12` — patches 1 **CRITICAL** JWS injection (`GHSA-9ggr-2464-2j32`) and 5 HIGH advisories (OIDC bypass, padding oracle, DoS, account takeover).
+  - `langchain==0.3.20` → `0.3.30` — patches HIGH LangSmith deserialize advisory.
+  - `langchain-community==0.3` → `0.3.27` — patches HIGH advisory.
+  - `streamlit==1.30.0` → `1.54.0` — patches 2 MEDIUM Windows-only path-traversal / SSRF advisories.
+  Verified by running the full `backend` test suite (118 passed, 0 new regressions vs baseline) and restarting the local backend/frontend; OAuth import paths and Streamlit demo all clean. The riskier `langgraph` / `langgraph-checkpoint` major-version migration and the `vite` / `esbuild` (frontend dev tooling) bumps are tracked separately as follow-up work in the Dependabot alert queue.
+
 ### Fixed
 
 - **Frontend theme tokens compile correctly (delete-conversation dialog overlap)** — `frontend-vue/src/assets/main.css` was using Tailwind v4 (`@tailwindcss/vite` + `@import 'tailwindcss';`) without a `@theme` block, so design-token utilities (`bg-background`, `bg-card`, `bg-muted`, `border-border`, `text-foreground`, `text-muted-foreground`, etc.) were silent no-ops. Surfaces appeared opaque only because `body` set `background-color: hsl(var(--background))`; inside the scrolling session list, the sidebar's sticky delete-confirmation panel had no actual background and rendered transparently over the session items. Added an `@theme inline` mapping for the existing `--background`, `--foreground`, `--card`, `--popover`, `--primary`, `--secondary`, `--muted`, `--accent`, `--destructive`, `--border`, `--input`, and `--ring` CSS variables so the utilities compile. Fixes the delete-conversation dialog overlap and the `UserMenu` dropdown which used the same pattern.
