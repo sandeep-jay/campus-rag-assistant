@@ -16,15 +16,21 @@ where the public merge story matters.
 Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 `## [YYYY-MM-DD] — short title` and open a new `[Unreleased]`.
 
-## [Unreleased]
+## [2026-05-19] — Portfolio polish (PR #24)
 
 ### Changed
 
-- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
+- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, role alignment, highlights, upstream delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - **README** — Overview without `<details>` collapsibles (full architecture, design, screenshots, LangSmith traces visible); CI status badge.
 - **Eval** — expanded [eval_baseline_2026-05-19.md](../docs/eval_baseline_2026-05-19.md) (retained AWS scores, Azure sweep table, findings); eval respects LangGraph when `RAGAS_EVAL=1`; Phase 5 script precision-balanced profile; `RAGAS_DO_NOT_TRACK` in tox eval.
 - **Logging** — `RequestIdFilter` on handlers; redact JWT payloads and chat queries at INFO; cap vendor loggers; optional `LOG_JSON`; access log via `app.access`; single idempotent `initialize_logger()`.
 - **Docs** — documentation cohesion: [DESIGN.md](../docs/DESIGN.md) (product boundaries, decisions); README problem/quality sections; rename [PRODUCT_ROADMAP.md](../docs/roadmap/PRODUCT_ROADMAP.md); de-portfolio language; generic campus/Canvas LMS framing; document Bedrock KB + OpenSearch Serverless alongside Azure Search; expanded [docs/README.md](../docs/README.md) index; [ARCHITECTURE.md](../docs/ARCHITECTURE.md) LangGraph/OAuth/research_mode; [WEB_RESEARCH.md](../docs/roadmap/WEB_RESEARCH.md) KB path diagram; [CI.md](../docs/CI.md) portfolio quick tox note; [E2E.md](../docs/E2E.md) OAuth note; [RELEASE.md](../docs/RELEASE.md) tag message; deduped CHANGELOG `[Unreleased]`.
+
+---
+
+## [Unreleased]
+
+### Changed
 
 ---
 
@@ -40,7 +46,6 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
-- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - **Docs** — README refresh (highlights, LangGraph/web/eval features, stack table); screenshot gallery under `docs/assets/{product,observability,auth}/`; doc index ([docs/README.md](../docs/README.md)), [ARCHITECTURE.md](../docs/ARCHITECTURE.md), [WEB_RESEARCH.md](../docs/roadmap/WEB_RESEARCH.md); consolidated LangSmith capture in [EVALUATION.md](../docs/EVALUATION.md); `.gitignore` for `.cursor/` and golden draft.
 - **Phase 5 retrieval tuning** — RRF document fusion, keyword prefilter before rerank; tuned eval profile in `scripts/run_eval_phase5.sh` (faithfulness/recall up vs initial Phase 5; precision still below gate).
 - **Phase 3 lite** — portfolio RAGAS baseline policy; LangSmith trace screenshots in README; Phase 3 roadmap marked done (lite).
@@ -63,7 +68,6 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
-- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - **CI** — `tox -e lint,backend,frontend-vue` green; ruff format/fix, LangGraph import fixes, ChatView `research-mode` binding.
 - **Docs** — roadmap cleanup: [PRODUCT_ROADMAP.md](../docs/roadmap/PRODUCT_ROADMAP.md) is the single index; removed `TODAY_SPRINT.md` and `roadmap/README.md`; campus scale track moved to [archive/PHASED_IMPROVEMENT_ROADMAP.md](../docs/roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md).
 - **Tests** — `conftest` forces `RAG_ENGINE=chain` so API stream tests stay isolated from developer `.env`.
