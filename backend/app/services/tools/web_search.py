@@ -34,10 +34,12 @@ def _mock_web_documents(query: str) -> list[Document]:
 
 
 def _tavily_documents(query: str) -> list[Document]:
-    api_key = getattr(settings, 'TAVILY_API_KEY', None)
-    if not api_key:
+    api_key_field = getattr(settings, 'TAVILY_API_KEY', None)
+    if not api_key_field:
         logger.warning('TAVILY_API_KEY not set; falling back to mock web search')
         return _mock_web_documents(query)
+    # TAVILY_API_KEY is typed as SecretStr in Settings; unwrap once.
+    api_key = api_key_field.get_secret_value() if hasattr(api_key_field, 'get_secret_value') else str(api_key_field)
     try:
         from tavily import TavilyClient
     except ImportError as e:

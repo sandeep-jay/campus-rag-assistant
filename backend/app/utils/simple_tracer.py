@@ -35,8 +35,9 @@ def get_client():
     # Otherwise, try to create a new client
     try:
         if settings.LANGCHAIN_API_KEY:
-            # Log all environment variables that might affect LangSmith
-            logger.info(f'LANGCHAIN_API_KEY exists (length: {len(settings.LANGCHAIN_API_KEY)})')
+            # Unwrap the SecretStr ONCE; never re-log or re-store the cleartext.
+            api_key = settings.LANGCHAIN_API_KEY.get_secret_value()
+            logger.info(f'LANGCHAIN_API_KEY exists (length: {len(api_key)})')
             logger.info(f'LANGCHAIN_ENDPOINT: {settings.LANGCHAIN_ENDPOINT}')
             logger.info(f'LANGCHAIN_PROJECT: {settings.LANGCHAIN_PROJECT}')
             logger.info(f'LANGCHAIN_TRACING_V2: {settings.LANGCHAIN_TRACING_V2}')
@@ -44,17 +45,17 @@ def get_client():
             # Set environment variables to ensure LangSmith internal checks pass
             if settings.LANGCHAIN_TRACING_V2:
                 os.environ['LANGCHAIN_TRACING_V2'] = 'true'
-            os.environ['LANGCHAIN_API_KEY'] = settings.LANGCHAIN_API_KEY
+            os.environ['LANGCHAIN_API_KEY'] = api_key
             os.environ['LANGCHAIN_PROJECT'] = settings.LANGCHAIN_PROJECT
             if settings.LANGCHAIN_ENDPOINT:
                 os.environ['LANGCHAIN_ENDPOINT'] = settings.LANGCHAIN_ENDPOINT
 
-            # Log system environment variables for diagnostic purposes
-            langchain_env_vars = {k: v for k, v in os.environ.items() if k.startswith('LANGCHAIN_')}
+            # Diagnostic log of LANGCHAIN_* env vars — never expose the key.
+            langchain_env_vars = {k: ('***' if k == 'LANGCHAIN_API_KEY' else v) for k, v in os.environ.items() if k.startswith('LANGCHAIN_')}
             logger.info(f'System environment variables: {langchain_env_vars}')
 
             new_client = Client(
-                api_key=settings.LANGCHAIN_API_KEY,
+                api_key=api_key,
                 api_url=settings.LANGCHAIN_ENDPOINT or None,
             )
             logger.info(f'LangSmith client initialized for project: {settings.LANGCHAIN_PROJECT}')
