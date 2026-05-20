@@ -9,11 +9,24 @@ Automated checks replace Travis CI. **Tox** remains the source of truth for what
 | **CI** | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | Push to `main`; PRs to `main`, `qa`, `release` |
 | **CD** | [`.github/workflows/cd.yml`](../.github/workflows/cd.yml) | Push to `qa` or `release`; manual `workflow_dispatch` |
 
-### CI job
+### CI jobs
 
-1. PostgreSQL 15 service + test DB bootstrap (same as former Travis).
-2. Python 3.11 + Node 20 (from `frontend-vue/.nvmrc`).
-3. `tox -e lint,backend,frontend-streamlit,frontend-vue` (sequential — no `-p auto`)
+`ci.yml` runs two jobs in parallel:
+
+1. **`tox (lint, backend, frontends)`**
+   - PostgreSQL 15 service + test DB bootstrap (same as former Travis).
+   - Python 3.11 + Node 20 (from `frontend-vue/.nvmrc`).
+   - `tox -e lint,backend,frontend-streamlit,frontend-vue` (sequential — no `-p auto`).
+   - The backend env runs `backend/tests/core/test_env_template.py`, which
+     fails the build if any `Settings` field is missing from `.env.example`
+     or any `SecretStr` field carries a real-looking uncommented value.
+
+2. **`gitleaks (history + diff)`**
+   - Installs a pinned `gitleaks` binary (8.30.x) and runs
+     `gitleaks detect --log-opts="--all --reflog --no-merges" --exit-code 1`
+     over the full history. Fails the build on any credential pattern hit.
+   - Mirrors the local `tox -e secrets` env and the `.githooks/pre-push`
+     gate — see [SECURITY.md](./SECURITY.md#secret-leak-defense-in-depth).
 
 ### CD pipeline
 
@@ -60,7 +73,11 @@ CD uses GitHub **environments** `qa` and `production` on deploy jobs (approval r
 
 ```bash
 tox -e lint,backend,frontend-streamlit,frontend-vue
+tox -e secrets   # gitleaks full-history scan (matches the CI secrets-scan job)
 ```
+
+The local `.githooks/pre-push` hook runs the same gitleaks scan before any
+push leaves your machine — install with `./scripts/install-hooks.sh`.
 
 ## Branch flow
 
