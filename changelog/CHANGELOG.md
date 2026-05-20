@@ -18,6 +18,10 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ## [Unreleased]
 
+### Fixed
+
+- **Frontend theme tokens compile correctly (delete-conversation dialog overlap)** — `frontend-vue/src/assets/main.css` was using Tailwind v4 (`@tailwindcss/vite` + `@import 'tailwindcss';`) without a `@theme` block, so design-token utilities (`bg-background`, `bg-card`, `bg-muted`, `border-border`, `text-foreground`, `text-muted-foreground`, etc.) were silent no-ops. Surfaces appeared opaque only because `body` set `background-color: hsl(var(--background))`; inside the scrolling session list, the sidebar's sticky delete-confirmation panel had no actual background and rendered transparently over the session items. Added an `@theme inline` mapping for the existing `--background`, `--foreground`, `--card`, `--popover`, `--primary`, `--secondary`, `--muted`, `--accent`, `--destructive`, `--border`, `--input`, and `--ring` CSS variables so the utilities compile. Fixes the delete-conversation dialog overlap and the `UserMenu` dropdown which used the same pattern.
+
 ### Security
 
 - **Dependency review PR guard** — added `dependency review (new high/critical CVEs)` to CI using `actions/dependency-review-action@v4`. It runs on pull requests and fails when a dependency diff introduces a new high/critical advisory. Dependabot alerts remain enabled, while Dependabot security auto-update PRs remain disabled for manual triage.
