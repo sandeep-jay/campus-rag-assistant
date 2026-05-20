@@ -31,7 +31,6 @@ def main() -> None:
     print('Verifying configuration settings...')
     print(f'PROJECT_NAME: {settings.PROJECT_NAME}')
     print(f'VERSION: {settings.VERSION}')
-    print(f'ENVIRONMENT: {settings.ENVIRONMENT}')
     print(f'APP_ENV: {settings.APP_ENV}')
     print(f'DATABASE_URL: {settings.DATABASE_URL}')
     print(f'AWS_REGION: {settings.AWS_REGION}')

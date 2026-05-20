@@ -18,7 +18,7 @@ load_dotenv(ROOT / '.env', override=True)
 os.environ.setdefault('LANGCHAIN_TRACING_V2', 'false')
 os.environ.setdefault('LANGSMITH_TRACING', 'false')
 os.environ.setdefault('RATE_LIMIT_ENABLED', 'false')
-os.environ.setdefault('ENVIRONMENT', 'test')
+os.environ.setdefault('APP_ENV', 'test')
 os.environ['DATABASE_URL'] = (
     f"postgresql://{os.environ.get('POSTGRES_USER', 'chatbot')}:"
     f"{os.environ.get('POSTGRES_PASSWORD', 'chatbot')}@"

@@ -124,7 +124,7 @@ sequenceDiagram
 
 ## Production-oriented behavior
 
-When `ENVIRONMENT` is `production` or `prod` (configurable via `.env`):
+When `APP_ENV` is `production` or `prod` (configurable via `.env`):
 
 - `ENABLE_DEV_API_ROUTES` defaults to **false** (hides `/api/auth/debug-auth`, `/api/chat/test_langsmith`).
 - `ENABLE_OPENAPI_DOCS` defaults to **false** (no Swagger/ReDoc/OpenAPI JSON).
