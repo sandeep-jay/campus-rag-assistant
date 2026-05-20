@@ -20,6 +20,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Security
 
+- **Frontend dev-tool CVEs remediated** — upgraded `frontend-vue` test/build tooling so `npm audit --audit-level=moderate` is clean: `vite` `6.4.2`, `esbuild` `0.25.0`, `vitest` / `@vitest/coverage-v8` `4.1.7`, plus lockfile transitive fixes for `ws` `8.20.1` and `brace-expansion` `5.0.6`. Verified with `npm run typecheck`, `npm test -- --run` (130 tests), `npm run build`, and `npm audit --audit-level=moderate`. `langgraph` / `langgraph-checkpoint` alerts remain deferred because patched checkpoint/LangGraph combinations require `langchain-core` 1.x and conflict with the current LangChain 0.3 stack.
 - **Vulnerable Python pins bumped to patched releases** (closes 7 Dependabot alerts on `main`):
   - `authlib==1.3.2` → `1.6.12` — patches 1 **CRITICAL** JWS injection (`GHSA-9ggr-2464-2j32`) and 5 HIGH advisories (OIDC bypass, padding oracle, DoS, account takeover).
   - `langchain==0.3.20` → `0.3.30` — patches HIGH LangSmith deserialize advisory.
