@@ -30,7 +30,7 @@ langchain-community==0.3
 langchain-openai>=0.2
 langchain==0.3.20
 langgraph==0.2.76
-langgraph-checkpoint==2.0.26
+langgraph-checkpoint==4.0.0
 langsmith>=0.0.77
 packaging==23.2
 passlib[bcrypt]==1.7.4
