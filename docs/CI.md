@@ -11,7 +11,7 @@ Automated checks replace Travis CI. **Tox** remains the source of truth for what
 
 ### CI jobs
 
-`ci.yml` runs two jobs in parallel:
+`ci.yml` runs three jobs in parallel on pull requests (two on `main` pushes):
 
 1. **`tox (lint, backend, frontends)`**
    - PostgreSQL 15 service + test DB bootstrap (same as former Travis).
@@ -27,6 +27,12 @@ Automated checks replace Travis CI. **Tox** remains the source of truth for what
      over the full history. Fails the build on any credential pattern hit.
    - Mirrors the local `tox -e secrets` env and the `.githooks/pre-push`
      gate — see [SECURITY.md](./SECURITY.md#secret-leak-defense-in-depth).
+
+3. **`dependency review (new high/critical CVEs)`**
+   - Runs only on pull requests using `actions/dependency-review-action@v4`.
+   - Fails when a dependency change introduces a new advisory at `high` or
+     `critical` severity. Existing alerts remain in the manual Dependabot
+     alert queue; Dependabot auto-update PRs stay disabled.
 
 ### CD pipeline
 
@@ -74,6 +80,7 @@ CD uses GitHub **environments** `qa` and `production` on deploy jobs (approval r
 ```bash
 tox -e lint,backend,frontend-streamlit,frontend-vue
 tox -e secrets   # gitleaks full-history scan (matches the CI secrets-scan job)
+# Dependency review runs in GitHub only because it compares PR dependency diffs
 ```
 
 The local `.githooks/pre-push` hook runs the same gitleaks scan before any

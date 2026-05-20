@@ -20,6 +20,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Security
 
+- **Dependency review PR guard** — added `dependency review (new high/critical CVEs)` to CI using `actions/dependency-review-action@v4`. It runs on pull requests and fails when a dependency diff introduces a new high/critical advisory. Dependabot alerts remain enabled, while Dependabot security auto-update PRs remain disabled for manual triage.
 - **Secret-leak defense in depth (gitleaks layers)** — five independent guards now sit between a credential and a public push:
   1. `.gitignore` `.env*` catch-all plus pattern blocks for keys/credentials/tfvars/secrets dirs;
   2. `backend/tests/core/test_env_template.py` (every `Settings` field documented; no real-looking `SecretStr` values in `.env.example`);
