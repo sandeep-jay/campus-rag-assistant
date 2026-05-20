@@ -34,6 +34,5 @@ class TestSettings(DefaultSettings):
 
     DATABASE_URL: str = 'postgresql://chatbot:chatbot@localhost:5432/chatbot_test'
     LOGGING_LEVEL: str = 'DEBUG'
-    ENVIRONMENT: str = 'test'
 
     TEST_MODE: bool = True

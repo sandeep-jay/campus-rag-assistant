@@ -16,7 +16,7 @@ from backend.app.db.database import Base, engine
 
 initialize_logger()
 
-_env = (getattr(settings, 'APP_ENV', None) or settings.ENVIRONMENT or '').lower()
+_env = (settings.APP_ENV or '').lower()
 if _env in ('development', 'test', 'testing'):
     logger.info('Creating database tables via metadata.create_all (dev/test only)')
     Base.metadata.create_all(bind=engine)

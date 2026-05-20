@@ -85,7 +85,6 @@ class DefaultSettings(BaseSettings):
     LANGCHAIN_ENDPOINT: str | None = None
 
     # Application settings
-    ENVIRONMENT: str = 'development'
     APP_ENV: str | None = None
 
     # Logging settings
