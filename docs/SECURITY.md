@@ -122,6 +122,16 @@ cleartext is only read at the boundary that needs it via
   AWS/GCP credential files, or anything under `secrets/` — all are
   pattern-blocked in `.gitignore`.
 
+
+### Dependency alert policy
+
+Dependabot **alerts** are enabled, but Dependabot **security updates** (automatic
+version-bump PRs) are disabled because they have broken the build during active
+work. Triage alerts manually from the GitHub Security tab, batch related updates
+into reviewable PRs, and let CI validate them. New PRs are guarded by the
+`dependency review (new high/critical CVEs)` job, which fails if a dependency
+change introduces a new high or critical advisory.
+
 ### If a secret leaks
 
 1. **Rotate the credential at the provider immediately.** Treat any value
