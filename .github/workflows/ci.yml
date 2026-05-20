@@ -78,3 +78,36 @@ jobs:
 
       - name: Run tox
         run: tox -e lint,backend,frontend-streamlit,frontend-vue
+
+  secrets-scan:
+    name: gitleaks (history + diff)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    # Independent of the main test job — a leak must fail CI even if tests
+    # would have passed, and faster.
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          # `--log-opts="--all"` requires real history, not the shallow
+          # default that `actions/checkout` provides.
+          fetch-depth: 0
+
+      - name: Install gitleaks
+        run: |
+          set -euo pipefail
+          GITLEAKS_VERSION=8.30.1
+          curl -fsSL -o /tmp/gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          sudo install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Scan full history
+        run: |
+          gitleaks detect \
+            --source . \
+            --no-banner \
+            --redact \
+            --log-opts="--all --reflog --no-merges" \
+            --exit-code 1
