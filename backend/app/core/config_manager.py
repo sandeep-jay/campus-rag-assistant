@@ -26,6 +26,7 @@ ENHANCEMENTS, OR MODIFICATIONS.
 import os
 from pathlib import Path
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings
 
 from backend.app.config.development import DevelopmentSettings
@@ -133,24 +134,23 @@ settings = Settings()
 PROJECT_NAME: str = settings.PROJECT_NAME
 VERSION: str = settings.VERSION
 API_V1_STR: str = settings.API_V1_STR
-SECRET_KEY: str = settings.SECRET_KEY
+SECRET_KEY: SecretStr = settings.SECRET_KEY
 ALGORITHM: str = settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES: int = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 BACKEND_CORS_ORIGINS: list[str] = settings.BACKEND_CORS_ORIGINS
 FRONTEND_URL: str = settings.FRONTEND_URL
 SQLALCHEMY_DATABASE_URI: str | None = settings.SQLALCHEMY_DATABASE_URI
 AWS_ACCESS_KEY_ID: str | None = settings.AWS_ACCESS_KEY_ID
-AWS_SECRET_ACCESS_KEY: str | None = settings.AWS_SECRET_ACCESS_KEY
+AWS_SECRET_ACCESS_KEY: SecretStr | None = settings.AWS_SECRET_ACCESS_KEY
 AWS_REGION: str = settings.AWS_REGION
 AWS_ROLE_ARN: str | None = settings.AWS_ROLE_ARN
 AWS_PROFILE_NAME: str | None = settings.AWS_PROFILE_NAME  # Deprecated: Use instance profiles on EC2 instead
 BEDROCK_MODEL_ID: str = settings.BEDROCK_MODEL_ID
 BEDROCK_KNOWLEDGE_BASE_ID: str | None = settings.BEDROCK_KNOWLEDGE_BASE_ID
 LANGCHAIN_TRACING_V2: bool = settings.LANGCHAIN_TRACING_V2
-LANGCHAIN_API_KEY: str | None = settings.LANGCHAIN_API_KEY
+LANGCHAIN_API_KEY: SecretStr | None = settings.LANGCHAIN_API_KEY
 LANGCHAIN_PROJECT: str = settings.LANGCHAIN_PROJECT
 LANGCHAIN_ENDPOINT: str | None = settings.LANGCHAIN_ENDPOINT
-ENVIRONMENT: str = settings.ENVIRONMENT
 APP_ENV: str | None = settings.APP_ENV
 LOG_TO_FILE: bool = settings.LOG_TO_FILE
 LOGGING_FORMAT: str = settings.LOGGING_FORMAT

@@ -29,7 +29,7 @@ class AzureLlmProvider(BaseLlmProvider):
         kwargs = dict(
             azure_deployment=settings.AZURE_OPENAI_DEPLOYMENT,
             azure_endpoint=str(settings.AZURE_OPENAI_ENDPOINT).rstrip('/'),
-            api_key=settings.AZURE_OPENAI_API_KEY,
+            api_key=(settings.AZURE_OPENAI_API_KEY.get_secret_value() if settings.AZURE_OPENAI_API_KEY else None),
             api_version=settings.AZURE_OPENAI_API_VERSION,
             temperature=settings.TEMPERATURE,
             max_tokens=settings.MAX_TOKENS,

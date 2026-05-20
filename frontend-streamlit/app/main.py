@@ -241,7 +241,7 @@ def main():
     ]:
         logger.info(f"  {var}: {os.environ.get(var, 'Not set')}")
     logger.info(f'Current directory: {os.getcwd()}')
-    logger.info(f"Environment: {os.environ.get('ENVIRONMENT', 'Not set')}")
+    logger.info(f"Environment: {os.environ.get('APP_ENV', 'Not set')}")
 
     st.set_page_config(page_title='RTL Services Support Chatbot', layout='wide')
 

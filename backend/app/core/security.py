@@ -74,13 +74,21 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
         )
 
     to_encode.update({'exp': expire})
-    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return jwt.encode(
+        to_encode,
+        settings.SECRET_KEY.get_secret_value(),
+        algorithm=settings.ALGORITHM,
+    )
 
 
 def verify_token(token: str) -> dict | None:
     # Verify a JWT token and return its payload if valid.
     try:
-        return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        return jwt.decode(
+            token,
+            settings.SECRET_KEY.get_secret_value(),
+            algorithms=[settings.ALGORITHM],
+        )
     except jwt.ExpiredSignatureError:
         # Add specific handling for expired tokens
         return None

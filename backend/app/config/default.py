@@ -25,18 +25,26 @@ ENHANCEMENTS, OR MODIFICATIONS.
 
 from typing import Any
 
-from pydantic import field_validator
-from pydantic_settings import BaseSettings
+from pydantic import SecretStr, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class DefaultSettings(BaseSettings):
-    """Default application settings."""
+    """Default application settings.
+
+    Secret-bearing fields are typed as ``SecretStr`` so they are masked in
+    ``repr``, logs, exceptions, and ``model_dump_json`` output. Read the
+    cleartext via ``.get_secret_value()`` only at the boundary that needs it
+    (JWT codec, HTTP client, etc.).
+    """
 
     # CORE SETTINGS
     PROJECT_NAME: str = 'EdTech RAG Assistant API'
     VERSION: str = '1.0.0'
     API_V1_STR: str = '/api'
-    SECRET_KEY: str = 'supersecretkey'
+    # SECRET_KEY is required in production; the default below is a sentinel
+    # that must never reach prod (CI/startup checks should reject it).
+    SECRET_KEY: SecretStr = SecretStr('supersecretkey')
 
     # DATABASE SETTINGS
     DATABASE_URL: str = 'postgresql://chatbot:chatbot@localhost:5432/chatbot'
@@ -70,7 +78,7 @@ class DefaultSettings(BaseSettings):
 
     # AWS settings
     AWS_ACCESS_KEY_ID: str | None = None
-    AWS_SECRET_ACCESS_KEY: str | None = None
+    AWS_SECRET_ACCESS_KEY: SecretStr | None = None
     AWS_REGION: str = 'us-east-1'
     AWS_ROLE_ARN: str | None = None
     AWS_PROFILE_NAME: str | None = None  # Deprecated: Use instance profiles on EC2 instead
@@ -80,12 +88,11 @@ class DefaultSettings(BaseSettings):
 
     # LangSmith settings
     LANGCHAIN_TRACING_V2: bool = False
-    LANGCHAIN_API_KEY: str | None = None
+    LANGCHAIN_API_KEY: SecretStr | None = None
     LANGCHAIN_PROJECT: str = 'chatbot-poc'
     LANGCHAIN_ENDPOINT: str | None = None
 
     # Application settings
-    ENVIRONMENT: str = 'development'
     APP_ENV: str | None = None
 
     # Logging settings
@@ -132,7 +139,7 @@ class DefaultSettings(BaseSettings):
     RAG_ENGINE: str = 'chain'
     WEB_RESEARCH_ENABLED: bool = False
     WEB_SEARCH_PROVIDER: str = 'mock'  # mock | tavily
-    TAVILY_API_KEY: str | None = None
+    TAVILY_API_KEY: SecretStr | None = None
     WEB_SEARCH_MAX_RESULTS: int = 5
 
     # Observability and platform
@@ -162,15 +169,16 @@ class DefaultSettings(BaseSettings):
 
     # Azure OpenAI (optional — for LLM_PROVIDER=azure)
     AZURE_OPENAI_ENDPOINT: str | None = None
-    AZURE_OPENAI_API_KEY: str | None = None
+    AZURE_OPENAI_API_KEY: SecretStr | None = None
     AZURE_OPENAI_DEPLOYMENT: str | None = None
     AZURE_OPENAI_API_VERSION: str = '2024-02-01'
     AZURE_EMBEDDING_DEPLOYMENT: str | None = None
 
     # Azure AI Search (optional — for RETRIEVER_PROVIDER=azure)
     AZURE_SEARCH_SERVICE_NAME: str | None = None
-    AZURE_SEARCH_KEY: str | None = None
+    AZURE_SEARCH_KEY: SecretStr | None = None
     AZURE_SEARCH_INDEX: str | None = None
+    AZURE_SEARCH_VECTOR_FIELD: str = 'text_vector'
 
     # Auth cookies (set AUTH_COOKIE_SECURE=true in production HTTPS)
     AUTH_COOKIE_SECURE: bool = False
@@ -180,10 +188,18 @@ class DefaultSettings(BaseSettings):
     OAUTH_REDIRECT_BASE_URL: str | None = None
     OAUTH_ENABLED_PROVIDERS: str = 'google,github'
     OAUTH_GOOGLE_CLIENT_ID: str | None = None
-    OAUTH_GOOGLE_CLIENT_SECRET: str | None = None
+    OAUTH_GOOGLE_CLIENT_SECRET: SecretStr | None = None
     OAUTH_GITHUB_CLIENT_ID: str | None = None
-    OAUTH_GITHUB_CLIENT_SECRET: str | None = None
+    OAUTH_GITHUB_CLIENT_SECRET: SecretStr | None = None
 
-    model_config = {
-        'extra': 'allow',
-    }
+    # `extra='ignore'` (was `'allow'`) drops unrecognised env vars instead of
+    # silently attaching them, so typos surface as missing-attribute errors at
+    # the callsite. For CI/prod consider `extra='forbid'` to fail fast on
+    # unknown keys. `secrets_dir` enables Docker / Kubernetes secret-file
+    # mounts (e.g. `/run/secrets/SECRET_KEY`) — see docs/SECURITY.md.
+    model_config = SettingsConfigDict(
+        extra='ignore',
+        case_sensitive=True,
+        env_file_encoding='utf-8',
+        secrets_dir=None,
+    )

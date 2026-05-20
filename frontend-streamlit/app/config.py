@@ -52,7 +52,7 @@ def initialize_config():
     # Log the core settings using basic logger
     _init_logger.info(f'API URL set to {settings.API_URL}')
     _init_logger.info(f'Logging level set to {settings.LOGGING_LEVEL}')
-    _init_logger.info(f'Environment set to {settings.ENVIRONMENT}')
+    _init_logger.info(f'Environment set to {settings.APP_ENV}')
 
 
 class Settings:
@@ -77,7 +77,7 @@ class Settings:
     )
 
     # Application settings
-    ENVIRONMENT: str = os.getenv('ENVIRONMENT', 'development')
+    APP_ENV: str = os.getenv('APP_ENV', 'development')
 
     def as_dict(self) -> dict[str, Any]:
         # Return configuration as a dictionary.
