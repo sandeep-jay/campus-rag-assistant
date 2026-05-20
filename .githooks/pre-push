@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# pre-push — block a `git push` whenever gitleaks finds a credential in the
+# range of commits being uploaded.
+#
+# Skip with: `git push --no-verify`  (don't, unless you know what you're doing).
+# Disable entirely by removing or chmod -x'ing this file.
+
+set -euo pipefail
+
+# Detect gitleaks; if missing, warn loudly but do NOT block — local dev should
+# never be hard-broken just because the binary isn't installed. CI enforces
+# the same check, so a missing local hook cannot sneak a leak through to
+# origin.
+if ! command -v gitleaks >/dev/null 2>&1; then
+  printf '\033[33m[pre-push]\033[0m gitleaks not installed — skipping secret scan.\n' >&2
+  printf '\033[33m[pre-push]\033[0m install with: brew install gitleaks  (or  apt install gitleaks)\n' >&2
+  exit 0
+fi
+
+# `git` feeds us lines of:   <local_ref> <local_sha> <remote_ref> <remote_sha>
+# on stdin, one per ref being pushed. Build a single revision range that
+# covers all of them so we scan only the new commits.
+
+ZERO='0000000000000000000000000000000000000000'
+ranges=()
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # `local_sha == ZERO` means the ref is being deleted — nothing to scan.
+  [[ "$local_sha" == "$ZERO" ]] && continue
+
+  if [[ "$remote_sha" == "$ZERO" ]]; then
+    # New branch — scan everything reachable from local_sha that isn't on any
+    # other remote ref yet. Falls back to scanning the whole branch if we
+    # can't compute the exclusion list.
+    if exclude="$(git for-each-ref --format='^%(objectname)' refs/remotes/ 2>/dev/null | tr '\n' ' ')"; then
+      ranges+=("$local_sha" $exclude)
+    else
+      ranges+=("$local_sha")
+    fi
+  else
+    # Updating an existing remote ref — scan only the new commits.
+    ranges+=("${remote_sha}..${local_sha}")
+  fi
+done
+
+# If nothing to scan (e.g. only deletions), let the push through.
+if [[ ${#ranges[@]} -eq 0 ]]; then
+  exit 0
+fi
+
+printf '\033[36m[pre-push]\033[0m running gitleaks on: %s\n' "${ranges[*]}" >&2
+
+# `gitleaks detect` with --log-opts limits the rev walk to the push range.
+# --redact keeps the secret value out of stderr if a finding shows up.
+if ! gitleaks detect \
+    --no-banner \
+    --redact \
+    --log-opts="${ranges[*]} --no-merges" \
+    --report-format json \
+    --report-path /tmp/gitleaks-pre-push.json; then
+  printf '\n\033[31m[pre-push] BLOCKED:\033[0m gitleaks found a potential credential in the commits you are about to push.\n' >&2
+  printf '  Report : /tmp/gitleaks-pre-push.json\n' >&2
+  printf '  Bypass : git push --no-verify  (only after manual review confirms a false positive)\n' >&2
+  exit 1
+fi
+
+printf '\033[32m[pre-push]\033[0m gitleaks clean — pushing.\n' >&2
+exit 0

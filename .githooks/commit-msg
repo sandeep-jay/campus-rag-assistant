@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+# commit-msg — strip AI-tool authorship/attribution lines from commit messages.
+#
+# Delegates all logic to .githooks/tool_attribution_guard.py so the same
+# implementation can be reused as a global hook
+# (~/.config/git/hooks/commit-msg) and a Cursor preToolUse hook.
+#
+# Skip with: git commit --no-verify  (don't, unless you have a strong reason).
+
 set -euo pipefail
 
 MSG_FILE="${1:-}"
@@ -6,19 +14,12 @@ if [[ -z "$MSG_FILE" || ! -f "$MSG_FILE" ]]; then
   exit 0
 fi
 
-# Remove Cursor co-author trailer if present.
-# Keep other Co-authored-by lines intact.
-python3 - "$MSG_FILE" <<'PY'
-from pathlib import Path
-import sys
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+GUARD="$HOOK_DIR/tool_attribution_guard.py"
 
-p = Path(sys.argv[1])
-lines = p.read_text().splitlines(keepends=True)
-filtered = []
-for line in lines:
-    low = line.strip().lower()
-    if low == 'co-authored-by: cursor <cursoragent@cursor.com>':
-        continue
-    filtered.append(line)
-p.write_text(''.join(filtered))
-PY
+if [[ ! -x "$GUARD" ]]; then
+  # Guard missing — fail open: do not block commits if the script is gone.
+  exit 0
+fi
+
+python3 "$GUARD" "$MSG_FILE"
