@@ -6,6 +6,7 @@ See the root [README](../README.md) for setup, features, screenshots, and stack 
 
 | Audience | Start with |
 |----------|------------|
+| **Reviewer / hiring manager** | [PORTFOLIO_CASE_STUDY.md](./PORTFOLIO_CASE_STUDY.md) → [README](../README.md) |
 | **New to the codebase** | [DESIGN.md](./DESIGN.md) → [ARCHITECTURE.md](./ARCHITECTURE.md) → [README#quick-start](../README.md#quick-start-mock-rag-no-cloud) |
 | **RAG / LangGraph** | [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md) → [EVALUATION.md](./EVALUATION.md) |
 | **Ops / release** | [OPERATIONS.md](./OPERATIONS.md) → [CI.md](./CI.md) → [RELEASE.md](./RELEASE.md) |
@@ -14,10 +15,22 @@ See the root [README](../README.md) for setup, features, screenshots, and stack 
 
 | Doc | Description |
 |-----|-------------|
+| [PORTFOLIO_CASE_STUDY.md](./PORTFOLIO_CASE_STUDY.md) | Portfolio narrative (hiring reviewers) |
 | [DESIGN.md](./DESIGN.md) | **Design goals and decisions** — why chain vs LangGraph, retrieval stack, eval, OAuth, web mode |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Diagrams, request flows, API and frontend layout |
 | [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md) | Graph nodes, configuration, streaming behavior |
 | [roadmap/WEB_RESEARCH.md](./roadmap/WEB_RESEARCH.md) | Opt-in `research_mode=web` |
+
+
+## Decisions (ADRs)
+
+| Doc | Description |
+|-----|-------------|
+| [adr/README.md](./adr/README.md) | ADR index and template |
+| [adr/ADR-001-provider-registry.md](./adr/ADR-001-provider-registry.md) | AWS / Azure / mock provider registry |
+| [adr/ADR-002-langgraph-vs-chain.md](./adr/ADR-002-langgraph-vs-chain.md) | Dual `RAG_ENGINE` tradeoffs |
+| [adr/ADR-003-opt-in-web-research.md](./adr/ADR-003-opt-in-web-research.md) | Per-message web research |
+| [adr/ADR-004-eval-gating-policy.md](./adr/ADR-004-eval-gating-policy.md) | RAGAS gates as release controls |
 
 ## Screenshots and demos
 
@@ -50,6 +63,7 @@ See the root [README](../README.md) for setup, features, screenshots, and stack 
 | [CI.md](./CI.md) | GitHub Actions CI/CD, secrets, branch gates |
 | [RELEASE.md](./RELEASE.md) | `main` → `qa` → `release` promotion |
 | [OPERATIONS.md](./OPERATIONS.md) | Runbooks, metrics, migrations |
+| [PRODUCTION_HARDENING.md](./PRODUCTION_HARDENING.md) | Scale, security, and ops backlog |
 | [PRODUCTION_TLS.md](./PRODUCTION_TLS.md) | HTTPS, OAuth (API-port + handoff) |
 | [SECURITY.md](./SECURITY.md) | Dependency audit, production hardening |
 | [PERFORMANCE.md](./PERFORMANCE.md) | Chat history caps and latency metrics |

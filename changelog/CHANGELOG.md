@@ -20,6 +20,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
+- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - **README** — Overview without `<details>` collapsibles (full architecture, design, screenshots, LangSmith traces visible); CI status badge.
 - **Eval** — expanded [eval_baseline_2026-05-19.md](../docs/eval_baseline_2026-05-19.md) (retained AWS scores, Azure sweep table, findings); eval respects LangGraph when `RAGAS_EVAL=1`; Phase 5 script precision-balanced profile; `RAGAS_DO_NOT_TRACK` in tox eval.
 - **Logging** — `RequestIdFilter` on handlers; redact JWT payloads and chat queries at INFO; cap vendor loggers; optional `LOG_JSON`; access log via `app.access`; single idempotent `initialize_logger()`.
@@ -39,6 +40,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
+- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - **Docs** — README refresh (highlights, LangGraph/web/eval features, stack table); screenshot gallery under `docs/assets/{product,observability,auth}/`; doc index ([docs/README.md](../docs/README.md)), [ARCHITECTURE.md](../docs/ARCHITECTURE.md), [WEB_RESEARCH.md](../docs/roadmap/WEB_RESEARCH.md); consolidated LangSmith capture in [EVALUATION.md](../docs/EVALUATION.md); `.gitignore` for `.cursor/` and golden draft.
 - **Phase 5 retrieval tuning** — RRF document fusion, keyword prefilter before rerank; tuned eval profile in `scripts/run_eval_phase5.sh` (faithfulness/recall up vs initial Phase 5; precision still below gate).
 - **Phase 3 lite** — portfolio RAGAS baseline policy; LangSmith trace screenshots in README; Phase 3 roadmap marked done (lite).
@@ -61,6 +63,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
+- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - **CI** — `tox -e lint,backend,frontend-vue` green; ruff format/fix, LangGraph import fixes, ChatView `research-mode` binding.
 - **Docs** — roadmap cleanup: [PRODUCT_ROADMAP.md](../docs/roadmap/PRODUCT_ROADMAP.md) is the single index; removed `TODAY_SPRINT.md` and `roadmap/README.md`; campus scale track moved to [archive/PHASED_IMPROVEMENT_ROADMAP.md](../docs/roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md).
 - **Tests** — `conftest` forces `RAG_ENGINE=chain` so API stream tests stay isolated from developer `.env`.
@@ -71,6 +74,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
+- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - **Runtime dependencies** — FastAPI 0.115.x (Starlette CVE fixes), `python-multipart>=0.0.27`, `python-jose>=3.4`, `PyJWT>=2.12`, `requests`/`urllib3`/`httpx` upgrades, `gunicorn>=22`, `python-dotenv>=1.2.2`.
 - **LangGraph pins** — exact `langgraph==0.2.76` + `langgraph-checkpoint==2.0.26` (resolves `httpx` conflict with LangChain 0.3).
 
@@ -91,6 +95,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
+- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - **Dependencies** — pin `langgraph` 0.2.x + `langgraph-checkpoint` 2.x for LangChain 0.3 compatibility (see upcoming security branch for broader bumps).
 - **`scripts/run-backend-venv.sh`** — start via `./venv/bin/python -m uvicorn` so reload uses project venv.
 
@@ -116,6 +121,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
+- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - **Local dev defaults** — Vite on `http://127.0.0.1:5173` (`strictPort`); `FRONTEND_URL` / `OAUTH_REDIRECT_BASE_URL` aligned to avoid `MismatchingStateError` (see [PRODUCTION_TLS.md](../docs/PRODUCTION_TLS.md#local-oauth-development)).
 - **Frontend** — Pinia chat store appends stream tokens immediately; dedicated `/api/chat/stream` Vite proxy (no buffering).
 - **Auth API** — login/register use shared cookie helpers; OAuth links or creates users by provider subject.
@@ -136,6 +142,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
+- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - **Prompt templates** — generic `prompt_prefix.txt` / `few_shot_examples.json` with `{{placeholders}}`.
 - **Chat + RAG** — hydrate prompts per request from the signed-in user's tenant.
 - **`PROJECT_NAME`** / **`.env.example`** — `ASSISTANT_NAME`, `SUPPORTED_TOPICS`, `OUT_OF_SCOPE_MESSAGE`.
@@ -154,6 +161,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
+- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - **Streaming:** removed fixed `time.sleep` on SSE tokens; optional demo delay via `STREAM_ARTIFICIAL_DELAY_MS` in RAG only.
 - **Chat API:** `_load_chat_history()` caps messages passed to LangChain.
 - **DB:** SQLAlchemy engine uses configured pool + `pool_pre_ping`.
@@ -167,6 +175,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
+- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - README: product-first **Campus RAG Assistant** opening; license/attribution under License.
 - GitHub repo renamed to [**campus-rag-assistant**](https://github.com/sandeep-jay/campus-rag-assistant); About description updated.
 - **changelog/CHANGELOG.md** — single session-based log under `changelog/` (other files in folder gitignored).
@@ -194,6 +203,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
+- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - **tox** `backend`: `RATE_LIMIT_ENABLED=false`, exclude `slow` (RAGAS) by default.
 - **README** Testing: `tox -e lint,backend,frontend-streamlit,frontend-vue`.
 - Ruff/pytest marker cleanups.
@@ -319,6 +329,7 @@ Upstream: [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot).
 
 ### Changed
 
+- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - Removed basic Streamlit prototype in favor of modular refactor ([CBO-99]).
 
 ---
@@ -379,4 +390,5 @@ Upstream: [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot).
 
 ### Changed
 
+- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - `.gitignore` for `.tox` and `.ruff*` ([NOJIRA]).

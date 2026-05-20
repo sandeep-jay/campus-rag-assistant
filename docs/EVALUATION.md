@@ -2,6 +2,8 @@
 
 How to judge additions to this project — when changing RAG behavior, LangGraph nodes, or retrieval settings.
 
+The baseline below is an **engineering signal**, not a marketing claim. **context_recall** passes the gate under the tuned AWS profile; **faithfulness**, **answer_relevancy**, and **context_precision** are documented baselines with active levers (ingestion/chunking, rerank tuning, golden-set re-bootstrap). Gates are **release controls**, not blockers for local demo or PR CI.
+
 ---
 
 ## Two tools, two jobs
