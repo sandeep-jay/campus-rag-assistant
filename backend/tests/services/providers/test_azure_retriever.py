@@ -2,6 +2,8 @@
 
 from unittest.mock import MagicMock, patch
 
+from pydantic import SecretStr
+
 from backend.app.services.providers.retriever.azure import AzureHybridRetriever, AzureRetrieverProvider
 
 
@@ -46,11 +48,11 @@ def test_azure_retriever_provider_get_retriever():
         patch('backend.app.services.providers.retriever.azure.AzureOpenAIEmbeddings') as emb_ctor,
     ):
         s.AZURE_OPENAI_ENDPOINT = 'https://x.openai.azure.com/'
-        s.AZURE_OPENAI_API_KEY = 'k'
+        s.AZURE_OPENAI_API_KEY = SecretStr('k')
         s.AZURE_OPENAI_API_VERSION = '2024-02-01'
         s.AZURE_EMBEDDING_DEPLOYMENT = 'ada'
         s.AZURE_SEARCH_SERVICE_NAME = 'svc'
-        s.AZURE_SEARCH_KEY = 'sk'
+        s.AZURE_SEARCH_KEY = SecretStr('sk')
         s.AZURE_SEARCH_INDEX = 'idx'
         s.AZURE_SEARCH_VECTOR_FIELD = 'vf'
         s.RETRIEVER_NUMBER_OF_RESULTS = 5

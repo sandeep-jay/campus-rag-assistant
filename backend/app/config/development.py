@@ -34,7 +34,6 @@ class DevelopmentSettings(DefaultSettings):
 
     DATABASE_URL: str = 'postgresql://chatbot:chatbot@localhost:5432/chatbot_dev'
     LOGGING_LEVEL: str = 'DEBUG'
-    ENVIRONMENT: str = 'development'
 
     # Development-specific settings
     DEBUG: bool = True

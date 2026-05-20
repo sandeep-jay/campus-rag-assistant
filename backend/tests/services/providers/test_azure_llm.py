@@ -2,6 +2,8 @@
 
 from unittest.mock import MagicMock, patch
 
+from pydantic import SecretStr
+
 from backend.app.services.providers.llm.azure import AzureLlmProvider
 
 
@@ -15,7 +17,7 @@ def test_azure_llm_get_llm_wiring():
         ) as ctor,
     ):
         s.AZURE_OPENAI_ENDPOINT = 'https://x.openai.azure.com/'
-        s.AZURE_OPENAI_API_KEY = 'k'
+        s.AZURE_OPENAI_API_KEY = SecretStr('k')
         s.AZURE_OPENAI_DEPLOYMENT = 'gpt-4o'
         s.AZURE_OPENAI_API_VERSION = '2024-02-01'
         s.TEMPERATURE = 0.2

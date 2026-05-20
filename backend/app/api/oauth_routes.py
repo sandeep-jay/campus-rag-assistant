@@ -38,7 +38,7 @@ class OAuthHandoffRequest(BaseModel):
 
 
 def _is_development() -> bool:
-    env = (getattr(settings, 'APP_ENV', None) or settings.ENVIRONMENT or '').lower()
+    env = (settings.APP_ENV or '').lower()
     return env in ('development', 'dev', 'local')
 
 
