@@ -41,13 +41,77 @@ Thumbs.db
 /dist
 node_modules
 
-# Environment variables
-.env
-.env.local
-.env.*.local
+# Environment variables — never commit live values.
+# `.env*` is a deliberate catch-all (matches .env, .env.local, .env.bak,
+# .env.bak.<ts>, .envrc, .environment, etc.). Only the two template files
+# committed for new contributors are whitelisted.
+.env*
+!.env.example
+!.env.test
+
+# Credentials and key material
+*.pem
+*.crt
+*.cer
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+id_ecdsa
+id_ecdsa.*
+*.ppk
+known_hosts
+authorized_keys
+aws-credentials*
+.aws/credentials
+.aws/config
+gcp-*.json
+gcp-credentials*.json
+service-account*.json
+service_account*.json
+azure-credentials*
+.azure/
+*.kdbx
+*.netrc
+.netrc
+.pypirc
+.npmrc
+
+# Secrets and dumps
+secrets/
+secrets.*
+credentials/
+credentials.*
+*.secret
+*.secrets
+*.dump
+*.sql.dump
+*.bak
+*.backup
+private/
+
+# Terraform / Ansible secret material
+*.tfvars
+*.tfvars.json
+*.tfstate
+*.tfstate.*
+terraform.tfstate.d/
+.terraform/
+ansible-vault.password
+*.vault
+.vault_pass*
+
+# Local IDE / agent state that often contains tokens
+.idea/workspace.xml
+.vscode/launch.json
+.vscode/settings.json
+.cursor/
 
 # Local configs
-.env.*local
 config/apache-local.conf
 config/*-local.py
 config/build-summary.json
