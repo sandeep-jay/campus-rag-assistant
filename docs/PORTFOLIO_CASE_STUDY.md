@@ -10,9 +10,9 @@ Campus knowledge is scattered across LMS guides, ServiceNow articles, and policy
 
 ## My role
 
-I extended the upstream [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot) institutional chatbot into a full-stack RAG platform. The upstream project proved the domain (campus teaching-and-learning and IT knowledge). I owned the platform surface: multicloud providers, Vue product UI, LangGraph orchestration, evaluation harness, observability, CI/CD, and operational runbooks.
+I owned the platform transformation work represented in this repository: the Vue product UI, provider registry, AWS / Azure / mock execution modes, LangGraph orchestration, RAGAS evaluation harness, LangSmith observability, CI/CD, load testing, and operational documentation.
 
-This repository is an **independent extension** for portfolio and educational use—not an official product of any single institution.
+The project builds from the public [`ets-berkeley-edu/chabot`](https://github.com/ets-berkeley-edu/chabot) codebase, which established the campus chatbot domain. This repository extends that base into a source-reviewable AI platform architecture artifact for portfolio and educational review. It is not an official UC Berkeley or UC product.
 
 ## Architecture
 
