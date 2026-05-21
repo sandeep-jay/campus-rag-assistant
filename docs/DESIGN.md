@@ -10,7 +10,7 @@ This document records **why** the system is shaped the way it is. For component 
 
 Campus RAG Assistant is a **retrieval-augmented chat application** for **campus teaching, learning, and education IT knowledge** (for example Canvas LMS and LTI tooling, accessibility and inclusive teaching guidance, and ServiceNow IT knowledge articles). Users ask natural-language questions; the system retrieves grounded context, generates a structured answer with citations, and keeps per-user chat history.
 
-It is an independent evolution of the upstream [chabot](https://github.com/ets-berkeley-edu/chabot) codebase: same problem domain (institutional knowledge), expanded platform surface (Vue SPA, provider registry, LangGraph pipeline, formal evaluation).
+It is an independent extension of the upstream [chabot](https://github.com/ets-berkeley-edu/chabot) codebase: same problem domain (institutional knowledge), expanded platform surface (Vue SPA, provider registry, LangGraph pipeline, formal evaluation).
 
 ---
 

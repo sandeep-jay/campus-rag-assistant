@@ -1,0 +1,96 @@
+site_name: Campus RAG Assistant
+site_description: Production-style RAG platform for governed campus knowledge
+site_url: https://sandeep-jay.github.io/campus-rag-assistant/
+repo_url: https://github.com/sandeep-jay/campus-rag-assistant
+repo_name: sandeep-jay/campus-rag-assistant
+edit_uri: edit/main/docs/
+exclude_docs: |
+  /README.md
+
+validation:
+  nav:
+    omitted_files: ignore
+    not_found: ignore
+    absolute_links: ignore
+  links:
+    not_found: ignore
+    absolute_links: ignore
+    unrecognized_links: ignore
+    anchors: ignore
+
+theme:
+  name: material
+  custom_dir: docs/overrides
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path:
+        - .
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+plugins:
+  - search
+
+nav:
+  - Start Here: index.md
+  - Case Study: PORTFOLIO_CASE_STUDY.md
+  - Architecture: ARCHITECTURE.md
+  - Design Notes: DESIGN.md
+  - Evaluation:
+      - Approach: EVALUATION.md
+      - Baseline: eval_baseline_2026-05-19.md
+  - Operations:
+      - Operations: OPERATIONS.md
+      - CI/CD: CI.md
+      - Release: RELEASE.md
+      - Security: SECURITY.md
+      - Production Hardening: PRODUCTION_HARDENING.md
+      - Production TLS: PRODUCTION_TLS.md
+      - Load Testing: LOAD_TESTING.md
+      - E2E: E2E.md
+  - Roadmap:
+      - Product Roadmap: roadmap/PRODUCT_ROADMAP.md
+      - LangGraph: roadmap/LANGGRAPH.md
+      - Web Research: roadmap/WEB_RESEARCH.md
+      - ADRs: adr/README.md
+  - Changelog: changelog.md
+  - Notice: notice.md
+  - License: license.md
+  - Code on GitHub: https://github.com/sandeep-jay/campus-rag-assistant

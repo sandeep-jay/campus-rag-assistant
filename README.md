@@ -1,12 +1,19 @@
 # Campus RAG Assistant
 
 [![CI](https://github.com/sandeep-jay/campus-rag-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/sandeep-jay/campus-rag-assistant/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-github--pages-blue.svg)](https://sandeep-jay.github.io/campus-rag-assistant/)
+[![License](https://img.shields.io/badge/license-UC%20Regents-orange.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
+[![Node](https://img.shields.io/badge/node-20%2B-green.svg)](frontend-vue/.nvmrc)
+[![FastAPI](https://img.shields.io/badge/API-FastAPI-009688.svg)](backend/app/main.py)
+[![LangGraph](https://img.shields.io/badge/RAG-LangGraph-purple.svg)](docs/roadmap/LANGGRAPH.md)
+[![RAGAS](https://img.shields.io/badge/eval-RAGAS-yellow.svg)](docs/EVALUATION.md)
 
 **Production-style enterprise RAG platform** for governed campus knowledge.
 
-This project extends an institutional chatbot into a multicloud AI platform: **AWS Bedrock KB**, **Azure AI Search**, **LangGraph** orchestration, cited answers, tenant-aware prompts, **RAGAS** evals, **LangSmith** traces, CI/CD, load testing, and a **Vue 3** product UI.
+This independent extension evolves an institutional chatbot into a multicloud AI platform: **AWS Bedrock KB**, **Azure AI Search**, **LangGraph** orchestration, cited answers, tenant-aware prompts, **RAGAS** evals, **LangSmith** traces, CI/CD, load testing, and a **Vue 3** product UI.
 
-**Portfolio focus:** Lead AI Engineering and AI Platform Architecture.
+**Portfolio focus:** Lead AI Engineering and AI Platform Architecture. Live docs: <https://sandeep-jay.github.io/campus-rag-assistant/>.
 
 ![Structured KB answer with session history](docs/assets/product/chat-assistant-response.png)
 
@@ -25,15 +32,15 @@ This project is designed to demonstrate strengths relevant to:
 - Senior / Staff Applied AI Engineer
 - GenAI Platform Engineer
 
-## Portfolio highlights
+## What this shows
 
-| Signal | Evidence |
-|--------|----------|
-| **Product thinking** | Governed KB-first chat, cited sources, opt-in web research, feedback loop |
-| **AI engineering** | LangGraph RAG pipeline, multi-query retrieval, rerank, RAGAS evals |
-| **Platform architecture** | AWS/Azure/mock provider registry, tenant config, feature flags |
-| **Production discipline** | CI/CD, Alembic, Prometheus metrics, k6 load tests, security docs |
-| **UX delivery** | Vue 3 SPA, sessions, streaming answers, source panel, OAuth |
+| Layer | What is demonstrated |
+|-------|----------------------|
+| **Product** | Governed KB-first chat, cited sources, opt-in web research, feedback loop, and campus-ready UX |
+| **RAG engineering** | LangGraph retrieval stages, multi-query retrieval, rerank hooks, fallback chain streaming, and explicit source contracts |
+| **Platform architecture** | AWS/Azure/mock provider registry, tenant config, feature flags, Alembic migrations, and CI-safe local mode |
+| **Evaluation** | RAGAS golden-set regression harness, documented Phase 5 baseline, and LangSmith traces for KB/web paths |
+| **Operations** | GitHub Actions, gitleaks, dependency review, Prometheus metrics, k6 load tests, release docs, and runbooks |
 
 ## System at a glance
 
@@ -72,6 +79,15 @@ This is intentionally presented as an **engineering baseline**, not a marketing 
 ## Demo (~2–3 min)
 
 Walkthrough script: [docs/assets/README.md#product-demo-script-23-min](docs/assets/README.md#product-demo-script-23-min)
+
+| Area | Status |
+|------|--------|
+| Local mock demo | Implemented — clone, run backend/Vue, register, chat with cited mock sources |
+| Live AWS KB path | Implemented — Bedrock KB retrieval, LangGraph stages, LangSmith traces, RAGAS baseline |
+| Azure path | Implemented — Azure OpenAI + Azure AI Search provider path |
+| Web research | Implemented — explicit per-message toggle, disclaimer banner, WEB-labeled sources |
+| Hosted public demo | Deferred — local demo + screenshots are the review path |
+| Official campus deployment | Intentionally not claimed — this is an independent extension, not a UC product |
 
 ## Portfolio case study
 
@@ -163,10 +179,21 @@ Enable `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, and `LANGCHAIN_PROJECT` in `
 | **Web search**        | Mock or **Tavily** (`tavily-python`) behind `research_mode=web`                                           |
 | **Eval**              | **RAGAS** harness (`backend/tests/eval/`), golden dataset, `tox -e eval`                                  |
 | **Observability**     | **LangSmith** (`LANGCHAIN_TRACING_V2`), structured logs, first-token latency metric                       |
-| **CI/CD**             | GitHub Actions — `tox -e lint,backend,frontend-vue` on PRs and `main` ([docs/CI.md](docs/CI.md))          |
+| **CI/CD**             | GitHub Actions — tox suite, docs build, gitleaks, dependency review, and optional CD ([docs/CI.md](docs/CI.md))          |
 | **Load tests**        | k6 ([docs/LOAD_TESTING.md](docs/LOAD_TESTING.md))                                                         |
 
 Local demos: `RAG_FORCE_MOCK=true` with no cloud credentials. Design detail: [docs/roadmap/LANGGRAPH.md](docs/roadmap/LANGGRAPH.md), [docs/roadmap/WEB_RESEARCH.md](docs/roadmap/WEB_RESEARCH.md).
+
+## Feature availability
+
+| Configuration | What works |
+|---------------|------------|
+| **No cloud keys** (`RAG_FORCE_MOCK=true`) | Register/login, chat UX, streaming path, source panel, feedback, local tests |
+| **AWS Bedrock KB** | Managed KB retrieval, Bedrock generation, LangGraph retrieval stages, LangSmith trace capture |
+| **Azure OpenAI + AI Search** | Azure provider path with vector/keyword/hybrid retrieval and cited answers |
+| **Web research enabled** | Per-message web mode with disclaimer UI and WEB-labeled sources (`mock` or Tavily) |
+| **OAuth configured** | GitHub OAuth handoff to Vue; Google-ready provider config |
+| **Eval keys available** | RAGAS golden-set runs, release quality gates, LangSmith trace inspection |
 
 ## Prerequisites
 
@@ -227,7 +254,7 @@ Set `RAG_FORCE_MOCK=false` and configure providers in `.env` (see [docs/OPERATIO
 **CI-style suite (local):**
 
 ```bash
-tox -e lint,backend,frontend-vue
+tox -e lint,backend,frontend-streamlit,frontend-vue,docs,secrets
 ```
 
 **Optional suites:**
@@ -235,7 +262,7 @@ tox -e lint,backend,frontend-vue
 ```bash
 tox -e eval    # RAGAS golden-dataset eval (slow; judge LLM — docs/EVALUATION.md)
 tox -e e2e     # Playwright; start API first: ./scripts/run-backend-venv.sh
-tox -e lint,backend,frontend-streamlit,frontend-vue   # include Streamlit client
+tox -e docs    # GitHub Pages / MkDocs strict build
 ```
 
 ```bash
@@ -272,28 +299,22 @@ Optional follow-ups: **LangGraph-native SSE** (Phase 6a), stricter RAGAS gates a
 
 ## Documentation
 
-| Doc                                                                  | Description                                   |
-| -------------------------------------------------------------------- | --------------------------------------------- |
-| [docs/PORTFOLIO_CASE_STUDY.md](docs/PORTFOLIO_CASE_STUDY.md)         | Portfolio narrative for hiring reviewers      |
-| [docs/README.md](docs/README.md)                                     | Documentation index                           |
-| [docs/DESIGN.md](docs/DESIGN.md)                                     | Design goals, major decisions, capability map |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                         | System design, chat/SSE flow, API surface     |
-| [docs/adr/](docs/adr/)                                               | Architecture decision records                 |
-| [docs/PRODUCTION_HARDENING.md](docs/PRODUCTION_HARDENING.md)         | Scale and ops backlog                         |
-| [docs/assets/README.md](docs/assets/README.md)                       | Screenshots catalog + demo script             |
-| [docs/EVALUATION.md](docs/EVALUATION.md)                             | RAGAS vs LangSmith, bootstrap, CI gates       |
-| [docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md) | RAGAS baseline scores                         |
-| [docs/roadmap/PRODUCT_ROADMAP.md](docs/roadmap/PRODUCT_ROADMAP.md)   | Product phases — shipped vs optional          |
-| [docs/CI.md](docs/CI.md)                                             | GitHub Actions, branch gates                  |
-| [docs/PRODUCTION_TLS.md](docs/PRODUCTION_TLS.md)                     | HTTPS, OAuth (API-port + handoff)             |
-| [docs/OPERATIONS.md](docs/OPERATIONS.md)                             | Runbooks, metrics, migrations                 |
-| [changelog/CHANGELOG.md](changelog/CHANGELOG.md)                     | Release history                               |
+| Visitor | Best entry point |
+|---------|------------------|
+| New here | [Live docs](https://sandeep-jay.github.io/campus-rag-assistant/) or this README |
+| Hiring / portfolio reviewer | [docs/PORTFOLIO_CASE_STUDY.md](docs/PORTFOLIO_CASE_STUDY.md) |
+| Architecture reviewer | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/DESIGN.md](docs/DESIGN.md), [docs/adr/](docs/adr/) |
+| Evaluation reviewer | [docs/EVALUATION.md](docs/EVALUATION.md), [docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md) |
+| Operations reviewer | [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/CI.md](docs/CI.md), [docs/RELEASE.md](docs/RELEASE.md), [docs/SECURITY.md](docs/SECURITY.md) |
+| Product demo reviewer | [docs/assets/README.md](docs/assets/README.md) |
+| Roadmap reviewer | [docs/roadmap/PRODUCT_ROADMAP.md](docs/roadmap/PRODUCT_ROADMAP.md) |
+| Release-history reviewer | [changelog/CHANGELOG.md](changelog/CHANGELOG.md) |
 
 ## License
 
-Software in this repository is licensed under the [Regents of the University of California](LICENSE) terms (educational/research use; commercial use requires an agreement with [UC OTL](http://ipira.berkeley.edu/industry-info)).
+Software in this repository is licensed under the [Regents of the University of California](LICENSE) terms (educational/research use; commercial use requires an agreement with [UC OTL](http://ipira.berkeley.edu/industry-info)). See [NOTICE](NOTICE) for attribution details.
 
 ### Attribution
 
-- **Original Chabot** — © The Regents of the University of California. Upstream: [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot).
-- **Author & maintainer** — [sandeep-jay](https://github.com/sandeep-jay) developed from the upstream [chabot](https://github.com/ets-berkeley-edu/chabot) campus chatbot and authored this **independent fork** (multicloud providers, Vue SPA, LangGraph, streaming chat, Alembic, tox/CI, RAGAS + LangSmith eval, and related extensions). This repo is **not** an official product of any single institution—configure corpus and branding for your own campus deployment.
+- **Original Chabot** — © The Regents of the University of California. Upstream: [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot). Sole implementation author while engaged with Berkeley ETS: [sandeep-jay](https://github.com/sandeep-jay).
+- **This extension** — Independently authored by [sandeep-jay](https://github.com/sandeep-jay): multicloud providers, Vue SPA, LangGraph, streaming chat, Alembic, tox/CI, RAGAS + LangSmith eval, and related extensions. Distributed under the UC Regents [LICENSE](LICENSE); see [NOTICE](NOTICE). Not an official UC product — configure corpus and branding for your own campus deployment.

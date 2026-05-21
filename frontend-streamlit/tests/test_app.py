@@ -104,7 +104,7 @@ def test_initialization(mock_streamlit: Mock, mock_api_client: Mock) -> None:
     ):
         mock_streamlit.logged_in = False
         main()
-        mock_title.assert_called_with('RTL Services Support Chatbot')
+        mock_title.assert_called_with('Campus RAG Assistant')
         assert any('chat' in str(args).lower() for args, _ in mock_write.call_args_list)
 
 

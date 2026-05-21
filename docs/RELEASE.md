@@ -6,7 +6,7 @@ Campus RAG Assistant uses **environment branches** to trigger stack-specific CI/
 
 | Branch | Role | Typical CI/CD |
 |--------|------|----------------|
-| `main` | Integration; feature PRs merge here | [CI](../.github/workflows/ci.yml): `tox` on PR/push |
+| `main` | Integration; feature PRs merge here | [CI](../.github/workflows/ci.yml): `tox` on PR/push; [Docs](../.github/workflows/docs.yml): GitHub Pages deploy on docs changes |
 | `qa` | QA / staging snapshot | [CD](../.github/workflows/cd.yml): build Vue + optional EB deploy |
 | `release` | Production-ready line | CD + optional RAGAS gate (`RAGAS_QUALITY_GATE=1`) |
 
@@ -23,6 +23,9 @@ main  ──promote──►  qa  ──after QA sign-off──►  release  ─
 ### Commands (from repo root)
 
 Ensure `main` is clean and up to date, then:
+
+!!! warning "Maintainer-only branch promotion"
+    These commands move environment branch pointers and use `git reset --hard`. Run them only from a clean working tree after confirming the target commit, and never use them on feature branches or unmerged work.
 
 ```bash
 git fetch origin
@@ -54,7 +57,7 @@ Use **annotated tags** (`-a`) for releases. Prefer semver (`v2.0.0`, `v2.0.1`) f
 
 ## Multi-stack deploy
 
-A single promoted commit should drive **all** environment artifacts for that stack:
+A single promoted commit should drive **all** environment artifacts for that stack. The GitHub Pages documentation site deploys from `main` via [docs.yml](../.github/workflows/docs.yml), independent of `qa` / `release` API deployments:
 
 - FastAPI on Elastic Beanstalk (`run_services.sh` / Procfile)
 - Vue static build with `VITE_API_URL` matching that environment

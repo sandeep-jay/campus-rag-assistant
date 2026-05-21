@@ -1,5 +1,7 @@
 # Documentation index
 
+Live documentation site: <https://sandeep-jay.github.io/campus-rag-assistant/>.
+
 See the root [README](../README.md) for setup, features, screenshots, and stack overview.
 
 ## Start here
@@ -37,7 +39,7 @@ See the root [README](../README.md) for setup, features, screenshots, and stack 
 | Resource | Description |
 |----------|-------------|
 | [assets/README.md](./assets/README.md) | Product, auth, and LangSmith screenshots + demo script |
-| [README#overview](../README.md#overview) | Architecture, design, screenshots, and LangSmith (collapsible panels) |
+| [README#overview](../README.md#overview) | Architecture, design, screenshots, and LangSmith overview |
 
 ## Architecture diagrams
 

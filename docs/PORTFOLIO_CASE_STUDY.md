@@ -12,7 +12,7 @@ Campus knowledge is scattered across LMS guides, ServiceNow articles, and policy
 
 I extended the upstream [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot) institutional chatbot into a full-stack RAG platform. The upstream project proved the domain (campus teaching-and-learning and IT knowledge). I owned the platform surface: multicloud providers, Vue product UI, LangGraph orchestration, evaluation harness, observability, CI/CD, and operational runbooks.
 
-This repository is an **independent fork** for portfolio and educational use—not an official product of any single institution.
+This repository is an **independent extension** for portfolio and educational use—not an official product of any single institution.
 
 ## Architecture
 
