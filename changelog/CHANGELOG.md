@@ -19,6 +19,14 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ## [Unreleased]
 
+### Documentation
+
+- Reposition README and MkDocs landing page to lead with ownership and architecture; move upstream attribution into a dedicated "Origin and Scope" section.
+- Add `docs/REVIEWER_GUIDE.md` with 90-second read, senior-signal evidence map, and per-persona review paths; surfaced in MkDocs nav near the top.
+- Replace "Demo readiness" with "Review artifacts" framing in README and docs site.
+- Rewrite `docs/PORTFOLIO_CASE_STUDY.md` "My role" section so platform ownership leads and upstream context follows.
+- Drop weak phrases ("not a weekend chatbot", "portfolio-grade") near the top of public-facing docs.
+
 ### Security
 
 - **Frontend dev-tool CVEs remediated** — upgraded `frontend-vue` test/build tooling so `npm audit --audit-level=moderate` is clean: `vite` `6.4.2`, `esbuild` `0.25.0`, `vitest` / `@vitest/coverage-v8` `4.1.7`, plus lockfile transitive fixes for `ws` `8.20.1` and `brace-expansion` `5.0.6`. Verified with `npm run typecheck`, `npm test -- --run` (130 tests), `npm run build`, and `npm audit --audit-level=moderate`. `langgraph` / `langgraph-checkpoint` alerts remain deferred because patched checkpoint/LangGraph combinations require `langchain-core` 1.x and conflict with the current LangChain 0.3 stack.

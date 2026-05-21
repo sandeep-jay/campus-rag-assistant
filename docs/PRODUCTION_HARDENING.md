@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-05-19
 
-Optional work to move from portfolio-grade reference architecture to campus-scale production. Shipped product phases: [roadmap/PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md). Campus-scale detail: [roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md).
+Optional work to move from source-reviewable reference architecture to campus-scale production. Shipped product phases: [roadmap/PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md). Campus-scale detail: [roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md).
 
 Priority: **P1** (before multi-tenant production) · **P2** (scale / cost) · **P3** (maturity / polish)
 
