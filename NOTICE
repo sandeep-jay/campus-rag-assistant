@@ -1,0 +1,35 @@
+Campus RAG Assistant
+====================
+
+Copyright (c) 2025 The Regents of the University of California.
+
+This repository is distributed under the terms found in LICENSE
+(University of California "Regents" educational / research-use license).
+Commercial use requires an agreement with the UC Office of Technology
+Licensing (otl@berkeley.edu, http://ipira.berkeley.edu/industry-info).
+
+Origin and authorship
+---------------------
+
+Sandeep Markondiah Jayaprakash (https://github.com/sandeep-jay) was the
+sole implementation author of the upstream "Chabot" codebase
+(https://github.com/ets-berkeley-edu/chabot) while engaged with Berkeley
+Educational Technology Services. Copyright in that work is held by The
+Regents of the University of California, and that codebase is distributed
+under the LICENSE in this repository.
+
+"Campus RAG Assistant" is an independent extension that Sandeep authored
+outside of that engagement, extending the upstream codebase with
+multicloud providers, a Vue SPA, LangGraph orchestration, streaming chat,
+Alembic migrations, tox/CI, and RAGAS + LangSmith evaluation. Because it
+builds on the upstream, the extension as a whole continues to be
+distributed under the same UC Regents LICENSE.
+
+Not an official product
+-----------------------
+
+This repository is not an official product of The Regents of the
+University of California, UC Berkeley, or Berkeley Educational
+Technology Services. The maintainer's name and the upstream project
+history are referenced for attribution only and do not imply
+institutional endorsement, sponsorship, or support.

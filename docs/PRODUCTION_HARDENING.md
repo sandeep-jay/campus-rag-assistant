@@ -57,7 +57,7 @@ Tracked here so hiring readers see intentional scope boundaries:
 | Follow-up | Why deferred | Owner action |
 |-----------|--------------|--------------|
 | **90-second demo GIF/video** | Needs running app + recording | Record login → chat → sources → web toggle → LangSmith |
-| **Polished UI screenshot set** | Current shots are functional, not marketing-polished | Clean session history; deliberate sample questions |
+| **Polished UI screenshot set** | Refresh with consistent sample questions and clean session history | Clean session history; deliberate sample questions |
 | **Golden set 10 → 30–50** | Requires live AWS + judge LLM time | `./scripts/bootstrap_golden_dataset.py` + review |
 
 ---

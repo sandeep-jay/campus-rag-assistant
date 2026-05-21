@@ -1,14 +1,15 @@
 # Changelog
 
-Notable changes to **Campus RAG Assistant** — independent edition of the UC Berkeley ETS Chabot platform
+Notable changes to **Campus RAG Assistant** — independent extension of the UC Berkeley ETS Chabot platform
 ([campus-rag-assistant](https://github.com/sandeep-jay/campus-rag-assistant)).
 
 [Keep a Changelog](https://keepachangelog.com/) format.  
 Attribution and license: [README](../README.md#license).
 
-**Author & maintainer:** [sandeep-jay](https://github.com/sandeep-jay) — primary developer on the
-Berkeley ETS Chabot codebase and author of this **independent fork**. Not an official
-UC Berkeley product.
+**Author & maintainer:** [sandeep-jay](https://github.com/sandeep-jay) — sole implementation author
+of the upstream Berkeley ETS Chabot codebase (copyright UC Regents) and author of
+this **independent extension**. Distributed under the UC Regents
+[LICENSE](../LICENSE); see [`NOTICE`](../NOTICE). Not an official UC Berkeley product.
 
 **Convention:** sections use **session dates** (when work happened). GitHub PR numbers are noted
 where the public merge story matters.
@@ -32,8 +33,6 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 - **Frontend theme tokens compile correctly (delete-conversation dialog overlap)** — `frontend-vue/src/assets/main.css` was using Tailwind v4 (`@tailwindcss/vite` + `@import 'tailwindcss';`) without a `@theme` block, so design-token utilities (`bg-background`, `bg-card`, `bg-muted`, `border-border`, `text-foreground`, `text-muted-foreground`, etc.) were silent no-ops. Surfaces appeared opaque only because `body` set `background-color: hsl(var(--background))`; inside the scrolling session list, the sidebar's sticky delete-confirmation panel had no actual background and rendered transparently over the session items. Added an `@theme inline` mapping for the existing `--background`, `--foreground`, `--card`, `--popover`, `--primary`, `--secondary`, `--muted`, `--accent`, `--destructive`, `--border`, `--input`, and `--ring` CSS variables so the utilities compile. Fixes the delete-conversation dialog overlap and the `UserMenu` dropdown which used the same pattern.
 
-### Security
-
 - **Dependency review PR guard** — added `dependency review (new high/critical CVEs)` to CI using `actions/dependency-review-action@v4`. It runs on pull requests and fails when a dependency diff introduces a new high/critical advisory. Dependabot alerts remain enabled, while Dependabot security auto-update PRs remain disabled for manual triage.
 - **Secret-leak defense in depth (gitleaks layers)** — five independent guards now sit between a credential and a public push:
   1. `.gitignore` `.env*` catch-all plus pattern blocks for keys/credentials/tfvars/secrets dirs;
@@ -41,7 +40,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
   3. local `.githooks/pre-push` runs `gitleaks detect --log-opts="<remote>..HEAD"` and fails the push on any finding (`scripts/install-hooks.sh` wires it locally and, with `--global`, into `~/.config/git/hooks`);
   4. new `tox -e secrets` env and `gitleaks (history + diff)` job in `.github/workflows/ci.yml` run `gitleaks detect --all --reflog --no-merges` on every PR and push;
   5. GitHub repo settings now have **Secret Scanning**, **Push Protection**, and **Dependabot alerts** enabled — even `git push --no-verify` is blocked at GitHub's edge for known-provider patterns. (Dependabot **security updates** / auto-PR bumps are intentionally left off — they kept breaking the build; vulnerabilities are triaged manually from the alert queue.)
-- **Tool attribution guard** — `.githooks/commit-msg` delegates to `.githooks/tool_attribution_guard.py`, stripping AI-tool authorship/attribution lines (`Co-authored-by:`, `Signed-off-by:`, `Made with [<tool>](…)`, vendor URL footers) from commit messages. `scripts/install-hooks.sh --global` installs the same guard into `~/.config/git/hooks/` so every repo on the workstation gets the same protection.
+- **Tool attribution guard** — `.githooks/commit-msg` delegates to `.githooks/tool_attribution_guard.py`, stripping AI-tool authorship/attribution lines (`Co-authored-by:`, `Signed-off-by:`, `Made with <tool> ...`, vendor URL footers) from commit messages. `scripts/install-hooks.sh --global` installs the same guard into `~/.config/git/hooks/` so every repo on the workstation gets the same protection.
 - **Secret hardening (Pydantic `SecretStr`)** — `SECRET_KEY`, `AWS_SECRET_ACCESS_KEY`, `AZURE_OPENAI_API_KEY`, `AZURE_SEARCH_KEY`, `OAUTH_GOOGLE_CLIENT_SECRET`, `OAUTH_GITHUB_CLIENT_SECRET`, `LANGCHAIN_API_KEY`, and `TAVILY_API_KEY` in `backend/app/config/default.py` are now typed `SecretStr`, so they redact in `repr`, logs, exceptions, and `model_dump_json`. Cleartext is read only at the boundary (JWT codec, OAuth client, Azure SDK, Tavily, LangSmith). `simple_tracer.py` no longer logs the LangSmith key in env-var dumps.
 - **Pydantic settings tightening** — `DefaultSettings.model_config` switched from `extra='allow'` to `extra='ignore'` with explicit `SettingsConfigDict` (case-sensitive, UTF-8, optional `secrets_dir` for Docker/K8s secret mounts). Previously-undeclared `AZURE_SEARCH_VECTOR_FIELD` now declared (`text_vector` default) and documented in `.env.example`.
 - **CI guard for env template** — `backend/tests/core/test_env_template.py` asserts every `DefaultSettings` field is documented in `.env.example` (per-field for `SecretStr` fields) and that no `SecretStr` field carries a non-placeholder uncommented value.
@@ -50,11 +49,9 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 ### Changed
 
 - **Environment identifier consolidated** — dropped the legacy `ENVIRONMENT` field from `DefaultSettings`/`DevelopmentSettings`/`TestSettings`; `APP_ENV` is now the only source of truth. Updated `backend/app/main.py`, `backend/app/api/oauth_routes.py`, `backend/verify_configs.py`, `frontend-streamlit/app/{config,main}.py`, `scripts/verify_oauth.py`, `tox.ini` (removed three redundant `ENVIRONMENT = test` lines), `.env.example`, and `docs/ARCHITECTURE.md`.
+- **GitHub Pages documentation site** — added MkDocs Material scaffold, docs CI build/deploy workflow, `tox -e docs`, a Pages landing page, and README/documentation positioning polish around the independent extension framing.
 - **`.env.example` rewritten** into 16 numbered sections with explicit `[REQUIRED]` / `[REQUIRED IF <cond>]` / `[OPTIONAL — default: <v>]` labels on every entry; duplicates removed and previously-undocumented fields added.
 - **`.env.test` reorganized** to mirror the same section numbering as `.env.example`; `APP_ENV=test` set explicitly.
-
-
-### Changed
 
 ---
 
@@ -114,7 +111,6 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
-- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - **Runtime dependencies** — FastAPI 0.115.x (Starlette CVE fixes), `python-multipart>=0.0.27`, `python-jose>=3.4`, `PyJWT>=2.12`, `requests`/`urllib3`/`httpx` upgrades, `gunicorn>=22`, `python-dotenv>=1.2.2`.
 - **LangGraph pins** — exact `langgraph==0.2.76` + `langgraph-checkpoint==2.0.26` (resolves `httpx` conflict with LangChain 0.3).
 
@@ -135,7 +131,6 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
-- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - **Dependencies** — pin `langgraph` 0.2.x + `langgraph-checkpoint` 2.x for LangChain 0.3 compatibility (see upcoming security branch for broader bumps).
 - **`scripts/run-backend-venv.sh`** — start via `./venv/bin/python -m uvicorn` so reload uses project venv.
 
@@ -156,12 +151,11 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 - **`backend/app/core/auth_cookies.py`** — shared HTTP-only JWT cookie helpers for login and OAuth.
 - **RAG streaming** — `stream_query_async()` via LangChain `astream_events`; SSE `status` events; condensed-question leakage stripping in `rag.py`.
 - **LangGraph scaffold** — `backend/app/services/graph/` (runner, nodes, state); opt-in `web_search` tool; `RAG_ENGINE=langgraph` config (default remains `chain`).
-- **Docs** — [PRODUCTION_TLS.md](../docs/PRODUCTION_TLS.md) (HTTPS + OAuth redirects); [TODAY_SPRINT.md](../docs/roadmap/TODAY_SPRINT.md); [WEB_RESEARCH.md](../docs/roadmap/WEB_RESEARCH.md).
+- **Docs** — [PRODUCTION_TLS.md](../docs/PRODUCTION_TLS.md) (HTTPS + OAuth redirects); [SPRINT_2026-05-18_LANGGRAPH.md](../docs/roadmap/archive/SPRINT_2026-05-18_LANGGRAPH.md); [WEB_RESEARCH.md](../docs/roadmap/WEB_RESEARCH.md).
 - **Vue chat UI** — typography scale (`text-chat-*`, `.chat-prose`); wider layout; mobile sidebar overlay; accessible user message accent; assistant sources stacked below replies; sticky composer.
 
 ### Changed
 
-- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - **Local dev defaults** — Vite on `http://127.0.0.1:5173` (`strictPort`); `FRONTEND_URL` / `OAUTH_REDIRECT_BASE_URL` aligned to avoid `MismatchingStateError` (see [PRODUCTION_TLS.md](../docs/PRODUCTION_TLS.md#local-oauth-development)).
 - **Frontend** — Pinia chat store appends stream tokens immediately; dedicated `/api/chat/stream` Vite proxy (no buffering).
 - **Auth API** — login/register use shared cookie helpers; OAuth links or creates users by provider subject.
@@ -182,7 +176,6 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
-- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - **Prompt templates** — generic `prompt_prefix.txt` / `few_shot_examples.json` with `{{placeholders}}`.
 - **Chat + RAG** — hydrate prompts per request from the signed-in user's tenant.
 - **`PROJECT_NAME`** / **`.env.example`** — `ASSISTANT_NAME`, `SUPPORTED_TOPICS`, `OUT_OF_SCOPE_MESSAGE`.
@@ -201,7 +194,6 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
-- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - **Streaming:** removed fixed `time.sleep` on SSE tokens; optional demo delay via `STREAM_ARTIFICIAL_DELAY_MS` in RAG only.
 - **Chat API:** `_load_chat_history()` caps messages passed to LangChain.
 - **DB:** SQLAlchemy engine uses configured pool + `pool_pre_ping`.
@@ -215,7 +207,6 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
-- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - README: product-first **Campus RAG Assistant** opening; license/attribution under License.
 - GitHub repo renamed to [**campus-rag-assistant**](https://github.com/sandeep-jay/campus-rag-assistant); About description updated.
 - **changelog/CHANGELOG.md** — single session-based log under `changelog/` (other files in folder gitignored).
@@ -243,7 +234,6 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
-- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - **tox** `backend`: `RATE_LIMIT_ENABLED=false`, exclude `slow` (RAGAS) by default.
 - **README** Testing: `tox -e lint,backend,frontend-streamlit,frontend-vue`.
 - Ruff/pytest marker cleanups.
@@ -369,7 +359,6 @@ Upstream: [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot).
 
 ### Changed
 
-- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - Removed basic Streamlit prototype in favor of modular refactor ([CBO-99]).
 
 ---
@@ -430,5 +419,4 @@ Upstream: [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot).
 
 ### Changed
 
-- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, highlights, fork delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - `.gitignore` for `.tox` and `.ruff*` ([NOJIRA]).

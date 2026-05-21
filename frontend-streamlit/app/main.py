@@ -33,7 +33,7 @@ import streamlit as st
 # Add the parent directory to sys.path to enable absolute imports
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
 
-# """Streamlit application for the RTL Services Support Chatbot."""
+# """Streamlit application for the Campus RAG Assistant."""
 
 # Change from relative to absolute imports
 from app.auth.auth_service import check_auth, login, register
@@ -166,7 +166,7 @@ def display_authenticated_sidebar():
 
 def display_chat_interface():
     """Display the main chat interface."""
-    st.title('RTL Services Support Chatbot')
+    st.title('Campus RAG Assistant')
     st.write(
         'RAG Chatbot that uses Bedrock to answer questions on tools like bCourses, Ally, Kaltura etc.',
     )
@@ -243,7 +243,7 @@ def main():
     logger.info(f'Current directory: {os.getcwd()}')
     logger.info(f"Environment: {os.environ.get('APP_ENV', 'Not set')}")
 
-    st.set_page_config(page_title='RTL Services Support Chatbot', layout='wide')
+    st.set_page_config(page_title='Campus RAG Assistant', layout='wide')
 
     # Load all styles
     load_main_styles()
@@ -273,7 +273,7 @@ def main():
     if st.session_state.logged_in:
         display_chat_interface()
     else:
-        st.title('RTL Services Support Chatbot')
+        st.title('Campus RAG Assistant')
         st.write(
             'RAG Chatbot that uses Bedrock to answer questions on tools like bCourses, Ally, Kaltura etc.',
         )
