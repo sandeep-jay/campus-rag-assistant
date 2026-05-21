@@ -8,25 +8,39 @@
 [![LangGraph](https://img.shields.io/badge/RAG-LangGraph-purple.svg)](roadmap/LANGGRAPH.md)
 [![RAGAS](https://img.shields.io/badge/eval-RAGAS-yellow.svg)](EVALUATION.md)
 
-**Production-style enterprise RAG platform** for governed campus knowledge.
+**Production-style enterprise RAG platform for governed campus knowledge.**
 
-This independent extension evolves an institutional chatbot into a multicloud AI platform: **AWS Bedrock KB**, **Azure AI Search**, **LangGraph** orchestration, cited answers, tenant-aware prompts, **RAGAS** evals, **LangSmith** traces, CI/CD, load testing, and a **Vue 3** product UI.
+Campus RAG Assistant demonstrates how institutional knowledge can be served through a measurable, observable, citation-first RAG platform. It combines a Vue product UI, FastAPI backend, AWS / Azure / mock provider boundaries, LangGraph orchestration, RAGAS evaluation, LangSmith traces, CI/CD, load testing, and operational hardening docs.
 
 **Portfolio focus:** Lead AI Engineering and AI Platform Architecture.
+
+!!! note "Review model"
+    This project is evaluated through source code, architecture docs, screenshots, evaluation results, and operational artifacts. It is not presented as a hosted public product.
 
 **[View source on GitHub ->](https://github.com/sandeep-jay/campus-rag-assistant)**
 
 ![Structured KB answer with session history](assets/product/chat-assistant-response.png)
 
-## Why this repo exists
+## Start here
 
-Campus RAG Assistant demonstrates how governed institutional knowledge can become a measurable, observable RAG product instead of a generic chatbot. It surfaces:
+| If you are... | Read |
+|---|---|
+| Short on time | [Reviewer Guide](REVIEWER_GUIDE.md) |
+| Evaluating ownership and judgment | [Case Study](PORTFOLIO_CASE_STUDY.md) |
+| Reviewing architecture | [Architecture](ARCHITECTURE.md) + [Design Notes](DESIGN.md) |
+| Reviewing AI quality | [Evaluation](EVALUATION.md) + [Baseline](eval_baseline_2026-05-19.md) |
+| Reviewing production maturity | [CI/CD](CI.md) + [Operations](OPERATIONS.md) + [Security](SECURITY.md) |
 
-- cited answers over campus knowledge bases users can verify
-- provider boundaries across AWS, Azure, and mock CI/local modes
-- explicit LangGraph retrieval stages for tuning and traceability
-- RAGAS regression baselines and LangSmith traces for quality review
-- production-shaped concerns: auth, streaming, migrations, metrics, CI/CD, security scanning, and runbooks
+## Senior engineering signals
+
+| Area | Signal |
+|---|---|
+| Platform architecture | Provider registry isolates AWS, Azure, and mock execution modes |
+| RAG orchestration | LangGraph exposes retrieval stages for tuning and traceability |
+| Evaluation | RAGAS baseline is documented honestly, with gates used as release controls |
+| Observability | LangSmith spans, Prometheus metrics, request IDs, structured logs |
+| Product judgment | KB-first answers, cited sources, opt-in web research, visible disclaimer |
+| CI safety | Mock providers allow tests without cloud credentials |
 
 ## What this shows
 
@@ -134,16 +148,25 @@ alembic upgrade head
 
 Register a user and start a chat. Responses use the mock provider unless you configure live AWS/Azure providers.
 
-## Demo readiness
+## Review artifacts
 
-| Area | Status |
-|------|--------|
-| Local mock demo | Implemented — clone, run backend/Vue, register, chat with cited mock sources |
-| Live AWS KB path | Implemented — Bedrock KB retrieval, LangGraph stages, LangSmith traces, RAGAS baseline |
-| Azure path | Implemented — Azure OpenAI + Azure AI Search provider path |
-| Web research | Implemented — explicit per-message toggle, disclaimer banner, WEB-labeled sources |
-| Hosted public demo | Deferred — local demo + screenshots are the review path |
-| Official campus deployment | Intentionally not claimed — this is an independent extension, not a UC product |
+| Artifact | Status |
+|---|---|
+| Source code | Implemented |
+| Vue product UI screenshots | Included |
+| Local mock execution path | Implemented |
+| AWS Bedrock KB path | Implemented |
+| Azure AI Search / OpenAI path | Implemented |
+| RAGAS baseline | Documented |
+| LangSmith traces | Captured in screenshots |
+| Public hosted product | Not claimed |
+| Official campus deployment | Not claimed |
+
+## Origin and Scope
+
+This repository builds from the public [`ets-berkeley-edu/chabot`](https://github.com/ets-berkeley-edu/chabot) codebase and substantially extends it as an independent portfolio and educational project. The work here focuses on the AI platform surface: Vue product UI, provider abstraction, LangGraph orchestration, RAGAS evaluation, LangSmith observability, CI/CD, load testing, and operational documentation. It is not an official UC Berkeley or UC product.
+
+See [Notice](notice.md) for attribution details.
 
 ## License
 

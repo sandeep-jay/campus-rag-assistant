@@ -70,6 +70,7 @@ plugins:
 
 nav:
   - Start Here: index.md
+  - Reviewer Guide: REVIEWER_GUIDE.md
   - Case Study: PORTFOLIO_CASE_STUDY.md
   - Architecture: ARCHITECTURE.md
   - Design Notes: DESIGN.md

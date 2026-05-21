@@ -9,18 +9,30 @@
 [![LangGraph](https://img.shields.io/badge/RAG-LangGraph-purple.svg)](docs/roadmap/LANGGRAPH.md)
 [![RAGAS](https://img.shields.io/badge/eval-RAGAS-yellow.svg)](docs/EVALUATION.md)
 
-**Production-style enterprise RAG platform** for governed campus knowledge.
+**Production-style enterprise RAG platform for governed campus knowledge.**
 
-This independent extension evolves an institutional chatbot into a multicloud AI platform: **AWS Bedrock KB**, **Azure AI Search**, **LangGraph** orchestration, cited answers, tenant-aware prompts, **RAGAS** evals, **LangSmith** traces, CI/CD, load testing, and a **Vue 3** product UI.
+Campus RAG Assistant demonstrates multicloud RAG platform engineering: Vue product UI, FastAPI API, AWS Bedrock KB and Azure AI Search provider boundaries, LangGraph orchestration, citation-first answer UX, RAGAS evaluation, LangSmith observability, and CI/CD that runs safely without cloud credentials.
 
 **Portfolio focus:** Lead AI Engineering and AI Platform Architecture. Live docs: <https://sandeep-jay.github.io/campus-rag-assistant/>.
 
+> Review model: this project is evaluated through source code, architecture docs, screenshots, evaluation results, and operational artifacts. It is not presented as a hosted public product.
+
 ![Structured KB answer with session history](docs/assets/product/chat-assistant-response.png)
+
+## Review this project
+
+| Goal | Start here |
+|---|---|
+| 90-second overview | [docs/REVIEWER_GUIDE.md](docs/REVIEWER_GUIDE.md) |
+| Product and architecture narrative | [docs/PORTFOLIO_CASE_STUDY.md](docs/PORTFOLIO_CASE_STUDY.md) |
+| System design | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) + [docs/DESIGN.md](docs/DESIGN.md) |
+| RAG quality | [docs/EVALUATION.md](docs/EVALUATION.md) + [docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md) |
+| Operations and security | [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/CI.md](docs/CI.md), [docs/SECURITY.md](docs/SECURITY.md) |
 
 ## Why this project matters
 
 - Turns scattered institutional docs (Canvas LMS, ServiceNow, policies) into **cited, natural-language answers** users can verify.
-- Shows **production RAG** concerns: retrieval quality, observability, auth, streaming, evals, and deployment—not a weekend chatbot.
+- Shows **production RAG** concerns end-to-end: retrieval quality, observability, auth, streaming, evals, and deployment.
 - Demonstrates **platform architecture**: AWS/Azure/mock providers, tenant config, feature flags, and CI-safe local mode.
 
 ## Role alignment
@@ -61,7 +73,7 @@ Design detail: [docs/DESIGN.md](docs/DESIGN.md) · [docs/ARCHITECTURE.md](docs/A
 
 ## What changed from upstream
 
-Extended from upstream [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot) into a portfolio-grade AI platform:
+Extended from the public upstream [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot) into a source-reviewable AI platform:
 
 - **Vue 3 SPA** — streaming chat, sessions, source panels, feedback, OAuth handoff
 - **Provider registry** — AWS Bedrock KB, Azure AI Search/OpenAI, mock mode for CI/local
@@ -76,18 +88,22 @@ The project includes a **RAGAS golden-set harness** and a documented baseline ([
 
 This is intentionally presented as an **engineering baseline**, not a marketing claim. Gates are **release controls** (`RAGAS_QUALITY_GATE=1` on milestones), not blockers for local demo or PR CI. Detail: [docs/EVALUATION.md](docs/EVALUATION.md).
 
-## Demo (~2–3 min)
+## Review artifacts
 
-Walkthrough script: [docs/assets/README.md#product-demo-script-23-min](docs/assets/README.md#product-demo-script-23-min)
+Two-to-three minute walkthrough script for the Vue product UI: [docs/assets/README.md#product-demo-script-23-min](docs/assets/README.md#product-demo-script-23-min).
 
-| Area | Status |
-|------|--------|
-| Local mock demo | Implemented — clone, run backend/Vue, register, chat with cited mock sources |
-| Live AWS KB path | Implemented — Bedrock KB retrieval, LangGraph stages, LangSmith traces, RAGAS baseline |
-| Azure path | Implemented — Azure OpenAI + Azure AI Search provider path |
-| Web research | Implemented — explicit per-message toggle, disclaimer banner, WEB-labeled sources |
-| Hosted public demo | Deferred — local demo + screenshots are the review path |
-| Official campus deployment | Intentionally not claimed — this is an independent extension, not a UC product |
+| Artifact | Status |
+|---|---|
+| Source code | Implemented |
+| Vue product UI screenshots | Included ([docs/assets/README.md](docs/assets/README.md)) |
+| Local mock execution path | Implemented (`RAG_FORCE_MOCK=true`) |
+| AWS Bedrock KB path | Implemented |
+| Azure AI Search / OpenAI path | Implemented |
+| Web research (opt-in) | Implemented (`mock` or `tavily`) |
+| RAGAS baseline | Documented ([docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md)) |
+| LangSmith traces | Captured in screenshots ([docs/assets/observability/](docs/assets/observability/)) |
+| Public hosted product | Not claimed |
+| Official campus deployment | Not claimed |
 
 ## Portfolio case study
 
