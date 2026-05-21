@@ -1,6 +1,6 @@
 # Web research tool (opt-in)
 
-**Status:** Shipped (API + Vue toggle + disclaimer UI) (API + Vue toggle + disclaimer UI); Tavily live optional (`tavily-python`). See [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md).
+**Status:** Shipped (API + Vue toggle + disclaimer UI); Tavily live optional (`tavily-python`). See [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md).
 
 User chooses **KB** (default) or **web** per message. Not silent open-web mode.
 

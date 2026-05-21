@@ -8,6 +8,7 @@ Automated checks replace Travis CI. **Tox** remains the source of truth for what
 |----------|------|----------|
 | **CI** | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | Push to `main`; PRs to `main`, `qa`, `release` |
 | **CD** | [`.github/workflows/cd.yml`](../.github/workflows/cd.yml) | Push to `qa` or `release`; manual `workflow_dispatch` |
+| **Docs** | [`.github/workflows/docs.yml`](../.github/workflows/docs.yml) | PRs touching docs/site files; push to `main`; manual `workflow_dispatch` |
 
 ### CI jobs
 
@@ -33,6 +34,10 @@ Automated checks replace Travis CI. **Tox** remains the source of truth for what
    - Fails when a dependency change introduces a new advisory at `high` or
      `critical` severity. Existing alerts remain in the manual Dependabot
      alert queue; Dependabot auto-update PRs stay disabled.
+
+### Docs site
+
+`docs.yml` builds the MkDocs Material site with `mkdocs build --strict` on pull requests that touch docs, `mkdocs.yml`, or root license/notice/changelog files. On push to `main`, the same workflow deploys to GitHub Pages using `actions/deploy-pages`. Enable repository Pages source **GitHub Actions** before the first deploy. After the first successful merge, add the `Docs / build` job to the `Protect main` required checks.
 
 ### CD pipeline
 
@@ -78,8 +83,7 @@ CD uses GitHub **environments** `qa` and `production` on deploy jobs (approval r
 **Fast CI check** (Vue only, no Streamlit): `tox -e lint,backend,frontend-vue` — matches [PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md). Full CI parity includes `frontend-streamlit` as in `.github/workflows/ci.yml`.
 
 ```bash
-tox -e lint,backend,frontend-streamlit,frontend-vue
-tox -e secrets   # gitleaks full-history scan (matches the CI secrets-scan job)
+tox -e lint,backend,frontend-streamlit,frontend-vue,docs,secrets
 # Dependency review runs in GitHub only because it compares PR dependency diffs
 ```
 

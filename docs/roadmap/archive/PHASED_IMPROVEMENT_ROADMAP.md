@@ -40,7 +40,7 @@ flowchart LR
 
 ## Phase 0 — Baseline (maintain, do not regress)
 
-**Performance Phase 0 (shipped):** history cap, DB pool envs, SSE first-token metric, optional stream delay, multi-worker `run_services.sh` — see [PERFORMANCE.md](../PERFORMANCE.md).
+**Performance Phase 0 (shipped):** history cap, DB pool envs, SSE first-token metric, optional stream delay, multi-worker `run_services.sh` — see [PERFORMANCE.md](../../PERFORMANCE.md).
 
 **Goal:** Keep what shipped stable while layering on Phase 1.
 
@@ -158,8 +158,8 @@ flowchart LR
 
 ## Related docs
 
-- [PRODUCT_ROADMAP.md](./PRODUCT_ROADMAP.md) — product roadmap
-- [ARCHITECTURE.md](../ARCHITECTURE.md)
-- [OPERATIONS.md](../OPERATIONS.md)
-- [LOAD_TESTING.md](../LOAD_TESTING.md)
-- [E2E.md](../E2E.md)
+- [PRODUCT_ROADMAP.md](../PRODUCT_ROADMAP.md) — product roadmap
+- [ARCHITECTURE.md](../../ARCHITECTURE.md)
+- [OPERATIONS.md](../../OPERATIONS.md)
+- [LOAD_TESTING.md](../../LOAD_TESTING.md)
+- [E2E.md](../../E2E.md)

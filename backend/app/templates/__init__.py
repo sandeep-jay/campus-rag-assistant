@@ -1,1 +1,1 @@
-"""Templates package for the RTL Services Support Chatbot."""
+"""Templates package for the Campus RAG Assistant."""

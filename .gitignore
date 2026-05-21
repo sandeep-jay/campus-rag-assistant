@@ -117,6 +117,7 @@ config/*-local.py
 config/build-summary.json
 
 # Testing
+site/
 .coverage
 htmlcov/
 .pytest_cache/
