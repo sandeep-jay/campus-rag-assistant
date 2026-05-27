@@ -19,6 +19,12 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ## [Unreleased]
 
+### Added
+
+- Design tokens v2 / chat cohesion: rebuilt the light + dark palettes around a single accent family + neutral surfaces. New tokens (`--surface-raised`, `--sidebar*`, `--accent-subtle`, `--success-subtle`, `--warning-subtle`, `--user-message*`) and elevation utilities (`shadow-soft`, `shadow-pop`, `shadow-modal`, `chat-reading-column`, `surface-dotgrid`).
+- Sidebar UX: `SessionList.vue` now groups sessions by recency (`Today` / `Yesterday` / `This Week` / `Older`) with collapsible groups (state persisted in `localStorage`) and `Show more` pagination so long histories stay scannable.
+- Always-visible copy-to-clipboard on every assistant message (next to like/dislike), with a transient `Copied` confirmation.
+
 ### Documentation
 
 - Helpdesk agent design freeze (2026-05-25): new RFCs at [docs/roadmap/CONVERSATION_FLOW.md](../docs/roadmap/CONVERSATION_FLOW.md) (product spec: ASK vs AGENT modes, intent router, cross-mode behaviors) and [docs/roadmap/HELPDESK_AGENT.md](../docs/roadmap/HELPDESK_AGENT.md) (engineering spec: helpdesk LangGraph, multi-turn checkpointer, supervisor + clarifier/classifier/writer specialists, tools, HITL gate, budgets, and full P0+P1 hardening). PRODUCT_ROADMAP.md Phase 6d now points at both RFCs.

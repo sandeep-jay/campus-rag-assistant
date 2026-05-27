@@ -34,14 +34,14 @@ function startNewChat(): void {
 <template>
   <aside
     aria-label="Chat history"
-    class="flex flex-col w-72 flex-shrink-0 border-r border-border bg-background h-full
-      fixed inset-y-0 left-0 z-50 shadow-xl
+    class="flex flex-col w-72 flex-shrink-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground h-full
+      fixed inset-y-0 left-0 z-50 shadow-modal
       transition-transform duration-200 ease-out motion-reduce:transition-none
       md:relative md:z-auto md:shadow-none md:translate-x-0"
     :class="open ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
   >
-    <div class="flex items-center justify-between px-4 h-14 border-b border-border flex-shrink-0">
-      <span class="font-medium text-sm text-foreground">Conversations</span>
+    <div class="flex items-center justify-between px-4 h-14 border-b border-sidebar-border flex-shrink-0">
+      <span class="font-medium text-sm text-sidebar-foreground">Conversations</span>
       <button
         aria-label="Start new conversation"
         class="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"

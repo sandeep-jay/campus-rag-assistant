@@ -36,28 +36,79 @@
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
 
+  /* Layered surfaces beyond card */
+  --color-surface-raised: hsl(var(--surface-raised));
+  --color-surface-raised-foreground: hsl(var(--card-foreground));
+
+  /* Distinct chrome surface for navigation/sidebar */
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+
+  /* Content accent (separate from interactive --accent surface) */
+  --color-accent-subtle: hsl(var(--accent-subtle));
+  --color-accent-subtle-foreground: hsl(var(--accent-subtle-foreground));
+
+  /* Semantic status surfaces. Kept deliberately quiet so the chat chrome
+     reads as one family (one accent + neutrals) instead of a status
+     dashboard. Used by AgentTurnBadge and disclaimer notes. */
+  --color-success-subtle: hsl(var(--success-subtle));
+  --color-success-subtle-foreground: hsl(var(--success-subtle-foreground));
+  --color-warning-subtle: hsl(var(--warning-subtle));
+  --color-warning-subtle-foreground: hsl(var(--warning-subtle-foreground));
+
   --radius: var(--radius);
 }
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Layered surfaces: page < card < raised.
+       Background is a faint cool off-white so cards (pure white) and
+       primary CTAs actually lift off the canvas. */
+    /* "Warm paper" canvas. Cool gray at low lightness reads as macOS
+       disabled state -- shifting to a warm low-chroma hue at 96%
+       lightness gives the chat the same "alive page" feel Claude /
+       Linear / Notion use, while keeping cards (pure white) and the
+       sidebar (cooler / deeper) visually distinct. */
+    --background: 36 22% 96%;
+    --foreground: 222 47% 9%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
+    --card-foreground: 222 47% 9%;
+    --surface-raised: 0 0% 100%;
+    --primary: 221 83% 53%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
+    --secondary: 36 18% 90%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 36 18% 91%;
+    --muted-foreground: 220 12% 30%;
+    --accent: 36 18% 88%;
+    --accent-foreground: 222 47% 11%;
+    /* Accent-subtle stays cool/blue so it pairs with the primary; the
+       contrast against the warm bg is what makes badges and chips
+       actually pop instead of melting into the canvas. */
+    --accent-subtle: 221 80% 92%;
+    --accent-subtle-foreground: 221 70% 24%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    /* Firm border in a neutral hue -- carries card edges without
+       reading as another shade of disabled gray. */
+    --border: 36 14% 82%;
+    --input: 36 14% 84%;
+    --ring: 221 83% 53%;
+    /* Quiet status surfaces -- one family per state. */
+    --success-subtle: 145 38% 90%;
+    --success-subtle-foreground: 148 50% 22%;
+    --warning-subtle: 36 65% 88%;
+    --warning-subtle-foreground: 28 65% 24%;
+    /* Sidebar deliberately runs cooler than the warm canvas so the
+       shell reads as chrome and the conversation reads as content. */
+    --sidebar: 220 18% 93%;
+    --sidebar-foreground: 222 38% 12%;
+    --sidebar-border: 220 14% 80%;
+    --sidebar-accent: 220 14% 86%;
+    /* Cool-tinted shadow base — modern UI shadows are not pure gray. */
+    --shadow-color: 220 40% 12%;
     --radius: 0.5rem;
     --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
       'Helvetica Neue', Arial, sans-serif;
@@ -75,31 +126,48 @@
     --text-chat-meta: 0.75rem;
     --text-chat-meta-lh: 1.4;
 
-    --user-message: 214 41% 93%;
-    --user-message-foreground: 222 47% 12%;
-    --user-message-border: 214 28% 78%;
+    --user-message: 218 60% 95%;
+    --user-message-foreground: 222 47% 10%;
+    --user-message-border: 218 50% 86%;
     --user-accent: 214 38% 44%;
     --user-accent-foreground: 210 40% 98%;
   }
 
   [data-theme='dark'] {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    /* Soft near-black with a blue undertone — pure neutral dark feels
+       generic; a hint of hue reads as deliberate. Card lifts ~3% from
+       background so elevation is real, not just shadow. */
+    --background: 222 22% 9%;
+    --foreground: 210 35% 96%;
+    --card: 222 24% 13%;
+    --card-foreground: 210 35% 96%;
+    --surface-raised: 222 22% 16%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 222 18% 17%;
+    --secondary-foreground: 210 35% 96%;
+    --muted: 222 18% 17%;
+    --muted-foreground: 215 16% 68%;
+    --accent: 222 20% 19%;
+    --accent-foreground: 210 35% 96%;
+    --accent-subtle: 217 55% 24%;
+    --accent-subtle-foreground: 217 90% 80%;
+    --destructive: 0 62% 35%;
+    --destructive-foreground: 210 35% 96%;
+    --success-subtle: 148 35% 18%;
+    --success-subtle-foreground: 148 55% 78%;
+    --warning-subtle: 36 35% 20%;
+    --warning-subtle-foreground: 36 70% 78%;
+    --border: 222 20% 22%;
+    --input: 222 20% 22%;
+    --ring: 217 91% 60%;
+    /* Sidebar deeper than bg in dark — Cursor-style chrome that frames
+       the conversation as the foreground. */
+    --sidebar: 222 30% 5%;
+    --sidebar-foreground: 210 30% 88%;
+    --sidebar-border: 222 24% 14%;
+    --sidebar-accent: 222 24% 14%;
+    --shadow-color: 0 0% 0%;
     --user-message: 214 28% 22%;
     --user-message-foreground: 210 35% 96%;
     --user-message-border: 214 22% 34%;
@@ -258,5 +326,46 @@
   }
   .chat-prose :where(strong):not(:where([class~='not-prose'] *)) {
     font-weight: 600;
+  }
+}
+
+@layer utilities {
+  /* Elevation scale — cool-tinted shadow base (var(--shadow-color))
+     reads as designed rather than clinical. Use sparingly. */
+  .shadow-soft {
+    box-shadow:
+      0 1px 2px hsl(var(--shadow-color) / 0.04),
+      0 2px 4px hsl(var(--shadow-color) / 0.04);
+  }
+  .shadow-pop {
+    box-shadow:
+      0 1px 2px hsl(var(--shadow-color) / 0.04),
+      0 6px 16px -4px hsl(var(--shadow-color) / 0.08),
+      0 2px 6px -2px hsl(var(--shadow-color) / 0.06);
+  }
+  .shadow-modal {
+    box-shadow:
+      0 16px 48px -12px hsl(var(--shadow-color) / 0.24),
+      0 8px 16px -8px hsl(var(--shadow-color) / 0.16);
+  }
+
+  /* Reading column: caps message width for comfortable line length
+     (~75ch) while the outer chat-container still spans the shell. */
+  .chat-reading-column {
+    width: 100%;
+    max-width: 48rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Faint dot grid for empty / hero canvases — uses --border so it
+     respects theme without adding new tokens. */
+  .surface-dotgrid {
+    background-image: radial-gradient(
+      hsl(var(--border) / 0.55) 1px,
+      transparent 1px
+    );
+    background-size: 18px 18px;
+    background-position: 0 0;
   }
 }
