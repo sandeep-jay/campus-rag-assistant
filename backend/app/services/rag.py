@@ -610,11 +610,34 @@ Standalone Question (one line only, no labels):""")
             },
         ]
 
+        # Deterministic helpdesk demo: if the query matches a known no-answer
+        # sentinel, force kb_resolved=False so the UI shows escalation actions.
+        sentinel_phrases = (
+            'oracle financials',
+            '[helpdesk-demo]',
+            'oracle financials 403',
+        )
+        q_lower = (query or '').lower()
+        sentinel_hit = any(phrase in q_lower for phrase in sentinel_phrases)
+        if sentinel_hit:
+            kb_resolved = False
+            mock_response = (
+                "I couldn't find information about that in the knowledge base. "
+                'If this is an IT issue, you can summarize it or open a ticket below.'
+            )
+            mock_metadata = []
+            mock_document_contents = []
+        else:
+            kb_resolved = bool(best_score and best_score > 0)
+
         return {
             'message': mock_response,
             'metadata': {
                 'sources': mock_metadata,
                 'document_contents': mock_document_contents,
+                'source_kind': 'kb',
+                'kb_resolved': kb_resolved,
+                'disclaimer': None,
             },
         }
 
@@ -680,11 +703,17 @@ Standalone Question (one line only, no labels):""")
             processing_time = time.time() - start_time
             logger.info(f'Query processed in {processing_time:.2f}s with {len(source_documents)} docs')
 
+            from backend.app.services.graph.nodes import _compute_kb_resolved
+
+            kb_resolved = _compute_kb_resolved(answer_text, source_documents, 'kb', tenant_config)
             return {
                 'message': enhanced_answer,
                 'metadata': {
                     'sources': metadata_list,
                     'document_contents': document_contents,
+                    'source_kind': 'kb',
+                    'kb_resolved': kb_resolved,
+                    'disclaimer': None,
                 },
             }
         except Exception as e:
@@ -701,7 +730,13 @@ Standalone Question (one line only, no labels):""")
                             f'{answer_text}\n\n(Note: This response was generated without access to the knowledge base.)',
                             [],
                         ),
-                        'metadata': {'sources': [], 'document_contents': []},
+                        'metadata': {
+                            'sources': [],
+                            'document_contents': [],
+                            'source_kind': 'kb',
+                            'kb_resolved': False,
+                            'disclaimer': None,
+                        },
                     }
             except Exception as fallback_error:
                 logger.warning(f'Fallback response also failed: {fallback_error}')

@@ -160,6 +160,34 @@ describe('MessageBubble', () => {
     expect(screen.getByTestId('web-disclaimer')).toHaveTextContent(/public web search/i)
   })
 
+  it('shows helpdesk actions when kb_resolved is false and this is the last message', () => {
+    const unresolved: ChatMessage = {
+      id: 7,
+      content: "I couldn't find information.",
+      role: 'assistant',
+      metadata: { kb_resolved: false, sources: [], document_contents: [] },
+      created_at: '',
+    }
+    renderWithProviders(MessageBubble, {
+      props: { message: unresolved, isLastMessage: true },
+    })
+    expect(screen.getByTestId('helpdesk-actions')).toBeInTheDocument()
+  })
+
+  it('hides helpdesk actions when kb_resolved is true', () => {
+    const resolved: ChatMessage = {
+      id: 8,
+      content: 'Here is how to submit an assignment.',
+      role: 'assistant',
+      metadata: { kb_resolved: true, sources: [], document_contents: [] },
+      created_at: '',
+    }
+    renderWithProviders(MessageBubble, {
+      props: { message: resolved, isLastMessage: true },
+    })
+    expect(screen.queryByTestId('helpdesk-actions')).not.toBeInTheDocument()
+  })
+
   it('does NOT show feedback buttons for user messages', () => {
     renderWithProviders(MessageBubble, { props: { message: userMessage } })
     expect(screen.queryByRole('button', { name: /mark as helpful/i })).not.toBeInTheDocument()

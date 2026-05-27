@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import * as chatApi from '@/api/chat'
-import type { ChatSession, DisplayMessage, OptimisticMessage, StreamingMessage, ResearchMode } from '@/api/types'
+import type { ChatMessage, ChatSession, DisplayMessage, OptimisticMessage, StreamingMessage, ResearchMode } from '@/api/types'
 import { normalizeAssistantContent } from '@/utils/normalizeAssistantContent'
 
 function generateOptimisticId(): string {
@@ -147,6 +147,7 @@ export const useChatStore = defineStore('chat', () => {
                   document_contents: doneEvent.document_contents,
                   source_kind: doneEvent.source_kind,
                   disclaimer: doneEvent.disclaimer ?? null,
+                  kb_resolved: doneEvent.kb_resolved ?? null,
                 },
                 created_at: new Date().toISOString(),
               },
@@ -202,6 +203,29 @@ export const useChatStore = defineStore('chat', () => {
     retryableSendContent.value = null
   }
 
+  function addAssistantMessage(
+    content: string,
+    metadata?: ChatMessage['metadata'],
+  ): void {
+    messages.value = [
+      ...messages.value,
+      {
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        content,
+        role: 'assistant',
+        metadata,
+        created_at: new Date().toISOString(),
+      } as ChatMessage,
+    ]
+  }
+
+  const currentMessages = computed<ChatMessage[]>(() =>
+    messages.value.filter(
+      (m): m is ChatMessage =>
+        !('isOptimistic' in m) && !('isStreaming' in m),
+    ),
+  )
+
   function startNewChat(): void {
     activeSessionId.value = null
     messages.value = []
@@ -231,6 +255,8 @@ export const useChatStore = defineStore('chat', () => {
     retryableSendContent,
     researchMode,
     activeSession,
+    addAssistantMessage,
+    currentMessages,
     fetchSessions,
     loadSession,
     deleteSession,

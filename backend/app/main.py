@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 from starlette.middleware.sessions import SessionMiddleware
 
-from backend.app.api import auth, chat, oauth_routes
+from backend.app.api import auth, chat, helpdesk, oauth_routes
 from backend.app.core.config_manager import settings
 from backend.app.core.logger import initialize_logger, logger
 from backend.app.core.metrics import metrics_middleware, metrics_response, refresh_db_pool_metrics
@@ -73,6 +73,7 @@ logger.info('Including API routers')
 app.include_router(auth.router, prefix='/api/auth', tags=['auth'])
 app.include_router(oauth_routes.router, prefix='/api/auth/oauth', tags=['auth'])
 app.include_router(chat.router, prefix='/api/chat', tags=['chat'])
+app.include_router(helpdesk.router)
 logger.info('API setup complete')
 
 

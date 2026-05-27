@@ -30,7 +30,7 @@ def build_rag_graph(rag_service: RAGService, tenant_config=None):
     graph.add_node('rerank', make_rerank_node())
     graph.add_node('web_search', make_web_search_node(rag_service))
     graph.add_node('generate', make_generate_node(rag_service, tenant_config))
-    graph.add_node('format', make_format_node(rag_service))
+    graph.add_node('format', make_format_node(rag_service, tenant_config))
 
     graph.add_edge(START, 'condense')
     graph.add_conditional_edges('condense', route_research_mode, {'multi_query': 'multi_query', 'web_search': 'web_search'})
