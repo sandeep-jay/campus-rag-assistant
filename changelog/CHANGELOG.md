@@ -25,6 +25,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 - Sidebar UX: `SessionList.vue` now groups sessions by recency (`Today` / `Yesterday` / `This Week` / `Older`) with collapsible groups (state persisted in `localStorage`) and `Show more` pagination so long histories stay scannable.
 - Always-visible copy-to-clipboard on every assistant message (next to like/dislike), with a transient `Copied` confirmation.
 - Vue test hygiene: raised the test-only Node EventTarget listener ceiling for MSW so the full Vitest suite no longer emits the `MaxListenersExceededWarning`.
+- Backend: deterministic `chat_messages` ordering — added `order_by='ChatMessage.id'` to the `ChatSession.messages` relationship and an explicit `sorted(..., key=lambda m: m.id)` in `GET /api/chat/sessions/{id}` so reloaded transcripts never reshuffle around updated rows.
 
 ### Documentation
 

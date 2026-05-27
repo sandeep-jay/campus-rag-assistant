@@ -232,7 +232,7 @@ async def get_chat_session(
             'metadata': msg.message_meta,
             'created_at': msg.created_at,
         }
-        for msg in session.messages
+        for msg in sorted(session.messages, key=lambda m: m.id)
     ]
 
     logger.info(f'Retrieved session {session_id} with {len(messages)} messages')
