@@ -8,6 +8,7 @@ import SkipLink from '@/components/layout/SkipLink.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import UserMenu from '@/components/layout/UserMenu.vue'
 import AppSidebar from '@/components/sidebar/AppSidebar.vue'
+import TicketModal from '@/components/chat/TicketModal.vue'
 
 const authStore = useAuthStore()
 const { isAuthenticated } = storeToRefs(authStore)
@@ -50,5 +51,7 @@ watch(
     </div>
 
     <RouterView v-else />
+
+    <TicketModal />
   </div>
 </template>

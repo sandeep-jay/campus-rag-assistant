@@ -4,16 +4,20 @@ import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { toast } from 'vue-sonner'
 import { useChatStore } from '@/stores/chat'
+import { useHelpdeskStore } from '@/stores/helpdesk'
+import type { AgentTurn } from '@/types/helpdesk'
+import { trackHelpdeskAgentEvent } from '@/utils/telemetry'
 import MessageList from '@/components/chat/MessageList.vue'
 import ChatInput from '@/components/chat/ChatInput.vue'
 import TypingIndicator from '@/components/chat/TypingIndicator.vue'
-import TicketModal from '@/components/chat/TicketModal.vue'
 
 const route = useRoute()
 const router = useRouter()
 const chatStore = useChatStore()
-const { messages, streamingMessage, streamingStatus, isSendingMessage, isLoading, activeSessionId, retryableSendContent, researchMode } =
+const helpdeskStore = useHelpdeskStore()
+const { messages, streamingMessage, streamingStatus, isSendingMessage, isLoading, activeSessionId, retryableSendContent, researchMode, chatMode } =
   storeToRefs(chatStore)
+const { agentRunning, agentStatus, activeTurn } = storeToRefs(helpdeskStore)
 
 const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null)
 const messageListRef = ref<HTMLElement | null>(null)
@@ -36,6 +40,7 @@ watch(
       }
     } else {
       chatStore.startNewChat()
+      helpdeskStore.clearAgentTurn()
     }
     await scrollToBottom()
   },
@@ -49,11 +54,44 @@ onMounted(async () => {
 watch(messages, scrollToBottom, { deep: true })
 watch(streamingMessage, scrollToBottom, { deep: true })
 
+function pendingQuestionId(turn: AgentTurn | null): string | undefined {
+  return turn?.debug_trace?.at(-1)?.message ?? undefined
+}
+
+function appendAgentTurn(turn: AgentTurn): void {
+  helpdeskStore.recordAgentTurn(turn)
+  chatStore.addAssistantMessage(turn.message, { agent_turn: turn })
+  if (turn.draft) {
+    helpdeskStore.openModal()
+  }
+}
+
+async function sendAgentMessage(content: string): Promise<void> {
+  chatStore.addUserMessage(content)
+  const turn = activeTurn.value
+  const next = turn
+    ? await helpdeskStore.resumeAgent({
+        session_id: turn.session_id,
+        reply: content,
+        pending_question_id: pendingQuestionId(turn),
+        chat_session_id: chatStore.activeSessionId,
+      })
+    : await helpdeskStore.startAgent(
+        chatStore.currentMessages.map((m) => ({ role: m.role, content: m.content })),
+        chatStore.activeSessionId,
+      )
+  if (next) appendAgentTurn(next)
+}
+
 async function handleSend(content: string): Promise<void> {
   try {
-    await chatStore.sendMessage(content)
-    if (activeSessionId.value && !route.params.sessionId) {
-      await router.replace(`/chat/${activeSessionId.value}`)
+    if (chatMode.value === 'agent') {
+      await sendAgentMessage(content)
+    } else {
+      await chatStore.sendMessage(content)
+      if (activeSessionId.value && !route.params.sessionId) {
+        await router.replace(`/chat/${activeSessionId.value}`)
+      }
     }
   } catch (err) {
     toast.error(err instanceof Error ? err.message : 'Failed to send message. Please try again.')
@@ -61,6 +99,22 @@ async function handleSend(content: string): Promise<void> {
     await scrollToBottom()
     chatInputRef.value?.focus()
   }
+}
+
+async function setMode(mode: 'ask' | 'agent'): Promise<void> {
+  if (mode === chatMode.value) return
+  if (mode === 'ask' && activeTurn.value) {
+    const confirmed = window.confirm('Leave helpdesk agent mode? This cancels the current helpdesk workflow without filing a ticket.')
+    if (!confirmed) return
+    const aborted = await helpdeskStore.abortAgent(activeTurn.value.session_id, chatStore.activeSessionId)
+    if (aborted) {
+      chatStore.recordAgentTurnIntoChat(aborted.message, aborted)
+    } else {
+      return
+    }
+  }
+  chatStore.setChatMode(mode)
+  trackHelpdeskAgentEvent('mode_changed', { mode })
 }
 
 async function handleRetrySend(): Promise<void> {
@@ -85,9 +139,41 @@ function handlePromptSelected(prompt: string): void {
 <template>
   <main
     id="main-content"
-    :aria-busy="isLoading || isSendingMessage"
+    :aria-busy="isLoading || isSendingMessage || agentRunning"
     class="flex flex-col flex-1 min-h-0 overflow-hidden bg-background"
   >
+    <div class="flex-shrink-0 border-b border-border bg-background/95 px-4 py-2">
+      <div class="chat-container flex items-center justify-between gap-3">
+        <div>
+          <p class="text-chat-label text-foreground">Chat mode</p>
+          <p class="text-chat-caption text-muted-foreground">
+            {{ chatMode === 'agent' ? 'Helpdesk workflow: replies continue the agent session.' : 'Ask mode: replies go to the knowledge assistant.' }}
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-label="Toggle helpdesk agent mode"
+          :aria-checked="chatMode === 'agent'"
+          class="inline-flex items-center rounded-full border border-border bg-card p-1 text-chat-ui shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          @click="setMode(chatMode === 'agent' ? 'ask' : 'agent')"
+        >
+          <span
+            class="rounded-full px-3 py-1 transition-colors"
+            :class="chatMode === 'ask' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'"
+          >
+            Ask
+          </span>
+          <span
+            class="rounded-full px-3 py-1 transition-colors"
+            :class="chatMode === 'agent' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'"
+          >
+            Agent
+          </span>
+        </button>
+      </div>
+    </div>
+
     <div
       ref="messageListRef"
       class="flex-1 min-h-0 overflow-y-auto scroll-smooth"
@@ -99,8 +185,8 @@ function handlePromptSelected(prompt: string): void {
         @prompt-selected="handlePromptSelected"
       />
       <TypingIndicator
-        v-if="isSendingMessage && !streamingMessage?.content"
-        :status="streamingStatus"
+        v-if="(isSendingMessage && !streamingMessage?.content) || agentRunning"
+        :status="agentRunning ? agentStatus : streamingStatus"
       />
     </div>
 
@@ -117,14 +203,14 @@ function handlePromptSelected(prompt: string): void {
       </div>
     </div>
 
-    <div class="flex-shrink-0 border-t border-border bg-background/95 backdrop-blur-sm shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.12)] dark:shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.45)]">
+    <div class="flex-shrink-0 border-t border-border bg-card/95 backdrop-blur-sm shadow-pop">
       <ChatInput
         ref="chatInputRef"
         v-model:research-mode="researchMode"
-        :disabled="isSendingMessage"
+        :chat-mode="chatMode"
+        :disabled="isSendingMessage || agentRunning"
         @submit="handleSend"
       />
     </div>
   </main>
-  <TicketModal />
 </template>

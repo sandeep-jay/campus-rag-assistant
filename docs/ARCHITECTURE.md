@@ -148,9 +148,9 @@ Integration tests mock RAG by patching **`backend.app.api.chat.get_rag_service`*
 ## Helpdesk capabilities (post-RAG)
 
 The shipped ASK-mode escalation path offers one-shot recap, draft, and
-GitHub issue creation when RAG marks a response unresolved. The backend also
-exposes an opt-in, multi-turn helpdesk agent behind `HELPDESK_AGENT_ENABLED`;
-frontend AGENT-mode wiring is layered on top of this API surface separately.
+GitHub issue creation when RAG marks a response unresolved. Vue also exposes
+an opt-in AGENT mode on top of the `HELPDESK_AGENT_ENABLED` backend, rendering
+each multi-turn helpdesk journey as one assistant bubble with an activity timeline.
 Product spec: [CONVERSATION_FLOW.md](./roadmap/CONVERSATION_FLOW.md). Agent
 engineering spec: [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md).
 
@@ -159,14 +159,14 @@ engineering spec: [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md).
 | Endpoint | Purpose | Available in |
 |---|---|---|
 | `POST /api/helpdesk/summarize` | Narrative conversation recap (utility, no side effects) | ASK escalation |
-| `POST /api/helpdesk/draft-ticket` | One-shot structured ticket draft (no agent loop) | ASK escalation |
-| `POST /api/helpdesk/create-issue` | File reviewed draft on GitHub (idempotent, HITL-gated) | ASK escalation |
-| `POST /api/helpdesk/agent/start` | Start multi-turn helpdesk agent session | Agent backend |
-| `POST /api/helpdesk/agent/start/stream` | SSE status stream for start, ending with `AgentTurn` | Agent backend |
-| `POST /api/helpdesk/agent/resume` | Resume paused agent with the user's reply | Agent backend |
-| `POST /api/helpdesk/agent/resume/stream` | SSE status stream for resume, ending with `AgentTurn` | Agent backend |
-| `POST /api/helpdesk/agent/confirm` | User confirms draft -> internal call to `create-issue` | Agent backend |
-| `POST /api/helpdesk/agent/abort` | Cancel an in-flight agent session | Agent backend |
+| `POST /api/helpdesk/draft-ticket` | One-shot structured ticket draft (no agent loop) | ASK escalation / legacy modal fallback |
+| `POST /api/helpdesk/create-issue` | File reviewed draft on GitHub (idempotent, HITL-gated) | ASK escalation / legacy modal fallback |
+| `POST /api/helpdesk/agent/start` | Start multi-turn helpdesk agent session | AGENT mode |
+| `POST /api/helpdesk/agent/start/stream` | SSE status stream for start, ending with `AgentTurn` | AGENT mode preferred path |
+| `POST /api/helpdesk/agent/resume` | Resume paused agent with the user's reply | AGENT mode |
+| `POST /api/helpdesk/agent/resume/stream` | SSE status stream for resume, ending with `AgentTurn` | AGENT mode preferred path |
+| `POST /api/helpdesk/agent/confirm` | User confirms draft -> internal call to `create-issue` | AGENT mode |
+| `POST /api/helpdesk/agent/abort` | Cancel an in-flight agent session | AGENT mode |
 
 ### `kb_resolved` heuristic
 
@@ -174,7 +174,7 @@ When the KB path cannot resolve a question, the API sets
 `metadata.kb_resolved=false` on the assistant message (fuzzy match against
 the hydrated out-of-scope message, optional rerank score floor). The Vue
 chat UI uses this signal to surface escalation chips on the last assistant
-reply.
+reply; AGENT mode swaps those actions for `Get help` and continues the journey inline.
 
 ### Backend agent flow
 
@@ -204,15 +204,15 @@ sequenceDiagram
         Vue->>Help: POST /create-issue
         Help->>GH: POST /repos/{demo}/issues
     end
-    alt Agent client starts backend flow
-        Vue->>Agent: POST /agent/start
+    alt AGENT mode starts backend flow
+        Vue->>Agent: POST /agent/start/stream
         loop supervisor loop (bounded)
             Agent->>Agent: pick next_action
             Agent->>Agent: tool call (retry_kb / web_search / search_dups)
             opt agent asks
                 Agent-->>Vue: AgentTurn(question, choices)
                 User->>Vue: reply
-                Vue->>Agent: POST /agent/resume
+                Vue->>Agent: POST /agent/resume/stream
             end
         end
         Agent-->>Vue: AgentTurn(draft_ready | linked | resolved | aborted)
@@ -240,6 +240,7 @@ sequenceDiagram
   deterministic scripted plan tied to the sentinel query
   `Oracle Financials 403 error on budget reports` so the full agent flow
   is demo-able without AWS or GitHub credentials.
+- **Frontend state:** Vue stores one in-memory/persisted bubble per `agent_session_id`; streamed status updates drive the typing indicator and final `AgentTurn` updates the same card.
 - **Scope:** Vue frontend only (Streamlit unchanged).
 - **Secrets:** `GITHUB_TOKEN` + `GITHUB_REPO` (private demo repo); see
   `.env.example` and [SECURITY.md](./SECURITY.md).

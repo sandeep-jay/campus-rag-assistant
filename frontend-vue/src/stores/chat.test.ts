@@ -87,15 +87,25 @@ describe('useChatStore', () => {
     expect(store.activeSessionId).toBeNull()
   })
 
-  it('startNewChat() clears activeSessionId and messages', () => {
+  it('setChatMode() switches modes and forces KB research in agent mode', () => {
+    const store = useChatStore()
+    store.researchMode = 'web'
+    store.setChatMode('agent')
+    expect(store.chatMode).toBe('agent')
+    expect(store.researchMode).toBe('kb')
+  })
+
+  it('startNewChat() clears activeSessionId, messages, and returns to ask mode', () => {
     const store = useChatStore()
     store.activeSessionId = 1
     store.messages = [{ id: 1, content: 'hi', role: 'user', created_at: '' }]
     store.retryableSendContent = 'retry'
+    store.chatMode = 'agent'
     store.startNewChat()
     expect(store.activeSessionId).toBeNull()
     expect(store.messages).toEqual([])
     expect(store.retryableSendContent).toBeNull()
+    expect(store.chatMode).toBe('ask')
   })
 
   it('clear() resets all state', async () => {
@@ -106,5 +116,40 @@ describe('useChatStore', () => {
     expect(store.sessions).toEqual([])
     expect(store.activeSessionId).toBeNull()
     expect(store.retryableSendContent).toBeNull()
+  })
+
+  it('recordAgentTurnIntoChat upserts one bubble per agent session', () => {
+    const store = useChatStore()
+    const sessionId = 'agent-session-1'
+    store.recordAgentTurnIntoChat('Who is affected?', {
+      session_id: sessionId,
+      chat_message_id: 42,
+      kind: 'question',
+      message: 'Who is affected?',
+      choices: ['Only me', 'My team'],
+      input: 'radio',
+      draft: null,
+      linked_issue_url: null,
+      debug_trace: null,
+    })
+    expect(store.messages).toHaveLength(1)
+    expect(store.messages[0].id).toBe(42)
+    expect(store.messages[0].content).toBe('Who is affected?')
+
+    store.recordAgentTurnIntoChat('Here is a solution', {
+      session_id: sessionId,
+      chat_message_id: 42,
+      kind: 'info',
+      message: 'Here is a solution',
+      choices: ['Yes, that solved it'],
+      input: null,
+      draft: null,
+      linked_issue_url: null,
+      debug_trace: null,
+    })
+    expect(store.messages).toHaveLength(1)
+    expect(store.messages[0].id).toBe(42)
+    expect(store.messages[0].content).toBe('Here is a solution')
+    expect(store.messages[0].metadata?.agent_turn?.kind).toBe('info')
   })
 })

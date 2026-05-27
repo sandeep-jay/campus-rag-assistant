@@ -1,3 +1,5 @@
+import type { AgentStep, AgentTurn } from '@/types/helpdesk'
+
 export interface User {
   id: number
   username: string
@@ -38,6 +40,22 @@ export interface ChatMessage {
     source_kind?: ResearchMode
     disclaimer?: string | null
     kb_resolved?: boolean | null
+    agent_turn?: AgentTurn
+    // Server-persisted recap of a terminal helpdesk-agent run. Present
+    // on chat_messages rows written by Option A persistence
+    // (filed/linked/resolved/aborted). The live in-memory bubble carries
+    // ``agent_turn`` instead; rendering reads whichever is present.
+    agent_summary?: {
+      kind: 'filed' | 'linked' | 'resolved' | 'aborted' | 'question' | 'info' | 'draft_ready'
+      agent_session_id: string
+      agent_run_id?: string | null
+      linked_issue_url?: string | null
+      impact?: string | null
+      // Trimmed copy of the agent's visible activity trace, persisted so
+      // the reloaded chat row can render the same step-by-step timeline
+      // as the live bubble. Capped server-side (currently ~last 20 steps).
+      trace?: AgentStep[] | null
+    }
   }
   created_at: string
 }
@@ -119,7 +137,7 @@ export type StreamEvent =
       session_id: number
       source_kind?: ResearchMode
       disclaimer?: string | null
-    kb_resolved?: boolean | null
+      kb_resolved?: boolean | null
     }
   | { type: 'error'; message: string }
 

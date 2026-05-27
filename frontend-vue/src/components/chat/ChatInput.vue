@@ -2,10 +2,11 @@
 import { ref, nextTick } from 'vue'
 import { Globe, SendHorizontal } from 'lucide-vue-next'
 import type { ResearchMode } from '@/api/types'
+import type { ChatMode } from '@/stores/chat'
 
 const props = withDefaults(
-  defineProps<{ disabled?: boolean; researchMode?: ResearchMode }>(),
-  { disabled: false, researchMode: 'kb' },
+  defineProps<{ disabled?: boolean; researchMode?: ResearchMode; chatMode?: ChatMode }>(),
+  { disabled: false, researchMode: 'kb', chatMode: 'ask' },
 )
 const emit = defineEmits<{
   submit: [content: string]
@@ -54,7 +55,7 @@ function toggleWeb(): void {
           v-model="content"
           rows="1"
           :disabled="disabled"
-          placeholder="Ask about courses, assignments, or campus resources…"
+          :placeholder="chatMode === 'agent' ? 'Reply to the helpdesk agent…' : 'Ask about courses, assignments, or campus resources…'"
           aria-label="Message input"
           class="flex-1 resize-none rounded-xl border border-input bg-background px-4 py-3 text-chat-ui shadow-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 max-h-40 overflow-y-auto"
           @keydown="handleKeydown"
@@ -71,7 +72,7 @@ function toggleWeb(): void {
       </div>
       <div class="flex items-center justify-between gap-2 px-1">
         <button
-          v-if="webEnabled"
+          v-if="webEnabled && chatMode === 'ask'"
           type="button"
           :aria-pressed="researchMode === 'web'"
           class="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-chat-caption transition-colors"
@@ -83,9 +84,11 @@ function toggleWeb(): void {
           <Globe class="h-3.5 w-3.5" aria-hidden="true" />
           Search the web
         </button>
-        <span v-else class="text-chat-caption text-muted-foreground">Knowledge base only</span>
+        <span v-else class="text-chat-caption text-muted-foreground">
+          {{ chatMode === 'agent' ? 'Helpdesk agent mode' : 'Knowledge base only' }}
+        </span>
         <span class="text-chat-caption text-muted-foreground">
-          {{ researchMode === 'web' ? 'Public web search only (not your knowledge base)' : 'Answers from your knowledge base' }}
+          {{ chatMode === 'agent' ? 'Replies continue the helpdesk workflow' : (researchMode === 'web' ? 'Public web search only (not your knowledge base)' : 'Answers from your knowledge base') }}
         </span>
       </div>
     </div>
