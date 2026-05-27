@@ -160,7 +160,8 @@ describe('MessageBubble', () => {
     expect(screen.getByTestId('web-disclaimer')).toHaveTextContent(/public web search/i)
   })
 
-  it('shows helpdesk actions when kb_resolved is false and this is the last message', () => {
+
+  it('shows helpdesk actions when kb_resolved is false and isLastMessage', () => {
     const unresolved: ChatMessage = {
       id: 7,
       content: "I couldn't find information.",

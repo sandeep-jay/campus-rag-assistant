@@ -62,6 +62,17 @@ describe('ChatInput', () => {
     vi.unstubAllEnvs()
   })
 
+
+  it('hides research controls and labels helpdesk replies in agent mode', () => {
+    vi.stubEnv('VITE_WEB_RESEARCH_ENABLED', 'true')
+    renderWithProviders(ChatInput, { props: { researchMode: 'web', chatMode: 'agent' } })
+    expect(screen.queryByRole('button', { name: /search the web/i })).not.toBeInTheDocument()
+    expect(screen.getByText(/helpdesk agent mode/i)).toBeInTheDocument()
+    expect(screen.getByText(/replies continue the helpdesk workflow/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/reply to the helpdesk agent/i)).toBeInTheDocument()
+    vi.unstubAllEnvs()
+  })
+
   it('disables send button when disabled prop is true', () => {
     renderWithProviders(ChatInput, { props: { disabled: true } })
     expect(screen.getByRole('button', { name: 'Send message' })).toBeDisabled()

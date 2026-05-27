@@ -21,6 +21,9 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Added
 
+- Helpdesk agent frontend wiring: Vue now starts the helpdesk agent from unresolved KB answers or AGENT-mode chat input, renders each agent journey as one assistant bubble with an activity timeline, resumes sessions from in-chat actions, streams start/resume progress over SSE with fallback to non-streaming calls, and hands `draft_ready` turns to the existing ticket review modal.
+- Helpdesk agent UX controls: added the ASK/AGENT mode switch, agent outcome badge, accessible radio/pill action rendering, cancel-on-mode-exit behavior, and sanitized telemetry for mode changes, start/resume, stream fallback, draft review, confirmation, and abort flows.
+
 - Helpdesk agent backend Phase A-D: added the LangGraph-backed `/api/helpdesk/agent/{start,resume,confirm,abort}` flow plus `/start/stream` and `/resume/stream` SSE endpoints, SQLite checkpoint persistence, stale-question guards, classifier-driven ticket facts, retrieval/web solver tools, duplicate GitHub issue search, and HITL-gated ticket filing.
 - Durable agent chat persistence: `services/helpdesk/persist.py::upsert_agent_summary` maintains one assistant `chat_messages` row per agent journey, updates it across question/info/draft/terminal turns, and stores a trimmed trace for later UI rendering.
 - Helpdesk agent observability: added backend funnel/error metrics and LangSmith tracing wrappers for agent entry points, tools, and LLM helpers, all gated so tracing failures do not affect user responses.
@@ -38,6 +41,8 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Documentation
 
+- Updated `docs/ARCHITECTURE.md` to mark the AGENT-mode Vue wiring as shipped on top of the backend helpdesk agent endpoints.
+
 - Documented the backend helpdesk-agent endpoint surface, state/checkpoint model, tool flow, and HITL confirmation path in `docs/ARCHITECTURE.md`.
 
 - Helpdesk agent design freeze (2026-05-25): new RFCs at [docs/roadmap/CONVERSATION_FLOW.md](../docs/roadmap/CONVERSATION_FLOW.md) (product spec: ASK vs AGENT modes, intent router, cross-mode behaviors) and [docs/roadmap/HELPDESK_AGENT.md](../docs/roadmap/HELPDESK_AGENT.md) (engineering spec: helpdesk LangGraph, multi-turn checkpointer, supervisor + clarifier/classifier/writer specialists, tools, HITL gate, budgets, and full P0+P1 hardening). PRODUCT_ROADMAP.md Phase 6d now points at both RFCs.
@@ -49,6 +54,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Security
 
+- Patched frontend test-tooling transitive `js-cookie` advisory (`GHSA-qjx8-664m-686j`) by refreshing the lockfile to `js-cookie` `3.0.7`; `npm ci` now reports zero frontend vulnerabilities.
 - Redaction pass before summarization/issue filing (emails, JWT-like tokens, AWS keys, GitHub tokens, bearer tokens, and keyed secrets).
 - GitHub issue creation targets a separate private demo repo (`GITHUB_REPO`); documented in `.env.example` and `docs/SECURITY.md`.
 - **Frontend dev-tool CVEs remediated** — upgraded `frontend-vue` test/build tooling so `npm audit --audit-level=moderate` is clean: `vite` `6.4.2`, `esbuild` `0.25.0`, `vitest` / `@vitest/coverage-v8` `4.1.7`, plus lockfile transitive fixes for `ws` `8.20.1` and `brace-expansion` `5.0.6`. Verified with `npm run typecheck`, `npm test -- --run` (130 tests), `npm run build`, and `npm audit --audit-level=moderate`. `langgraph` / `langgraph-checkpoint` alerts remain deferred because patched checkpoint/LangGraph combinations require `langchain-core` 1.x and conflict with the current LangChain 0.3 stack.

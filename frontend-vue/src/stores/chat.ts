@@ -4,6 +4,8 @@ import * as chatApi from '@/api/chat'
 import type { ChatMessage, ChatSession, DisplayMessage, OptimisticMessage, StreamingMessage, ResearchMode } from '@/api/types'
 import { normalizeAssistantContent } from '@/utils/normalizeAssistantContent'
 
+export type ChatMode = 'ask' | 'agent'
+
 function generateOptimisticId(): string {
   return `opt-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
@@ -21,6 +23,7 @@ export const useChatStore = defineStore('chat', () => {
   const sessionsLoading = ref(false)
   const retryableSendContent = ref<string | null>(null)
   const researchMode = ref<ResearchMode>('kb')
+  const chatMode = ref<ChatMode>('ask')
 
   // Streaming state — the in-progress assistant message while SSE is open
   const streamingMessage = ref<StreamingMessage | null>(null)
@@ -193,6 +196,13 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  function setChatMode(mode: ChatMode): void {
+    chatMode.value = mode
+    if (mode === 'agent') {
+      researchMode.value = 'kb'
+    }
+  }
+
   async function retryLastFailedSend(): Promise<void> {
     if (!retryableSendContent.value) return
     const content = retryableSendContent.value
@@ -203,14 +213,75 @@ export const useChatStore = defineStore('chat', () => {
     retryableSendContent.value = null
   }
 
-  function addAssistantMessage(
-    content: string,
-    metadata?: ChatMessage['metadata'],
-  ): void {
+  function addUserMessage(content: string): void {
     messages.value = [
       ...messages.value,
       {
         id: Date.now() + Math.floor(Math.random() * 1000),
+        content,
+        role: 'user',
+        created_at: new Date().toISOString(),
+      } as ChatMessage,
+    ]
+  }
+
+  /**
+   * Record an agent turn into the chat transcript (Option C upsert).
+   *
+   * One in-memory bubble per ``agent_session_id``. The first turn appends;
+   * every subsequent turn updates that same bubble in place so the live
+   * view matches the server's upserted ``chat_messages`` row. When the
+   * backend stamps ``chat_message_id``, we adopt it as the bubble id so
+   * an immediate refresh does not duplicate the row.
+   */
+  function findAgentBubbleIndex(
+    sessionId: string,
+    chatMessageId: number | null,
+  ): number {
+    return messages.value.findIndex((msg) => {
+      if (msg.role !== 'assistant') return false
+      const chatMsg = msg as ChatMessage
+      if (chatMessageId != null && chatMsg.id === chatMessageId) return true
+      const meta = chatMsg.metadata
+      if (meta?.agent_turn?.session_id === sessionId) return true
+      if (meta?.agent_summary?.agent_session_id === sessionId) return true
+      return false
+    })
+  }
+
+  function recordAgentTurnIntoChat(content: string, turn: import('@/types/helpdesk').AgentTurn): void {
+    const persistedId =
+      typeof turn.chat_message_id === 'number' ? turn.chat_message_id : null
+    const idx = findAgentBubbleIndex(turn.session_id, persistedId)
+
+    if (idx >= 0) {
+      const existing = messages.value[idx] as ChatMessage
+      const next: ChatMessage = {
+        ...existing,
+        id: persistedId ?? existing.id,
+        content,
+        metadata: { ...existing.metadata, agent_turn: turn },
+      }
+      messages.value = [
+        ...messages.value.slice(0, idx),
+        next,
+        ...messages.value.slice(idx + 1),
+      ]
+      return
+    }
+
+    addAssistantMessage(content, { agent_turn: turn }, persistedId)
+  }
+
+  function addAssistantMessage(
+    content: string,
+    metadata?: ChatMessage['metadata'],
+    persistedId?: number | null,
+  ): void {
+    messages.value = [
+      ...messages.value,
+      {
+        id: persistedId ?? Date.now() + Math.floor(Math.random() * 1000),
         content,
         role: 'assistant',
         metadata,
@@ -231,6 +302,7 @@ export const useChatStore = defineStore('chat', () => {
     messages.value = []
     retryableSendContent.value = null
     streamingMessage.value = null
+    chatMode.value = 'ask'
   }
 
   function clear(): void {
@@ -241,6 +313,7 @@ export const useChatStore = defineStore('chat', () => {
     isSendingMessage.value = false
     retryableSendContent.value = null
     streamingMessage.value = null
+    chatMode.value = 'ask'
   }
 
   return {
@@ -254,13 +327,17 @@ export const useChatStore = defineStore('chat', () => {
     sessionsLoading,
     retryableSendContent,
     researchMode,
+    chatMode,
     activeSession,
+    addUserMessage,
     addAssistantMessage,
+    recordAgentTurnIntoChat,
     currentMessages,
     fetchSessions,
     loadSession,
     deleteSession,
     sendMessage,
+    setChatMode,
     retryLastFailedSend,
     dismissRetry,
     startNewChat,
