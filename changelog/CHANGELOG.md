@@ -24,6 +24,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 - Design tokens v2 / chat cohesion: rebuilt the light + dark palettes around a single accent family + neutral surfaces. New tokens (`--surface-raised`, `--sidebar*`, `--accent-subtle`, `--success-subtle`, `--warning-subtle`, `--user-message*`) and elevation utilities (`shadow-soft`, `shadow-pop`, `shadow-modal`, `chat-reading-column`, `surface-dotgrid`).
 - Sidebar UX: `SessionList.vue` now groups sessions by recency (`Today` / `Yesterday` / `This Week` / `Older`) with collapsible groups (state persisted in `localStorage`) and `Show more` pagination so long histories stay scannable.
 - Always-visible copy-to-clipboard on every assistant message (next to like/dislike), with a transient `Copied` confirmation.
+- Vue test hygiene: raised the test-only Node EventTarget listener ceiling for MSW so the full Vitest suite no longer emits the `MaxListenersExceededWarning`.
 
 ### Documentation
 
