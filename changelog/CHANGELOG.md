@@ -21,6 +21,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Documentation
 
+- Helpdesk agent design freeze (2026-05-25): new RFCs at [docs/roadmap/CONVERSATION_FLOW.md](../docs/roadmap/CONVERSATION_FLOW.md) (product spec: ASK vs AGENT modes, intent router, cross-mode behaviors) and [docs/roadmap/HELPDESK_AGENT.md](../docs/roadmap/HELPDESK_AGENT.md) (engineering spec: helpdesk LangGraph, multi-turn checkpointer, supervisor + clarifier/classifier/writer specialists, tools, HITL gate, budgets, and full P0+P1 hardening). PRODUCT_ROADMAP.md Phase 6d now points at both RFCs.
 - Reposition README and MkDocs landing page to lead with ownership and architecture; move upstream attribution into a dedicated "Origin and Scope" section.
 - Add `docs/REVIEWER_GUIDE.md` with 90-second read, senior-signal evidence map, and per-persona review paths; surfaced in MkDocs nav near the top.
 - Replace "Demo readiness" with "Review artifacts" framing in README and docs site.
