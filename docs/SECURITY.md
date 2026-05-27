@@ -99,6 +99,8 @@ cleartext is only read at the boundary that needs it via
 - `AWS_SECRET_ACCESS_KEY` (when not using instance profiles / IRSA).
 - `AZURE_OPENAI_API_KEY`, `AZURE_SEARCH_KEY`.
 - `OAUTH_GOOGLE_CLIENT_SECRET`, `OAUTH_GITHUB_CLIENT_SECRET`.
+- `GITHUB_TOKEN` (helpdesk escalation only — fine-grained PAT scoped to a **private demo**
+  repo with `issues:write`; never commit; do not point at the main portfolio repo).
 - `LANGCHAIN_API_KEY`, `TAVILY_API_KEY`.
 
 ### Production checklist

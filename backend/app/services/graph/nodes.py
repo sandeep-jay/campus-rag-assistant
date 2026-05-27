@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 from langchain.prompts import PromptTemplate
 
 from backend.app.core.config_manager import settings
+from backend.app.core.metrics import HELPDESK_KB_RESOLVED_TOTAL
 from backend.app.services.graph.state import RagState
 from backend.app.services.rerank import is_rerank_enabled, rerank_documents
 from backend.app.services.retrieval import (
@@ -15,6 +16,7 @@ from backend.app.services.retrieval import (
     expand_search_queries,
     retrieve_with_queries,
 )
+from backend.app.services.tenant_rag_config import TenantRagConfig
 from backend.app.services.tools.web_search import web_search_documents
 
 if TYPE_CHECKING:
@@ -132,22 +134,74 @@ def make_generate_node(rag_service: RAGService, tenant_config=None):
     return generate_answer
 
 
-def make_format_node(rag_service: RAGService):
+def _top_retrieval_score(documents: list) -> float | None:
+    """Best-effort extraction of a top retrieval/rerank score.
+
+    Returns ``None`` if no document carries a numeric score under any of the
+    common metadata keys.
+    """
+    best: float | None = None
+    for doc in documents:
+        meta = getattr(doc, 'metadata', None) or {}
+        for key in ('rerank_score', 'score', 'similarity', 'relevance_score'):
+            raw = meta.get(key)
+            if raw is None:
+                continue
+            try:
+                value = float(raw)
+            except (TypeError, ValueError):
+                continue
+            if best is None or value > best:
+                best = value
+            break
+    return best
+
+
+def _is_out_of_scope(answer: str, tenant_config) -> bool:
+    cfg = tenant_config or TenantRagConfig.from_settings()
+    oos = (cfg._hydrated_out_of_scope() or '').strip().lower()
+    if not oos:
+        return False
+    ans = (answer or '').strip().lower()
+    if not ans:
+        return True
+    prefix = oos[:40]
+    return oos in ans or ans.startswith(prefix)
+
+
+def _compute_kb_resolved(answer: str, documents: list, research_mode: str, tenant_config) -> bool | None:
+    if research_mode != 'kb':
+        return None
+    if not documents:
+        return False
+    threshold = float(getattr(settings, 'HELPDESK_KB_RESOLVED_MIN_SCORE', 0.0) or 0.0)
+    if threshold > 0.0:
+        top = _top_retrieval_score(documents)
+        if top is not None and top < threshold:
+            return False
+    return not _is_out_of_scope(answer, tenant_config)
+
+
+def make_format_node(rag_service: RAGService, tenant_config=None):
     def format_response(state: RagState) -> dict[str, Any]:
         documents = state.get('documents') or []
         answer = state.get('answer') or ''
         research_mode = state.get('research_mode') or 'kb'
         metadata_list, document_contents = rag_service._format_source_documents(documents)
         message = rag_service._normalize_answer_formatting(answer, metadata_list)
+        kb_resolved = _compute_kb_resolved(answer, documents, research_mode, tenant_config)
         metadata: dict[str, Any] = {
             'sources': metadata_list,
             'document_contents': document_contents,
             'source_kind': research_mode,
+            'kb_resolved': kb_resolved,
         }
         if research_mode == 'web':
             metadata['disclaimer'] = 'This answer used public web search results. ' 'Verify information against official institutional sources.'
         else:
             metadata['disclaimer'] = None
+        label = 'unknown' if kb_resolved is None else ('true' if kb_resolved else 'false')
+        HELPDESK_KB_RESOLVED_TOTAL.labels(value=label).inc()
         return {'message': message, 'metadata': metadata}
 
     format_response.__name__ = 'rag_format'
