@@ -26,6 +26,11 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 - Always-visible copy-to-clipboard on every assistant message (next to like/dislike), with a transient `Copied` confirmation.
 - Vue test hygiene: raised the test-only Node EventTarget listener ceiling for MSW so the full Vitest suite no longer emits the `MaxListenersExceededWarning`.
 - Backend: deterministic `chat_messages` ordering — added `order_by='ChatMessage.id'` to the `ChatSession.messages` relationship and an explicit `sorted(..., key=lambda m: m.id)` in `GET /api/chat/sessions/{id}` so reloaded transcripts never reshuffle around updated rows.
+- Helpdesk escalation (post-RAG): when `metadata.kb_resolved=false`, Vue shows two independent LLM-backed actions with distinct output shapes. **Summarize issue** posts a narrative `ConversationSummary` inline as an assistant message; **Create ticket** extracts a structured `TicketDraft`, opens an accessible review modal, and files the reviewed draft to GitHub.
+- `POST /api/helpdesk/summarize` (recap), `POST /api/helpdesk/draft-ticket` (structured `TicketDraft`), and `POST /api/helpdesk/create-issue` (file GitHub issue) — all feature-flagged via `HELPDESK_ENABLED` and inheriting chat auth + rate limits.
+- `kb_resolved` heuristic on KB chat responses (fuzzy out-of-scope detection + optional rerank score floor); propagated through SSE `done` and message metadata.
+- Prometheus metrics: `chatbot_helpdesk_recap_*`, `chatbot_helpdesk_draft_ticket_*`, `chatbot_helpdesk_create_issue_total`, `chatbot_helpdesk_kb_resolved_total`.
+- Mock-mode demo sentinel query: `Oracle Financials 403 error on budget reports`.
 
 ### Documentation
 
@@ -38,6 +43,8 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Security
 
+- Redaction pass before summarization/issue filing (emails, JWT-like tokens, AWS keys, GitHub tokens, bearer tokens, and keyed secrets).
+- GitHub issue creation targets a separate private demo repo (`GITHUB_REPO`); documented in `.env.example` and `docs/SECURITY.md`.
 - **Frontend dev-tool CVEs remediated** — upgraded `frontend-vue` test/build tooling so `npm audit --audit-level=moderate` is clean: `vite` `6.4.2`, `esbuild` `0.25.0`, `vitest` / `@vitest/coverage-v8` `4.1.7`, plus lockfile transitive fixes for `ws` `8.20.1` and `brace-expansion` `5.0.6`. Verified with `npm run typecheck`, `npm test -- --run` (130 tests), `npm run build`, and `npm audit --audit-level=moderate`. `langgraph` / `langgraph-checkpoint` alerts remain deferred because patched checkpoint/LangGraph combinations require `langchain-core` 1.x and conflict with the current LangChain 0.3 stack.
 - **Vulnerable Python pins bumped to patched releases** (closes 7 Dependabot alerts on `main`):
   - `authlib==1.3.2` → `1.6.12` — patches 1 **CRITICAL** JWS injection (`GHSA-9ggr-2464-2j32`) and 5 HIGH advisories (OIDC bypass, padding oracle, DoS, account takeover).

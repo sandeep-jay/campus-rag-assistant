@@ -7,6 +7,7 @@ import { useChatStore } from '@/stores/chat'
 import MessageList from '@/components/chat/MessageList.vue'
 import ChatInput from '@/components/chat/ChatInput.vue'
 import TypingIndicator from '@/components/chat/TypingIndicator.vue'
+import TicketModal from '@/components/chat/TicketModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -125,4 +126,5 @@ function handlePromptSelected(prompt: string): void {
       />
     </div>
   </main>
+  <TicketModal />
 </template>

@@ -37,6 +37,7 @@ export interface ChatMessage {
     document_contents?: DocContent[]
     source_kind?: ResearchMode
     disclaimer?: string | null
+    kb_resolved?: boolean | null
   }
   created_at: string
 }
@@ -118,6 +119,7 @@ export type StreamEvent =
       session_id: number
       source_kind?: ResearchMode
       disclaimer?: string | null
+    kb_resolved?: boolean | null
     }
   | { type: 'error'; message: string }
 

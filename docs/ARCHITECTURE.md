@@ -114,6 +114,9 @@ sequenceDiagram
 | `GET /api/auth/oauth/{provider}/start` | OAuth redirect (e.g. `github`) |
 | `GET /api/auth/oauth/{provider}/callback` | OAuth callback on API origin; dev handoff to Vue `/oauth/handoff` |
 | `GET /api/chat/messages/{id}/sources` | Source metadata for a message |
+| `POST /api/helpdesk/summarize` | Narrative conversation recap from the last N chat turns (auth + rate limit) |
+| `POST /api/helpdesk/draft-ticket` | Structured ticket draft from the last N chat turns (auth + rate limit) |
+| `POST /api/helpdesk/create-issue` | File reviewed draft to GitHub (idempotent, demo repo) |
 
 ## Frontend (`frontend-vue/`)
 
@@ -140,6 +143,84 @@ Override any of these explicitly in `.env` when needed.
 ## Testing note
 
 Integration tests mock RAG by patching **`backend.app.api.chat.get_rag_service`** (the name bound in the chat router module), not only `backend.app.services.rag.get_rag_service`, because the router imports that function by reference at load time.
+
+
+## Helpdesk escalation (post-RAG)
+
+When the KB path cannot resolve a question, the API can mark the assistant
+message with `metadata.kb_resolved=false`. The Vue chat UI uses that signal on
+the last assistant bubble to offer two one-shot escalation actions:
+
+- **Summarize issue** calls `POST /api/helpdesk/summarize` and appends a short
+  AI-generated Markdown recap inline.
+- **Create ticket** calls `POST /api/helpdesk/draft-ticket`, opens an accessible
+  review modal, and files the reviewed draft through `POST /api/helpdesk/create-issue`.
+
+All helpdesk endpoints are feature-flagged with `HELPDESK_ENABLED`, require the
+same chat auth/rate-limit protections, and stay dark unless `GITHUB_TOKEN` and
+`GITHUB_REPO` are configured for a separate private demo repo.
+
+### Endpoint surface
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/helpdesk/summarize` | Narrative conversation recap (utility, no side effects) |
+| `POST /api/helpdesk/draft-ticket` | One-shot structured ticket draft for the review modal |
+| `POST /api/helpdesk/create-issue` | File a reviewed draft on GitHub with per-user idempotency |
+
+### `kb_resolved` heuristic
+
+For KB-mode chat responses, the format node computes `kb_resolved` from the
+retrieved documents, the tenant out-of-scope response, and the optional
+`HELPDESK_KB_RESOLVED_MIN_SCORE` floor. Web answers report `null` because they
+are outside the KB-resolution heuristic.
+
+### Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Vue
+    participant ChatAPI as POST /api/chat/stream
+    participant RAG as LangGraph RAG
+    participant Help as /api/helpdesk
+    participant GH as GitHub API
+
+    User->>Vue: KB question
+    Vue->>ChatAPI: stream
+    ChatAPI->>RAG: run_rag_graph
+    RAG-->>ChatAPI: answer + kb_resolved
+    ChatAPI-->>Vue: SSE done
+    alt kb_resolved is false
+        Vue-->>User: show Summarize issue and Create ticket actions
+        opt Summarize issue
+            Vue->>Help: POST /summarize
+            Help-->>Vue: ConversationSummary
+            Vue-->>User: append recap in chat
+        end
+        opt Create ticket
+            Vue->>Help: POST /draft-ticket
+            Help-->>Vue: TicketDraft
+            User->>Vue: review modal + submit
+            Vue->>Help: POST /create-issue
+            Help->>GH: POST /repos/{demo}/issues
+            Help-->>Vue: issue URL
+        end
+    end
+```
+
+### Properties
+
+- **HITL gate**: the app never files a GitHub issue until the user reviews the
+  ticket draft and clicks Create issue in the modal.
+- **Redaction before LLM**: conversation text is trimmed and redacted before
+  summarization or ticket drafting. Emails, JWT-like tokens, AWS keys, GitHub
+  tokens, bearer tokens, and keyed secrets are replaced with `[REDACTED]`.
+- **GitHub token containment**: the PAT lives in `GITHUB_TOKEN` (`SecretStr`) and
+  is unwrapped only at the GitHub call site. It is never logged.
+- **Idempotency**: issue creation uses a short per-user TTL cache keyed by a
+  hash of the reviewed draft, so retries do not double-file.
+- **Scope**: Vue frontend only (Streamlit unchanged).
 
 ## Rate limiting
 
