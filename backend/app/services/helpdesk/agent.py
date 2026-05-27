@@ -1,4 +1,4 @@
-r"""Helpdesk LLM tasks (post-RAG escalation).
+r"""Helpdesk LLM agents (post-RAG escalation).
 
 This module exposes two independent LLM tasks that operate on the tail of a
 chat conversation where the RAG assistant could not resolve the question:
@@ -48,6 +48,7 @@ from backend.app.schemas.helpdesk import (
     TicketDraft,
 )
 from backend.app.services.helpdesk.redaction import redact_conversation
+from backend.app.services.helpdesk_graph.tracing import trace_agent_tool
 from backend.app.services.providers import get_llm_provider
 
 logger = logging.getLogger(__name__)
@@ -174,6 +175,7 @@ def _build_mock_recap(turns: list[dict[str, str]]) -> ConversationSummary:
     return ConversationSummary(summary=body)
 
 
+@trace_agent_tool('helpdesk_agent.recap_conversation', run_type='llm')
 async def recap_conversation(turns: list[ConversationTurn]) -> ConversationSummary:
     """Produce a narrative recap of the conversation for inline display.
 
@@ -249,6 +251,7 @@ def _parse_draft(raw: str) -> TicketDraft:
     return TicketDraft(**data)
 
 
+@trace_agent_tool('helpdesk_agent.draft_ticket', run_type='llm')
 async def draft_ticket(turns: list[ConversationTurn]) -> TicketDraft:
     """Extract a structured support-ticket draft from conversation history.
 
