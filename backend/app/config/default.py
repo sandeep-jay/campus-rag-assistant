@@ -180,7 +180,7 @@ class DefaultSettings(BaseSettings):
     AZURE_SEARCH_INDEX: str | None = None
     AZURE_SEARCH_VECTOR_FIELD: str = 'text_vector'
 
-    # Helpdesk escalation (post-RAG summarize + file GitHub issue).
+    # Helpdesk agent (post-RAG escalation: summarize + file GitHub issue).
     # Disabled by default; enabling requires GITHUB_TOKEN + GITHUB_REPO.
     HELPDESK_ENABLED: bool = False
     GITHUB_TOKEN: SecretStr | None = None
@@ -192,6 +192,18 @@ class DefaultSettings(BaseSettings):
     HELPDESK_DEDUP_WINDOW_SECONDS: int = 300
     # Max conversation turns sent to the summarizer (latest N preserved)
     HELPDESK_SUMMARIZE_MAX_TURNS: int = 6
+    # Multi-turn helpdesk agent (LangGraph-oriented redesign; Phase A starts with /agent/start)
+    HELPDESK_AGENT_ENABLED: bool = False
+    HELPDESK_AGENT_KILL_SWITCH: bool = False
+    HELPDESK_AGENT_TOOL_GITHUB_SEARCH: bool = True
+    HELPDESK_AGENT_TOOL_KB_RETRY: bool = True
+    HELPDESK_AGENT_TOOL_WEB_SEARCH: bool = True
+    HELPDESK_AGENT_CHECKPOINT_PATH: str = '.helpdesk_agent_checkpoints.sqlite'
+    HELPDESK_AGENT_CHECKPOINT_TTL_SECONDS: int = 86400
+    HELPDESK_AGENT_TOOL_OUTPUT_MAX_CHARS: int = 4000
+    HELPDESK_AGENT_KB_RETRY_TIMEOUT_SECONDS: float = 12.0
+    HELPDESK_AGENT_WEB_SEARCH_TIMEOUT_SECONDS: float = 10.0
+    HELPDESK_AGENT_GITHUB_SEARCH_TIMEOUT_SECONDS: float = 8.0
 
     # Auth cookies (set AUTH_COOKIE_SECURE=true in production HTTPS)
     AUTH_COOKIE_SECURE: bool = False

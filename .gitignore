@@ -35,6 +35,7 @@ ENV/
 *.sqlite3
 *.db
 test.db
+.helpdesk_agent_checkpoints.sqlite
 Thumbs.db
 
 # Front-end

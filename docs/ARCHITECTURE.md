@@ -145,82 +145,104 @@ Override any of these explicitly in `.env` when needed.
 Integration tests mock RAG by patching **`backend.app.api.chat.get_rag_service`** (the name bound in the chat router module), not only `backend.app.services.rag.get_rag_service`, because the router imports that function by reference at load time.
 
 
-## Helpdesk escalation (post-RAG)
+## Helpdesk capabilities (post-RAG)
 
-When the KB path cannot resolve a question, the API can mark the assistant
-message with `metadata.kb_resolved=false`. The Vue chat UI uses that signal on
-the last assistant bubble to offer two one-shot escalation actions:
-
-- **Summarize issue** calls `POST /api/helpdesk/summarize` and appends a short
-  AI-generated Markdown recap inline.
-- **Create ticket** calls `POST /api/helpdesk/draft-ticket`, opens an accessible
-  review modal, and files the reviewed draft through `POST /api/helpdesk/create-issue`.
-
-All helpdesk endpoints are feature-flagged with `HELPDESK_ENABLED`, require the
-same chat auth/rate-limit protections, and stay dark unless `GITHUB_TOKEN` and
-`GITHUB_REPO` are configured for a separate private demo repo.
+The shipped ASK-mode escalation path offers one-shot recap, draft, and
+GitHub issue creation when RAG marks a response unresolved. The backend also
+exposes an opt-in, multi-turn helpdesk agent behind `HELPDESK_AGENT_ENABLED`;
+frontend AGENT-mode wiring is layered on top of this API surface separately.
+Product spec: [CONVERSATION_FLOW.md](./roadmap/CONVERSATION_FLOW.md). Agent
+engineering spec: [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md).
 
 ### Endpoint surface
 
-| Endpoint | Purpose |
-|---|---|
-| `POST /api/helpdesk/summarize` | Narrative conversation recap (utility, no side effects) |
-| `POST /api/helpdesk/draft-ticket` | One-shot structured ticket draft for the review modal |
-| `POST /api/helpdesk/create-issue` | File a reviewed draft on GitHub with per-user idempotency |
+| Endpoint | Purpose | Available in |
+|---|---|---|
+| `POST /api/helpdesk/summarize` | Narrative conversation recap (utility, no side effects) | ASK escalation |
+| `POST /api/helpdesk/draft-ticket` | One-shot structured ticket draft (no agent loop) | ASK escalation |
+| `POST /api/helpdesk/create-issue` | File reviewed draft on GitHub (idempotent, HITL-gated) | ASK escalation |
+| `POST /api/helpdesk/agent/start` | Start multi-turn helpdesk agent session | Agent backend |
+| `POST /api/helpdesk/agent/start/stream` | SSE status stream for start, ending with `AgentTurn` | Agent backend |
+| `POST /api/helpdesk/agent/resume` | Resume paused agent with the user's reply | Agent backend |
+| `POST /api/helpdesk/agent/resume/stream` | SSE status stream for resume, ending with `AgentTurn` | Agent backend |
+| `POST /api/helpdesk/agent/confirm` | User confirms draft -> internal call to `create-issue` | Agent backend |
+| `POST /api/helpdesk/agent/abort` | Cancel an in-flight agent session | Agent backend |
 
 ### `kb_resolved` heuristic
 
-For KB-mode chat responses, the format node computes `kb_resolved` from the
-retrieved documents, the tenant out-of-scope response, and the optional
-`HELPDESK_KB_RESOLVED_MIN_SCORE` floor. Web answers report `null` because they
-are outside the KB-resolution heuristic.
+When the KB path cannot resolve a question, the API sets
+`metadata.kb_resolved=false` on the assistant message (fuzzy match against
+the hydrated out-of-scope message, optional rerank score floor). The Vue
+chat UI uses this signal to surface escalation chips on the last assistant
+reply.
 
-### Flow
+### Backend agent flow
 
 ```mermaid
 sequenceDiagram
     participant User
     participant Vue
     participant ChatAPI as POST /api/chat/stream
-    participant RAG as LangGraph RAG
-    participant Help as /api/helpdesk
+    participant RAG as LangGraph (RAG)
+    participant Help as /api/helpdesk/*
+    participant Agent as Helpdesk LangGraph
     participant GH as GitHub API
 
-    User->>Vue: KB question
+    User->>Vue: question
     Vue->>ChatAPI: stream
     ChatAPI->>RAG: run_rag_graph
     RAG-->>ChatAPI: answer + kb_resolved
     ChatAPI-->>Vue: SSE done
-    alt kb_resolved is false
-        Vue-->>User: show Summarize issue and Create ticket actions
-        opt Summarize issue
-            Vue->>Help: POST /summarize
-            Help-->>Vue: ConversationSummary
-            Vue-->>User: append recap in chat
+    alt Summarize chip
+        ChatAPI->>Help: POST /summarize
+        Help-->>Vue: ConversationSummary
+    end
+    alt Create ticket chip
+        ChatAPI->>Help: POST /draft-ticket
+        Help-->>Vue: TicketDraft
+        User->>Vue: review + submit (modal)
+        Vue->>Help: POST /create-issue
+        Help->>GH: POST /repos/{demo}/issues
+    end
+    alt Agent client starts backend flow
+        Vue->>Agent: POST /agent/start
+        loop supervisor loop (bounded)
+            Agent->>Agent: pick next_action
+            Agent->>Agent: tool call (retry_kb / web_search / search_dups)
+            opt agent asks
+                Agent-->>Vue: AgentTurn(question, choices)
+                User->>Vue: reply
+                Vue->>Agent: POST /agent/resume
+            end
         end
-        opt Create ticket
-            Vue->>Help: POST /draft-ticket
-            Help-->>Vue: TicketDraft
-            User->>Vue: review modal + submit
-            Vue->>Help: POST /create-issue
-            Help->>GH: POST /repos/{demo}/issues
-            Help-->>Vue: issue URL
+        Agent-->>Vue: AgentTurn(draft_ready | linked | resolved | aborted)
+        opt draft_ready
+            User->>Vue: review + confirm
+            Vue->>Agent: POST /agent/confirm
+            Agent->>GH: POST /repos/{demo}/issues (HITL gate)
         end
     end
 ```
 
 ### Properties
 
-- **HITL gate**: the app never files a GitHub issue until the user reviews the
-  ticket draft and clicks Create issue in the modal.
-- **Redaction before LLM**: conversation text is trimmed and redacted before
-  summarization or ticket drafting. Emails, JWT-like tokens, AWS keys, GitHub
-  tokens, bearer tokens, and keyed secrets are replaced with `[REDACTED]`.
-- **GitHub token containment**: the PAT lives in `GITHUB_TOKEN` (`SecretStr`) and
-  is unwrapped only at the GitHub call site. It is never logged.
-- **Idempotency**: issue creation uses a short per-user TTL cache keyed by a
-  hash of the reviewed draft, so retries do not double-file.
-- **Scope**: Vue frontend only (Streamlit unchanged).
+- **HITL gate**: the agent never files an issue without an explicit user
+  "File it" confirmation. The `file_ticket` tool is reachable only through
+  `/agent/confirm`.
+- **Multi-turn state**: agent sessions persist via LangGraph `SqliteSaver`
+  keyed by chat `session_id`. Checkpoints TTL'd after 24h.
+- **Defense in depth**: redaction applied on every LLM input *and* again
+  immediately before posting to GitHub.
+- **Bounded budgets**: hard caps on supervisor steps, clarifying questions,
+  KB retries, web searches, duplicate searches, per-session tokens, and
+  per-user-per-day sessions. See [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md).
+- **Mock-mode parity**: with `provider.is_mock`, the supervisor follows a
+  deterministic scripted plan tied to the sentinel query
+  `Oracle Financials 403 error on budget reports` so the full agent flow
+  is demo-able without AWS or GitHub credentials.
+- **Scope:** Vue frontend only (Streamlit unchanged).
+- **Secrets:** `GITHUB_TOKEN` + `GITHUB_REPO` (private demo repo); see
+  `.env.example` and [SECURITY.md](./SECURITY.md).
 
 ## Rate limiting
 
