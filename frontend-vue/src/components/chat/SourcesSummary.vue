@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ChevronDown } from 'lucide-vue-next'
+import { BookOpen, ChevronDown } from 'lucide-vue-next'
 import type { Source } from '@/api/types'
 import { isSafeUrl } from '@/utils/url'
 
@@ -44,7 +44,7 @@ function chipLabel(source: Source): string {
   >
     <button
       type="button"
-      class="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+      class="inline-flex items-center gap-1.5 rounded-md border border-accent-subtle bg-accent-subtle px-2.5 py-1 text-xs font-semibold text-accent-subtle-foreground hover:brightness-95 transition"
       :aria-expanded="expanded"
       :aria-controls="panelId"
       :aria-label="`${toggleLabel}, ${expanded ? 'expanded' : 'collapsed'}`"
@@ -65,17 +65,19 @@ function chipLabel(source: Source): string {
           :href="source.kb_url"
           target="_blank"
           rel="noopener noreferrer"
-          class="inline-flex max-w-[10rem] truncate rounded-full border border-border bg-muted/50 px-2 py-0.5 text-xs font-medium text-foreground hover:bg-accent"
+          class="group/source inline-flex max-w-[12rem] items-center gap-1.5 rounded-full border border-accent-subtle bg-accent-subtle px-2.5 py-1 text-xs font-semibold text-accent-subtle-foreground hover:brightness-95 transition"
           :title="source.short_description"
         >
-          {{ chipLabel(source) }}
+          <BookOpen class="h-3 w-3 shrink-0 opacity-80 group-hover/source:opacity-100" aria-hidden="true" />
+          <span class="truncate">{{ chipLabel(source) }}</span>
         </a>
         <span
           v-else
-          class="inline-flex max-w-[10rem] truncate rounded-full border border-border bg-muted/30 px-2 py-0.5 text-xs text-muted-foreground"
+          class="inline-flex max-w-[12rem] items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
           :title="source.short_description"
         >
-          {{ chipLabel(source) }}
+          <BookOpen class="h-3 w-3 shrink-0 opacity-70" aria-hidden="true" />
+          <span class="truncate">{{ chipLabel(source) }}</span>
         </span>
       </template>
 

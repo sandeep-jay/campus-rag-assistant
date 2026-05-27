@@ -8,7 +8,7 @@ const { isDark, toggle } = useDarkMode()
 </script>
 
 <template>
-  <header class="flex items-center justify-between border-b border-border bg-background px-4 h-14 flex-shrink-0">
+  <header class="flex items-center justify-between border-b border-border bg-card px-4 h-14 flex-shrink-0">
     <div class="flex items-center gap-3">
       <button
         aria-label="Toggle sidebar"
