@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
+import pytest
 from langchain.schema import Document
 
 from backend.app.services.graph.nodes import _compute_kb_resolved
 from backend.app.services.helpdesk.redaction import redact_text
+from backend.app.services.helpdesk_graph import tools
+from backend.app.services.helpdesk_graph.nodes import classify_ticket_facts
 
 
 def test_redact_text_handles_emails_tokens_secrets():
@@ -29,7 +34,7 @@ def test_redact_text_redacts_jwt_like_token():
     assert '[REDACTED]' in out
 
 
-def test_compute_kb_resolved_returns_none_for_web_mode():
+def test_compute_kb_resolved_returns_false_for_web_mode():
     assert _compute_kb_resolved('answer', [Document(page_content='x', metadata={})], 'web', None) is None
 
 
@@ -47,3 +52,113 @@ def test_compute_kb_resolved_true_for_substantive_answer():
     docs = [Document(page_content='step 1', metadata={})]
     answer = 'You can submit your assignment from the course homepage.'
     assert _compute_kb_resolved(answer, docs, 'kb', None) is True
+
+
+class _FakeRetriever:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def invoke(self, query: str):
+        self.calls += 1
+        return [Document(page_content=f'KB result for {query}', metadata={'source': 'kb'})]
+
+
+class _FakeRagService:
+    is_mock = False
+
+    def __init__(self) -> None:
+        self.retriever = _FakeRetriever()
+
+
+@pytest.mark.asyncio()
+async def test_retry_kb_uses_retriever_and_session_cache(monkeypatch):
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_TOOL_KB_RETRY', True)
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_KB_RETRY_TIMEOUT_SECONDS', 1.0)
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_TOOL_OUTPUT_MAX_CHARS', 4000)
+    state = {'session_id': 's1', 'user_id': 'u1', 'tool_cache': {}}
+    rag = _FakeRagService()
+
+    first = await tools.retry_kb('Oracle budget reports 403', rag_service=rag, state=state)
+    second = await tools.retry_kb('Oracle budget reports 403', rag_service=rag, state=state)
+
+    assert [doc.page_content for doc in first] == ['KB result for oracle budget reports 403']
+    assert [doc.page_content for doc in second] == ['KB result for oracle budget reports 403']
+    assert rag.retriever.calls == 1
+    assert 'retry_kb:oracle budget reports 403' in state['tool_cache']
+
+
+@pytest.mark.asyncio()
+async def test_retry_kb_respects_disabled_flag(monkeypatch):
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_TOOL_KB_RETRY', False)
+    state = {'session_id': 's1', 'user_id': 'u1', 'tool_cache': {}}
+
+    docs = await tools.retry_kb('anything', rag_service=_FakeRagService(), state=state)
+
+    assert docs == []
+    assert state['tool_cache'] == {}
+
+
+@pytest.mark.asyncio()
+async def test_web_search_uses_helper_and_session_cache(monkeypatch):
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_TOOL_WEB_SEARCH', True)
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_WEB_SEARCH_TIMEOUT_SECONDS', 1.0)
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_TOOL_OUTPUT_MAX_CHARS', 4000)
+    state = {'session_id': 's1', 'user_id': 'u1', 'tool_cache': {}}
+    calls = {'count': 0}
+
+    def _fake_web_search(query: str):
+        calls['count'] += 1
+        return [Document(page_content=f'Web result for {query}', metadata={'source': 'web'})]
+
+    with patch('backend.app.services.helpdesk_graph.tools.web_search_documents', _fake_web_search):
+        first = await tools.web_search('Oracle budget reports 403', state=state)
+        second = await tools.web_search('Oracle budget reports 403', state=state)
+
+    assert [doc.page_content for doc in first] == ['Web result for oracle budget reports 403']
+    assert [doc.page_content for doc in second] == ['Web result for oracle budget reports 403']
+    assert calls['count'] == 1
+    assert 'web_search:oracle budget reports 403' in state['tool_cache']
+
+
+@pytest.mark.asyncio()
+async def test_web_search_truncates_tool_output(monkeypatch):
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_TOOL_WEB_SEARCH', True)
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_WEB_SEARCH_TIMEOUT_SECONDS', 1.0)
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_TOOL_OUTPUT_MAX_CHARS', 5)
+
+    with patch(
+        'backend.app.services.helpdesk_graph.tools.web_search_documents',
+        lambda _query: [Document(page_content='0123456789', metadata={'source': 'web'})],
+    ):
+        docs = await tools.web_search('long output', state={'session_id': 's1', 'user_id': 'u1', 'tool_cache': {}})
+
+    assert docs[0].page_content == '01234'
+    assert docs[0].metadata['truncated'] is True
+
+
+def test_classify_ticket_facts_infers_access_high_team():
+    state = {
+        'session_id': 's1',
+        'user_id': 'u1',
+        'original_question': 'Oracle Financials 403 error blocks budget reports',
+        'conversation': [],
+        'facts': {'impact': 'My team'},
+    }
+
+    facts = classify_ticket_facts(state)
+
+    assert facts == {'severity': 'high', 'category': 'access', 'impact': 'Team'}
+
+
+def test_classify_ticket_facts_infers_network_outage():
+    state = {
+        'session_id': 's1',
+        'user_id': 'u1',
+        'original_question': 'Campus-wide wifi outage for all users',
+        'conversation': [],
+        'facts': {},
+    }
+
+    facts = classify_ticket_facts(state)
+
+    assert facts == {'severity': 'critical', 'category': 'network', 'impact': 'Campus-wide'}

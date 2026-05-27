@@ -21,6 +21,10 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Added
 
+- Helpdesk agent backend Phase A-D: added the LangGraph-backed `/api/helpdesk/agent/{start,resume,confirm,abort}` flow plus `/start/stream` and `/resume/stream` SSE endpoints, SQLite checkpoint persistence, stale-question guards, classifier-driven ticket facts, retrieval/web solver tools, duplicate GitHub issue search, and HITL-gated ticket filing.
+- Durable agent chat persistence: `services/helpdesk/persist.py::upsert_agent_summary` maintains one assistant `chat_messages` row per agent journey, updates it across question/info/draft/terminal turns, and stores a trimmed trace for later UI rendering.
+- Helpdesk agent observability: added backend funnel/error metrics and LangSmith tracing wrappers for agent entry points, tools, and LLM helpers, all gated so tracing failures do not affect user responses.
+
 - Design tokens v2 / chat cohesion: rebuilt the light + dark palettes around a single accent family + neutral surfaces. New tokens (`--surface-raised`, `--sidebar*`, `--accent-subtle`, `--success-subtle`, `--warning-subtle`, `--user-message*`) and elevation utilities (`shadow-soft`, `shadow-pop`, `shadow-modal`, `chat-reading-column`, `surface-dotgrid`).
 - Sidebar UX: `SessionList.vue` now groups sessions by recency (`Today` / `Yesterday` / `This Week` / `Older`) with collapsible groups (state persisted in `localStorage`) and `Show more` pagination so long histories stay scannable.
 - Always-visible copy-to-clipboard on every assistant message (next to like/dislike), with a transient `Copied` confirmation.
@@ -33,6 +37,8 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 - Mock-mode demo sentinel query: `Oracle Financials 403 error on budget reports`.
 
 ### Documentation
+
+- Documented the backend helpdesk-agent endpoint surface, state/checkpoint model, tool flow, and HITL confirmation path in `docs/ARCHITECTURE.md`.
 
 - Helpdesk agent design freeze (2026-05-25): new RFCs at [docs/roadmap/CONVERSATION_FLOW.md](../docs/roadmap/CONVERSATION_FLOW.md) (product spec: ASK vs AGENT modes, intent router, cross-mode behaviors) and [docs/roadmap/HELPDESK_AGENT.md](../docs/roadmap/HELPDESK_AGENT.md) (engineering spec: helpdesk LangGraph, multi-turn checkpointer, supervisor + clarifier/classifier/writer specialists, tools, HITL gate, budgets, and full P0+P1 hardening). PRODUCT_ROADMAP.md Phase 6d now points at both RFCs.
 - Reposition README and MkDocs landing page to lead with ownership and architecture; move upstream attribution into a dedicated "Origin and Scope" section.
