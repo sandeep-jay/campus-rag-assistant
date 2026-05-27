@@ -78,6 +78,31 @@ HELPDESK_KB_RESOLVED_TOTAL = Counter(
     'Count of chat completions tagged with the kb_resolved heuristic',
     ['value'],  # true | false | unknown
 )
+HELPDESK_AGENT_STARTED_TOTAL = Counter(
+    'chatbot_helpdesk_agent_started_total',
+    'Helpdesk agent sessions started by trigger',
+    ['trigger'],  # api | chip | phrase | llm_router
+)
+HELPDESK_AGENT_TOOL_TOTAL = Counter(
+    'chatbot_helpdesk_agent_tool_total',
+    'Helpdesk agent tool calls by tool and outcome',
+    ['tool', 'outcome', 'reason'],
+)
+HELPDESK_AGENT_OUTCOME_TOTAL = Counter(
+    'chatbot_helpdesk_agent_outcome_total',
+    'Helpdesk agent terminal outcomes',
+    ['outcome'],  # draft_ready | linked | aborted | error
+)
+HELPDESK_AGENT_FUNNEL_TOTAL = Counter(
+    'chatbot_helpdesk_agent_funnel_total',
+    'Helpdesk agent funnel events by stage and outcome',
+    ['stage', 'outcome'],
+)
+HELPDESK_AGENT_ERROR_TOTAL = Counter(
+    'chatbot_helpdesk_agent_error_total',
+    'Helpdesk agent errors by operation and reason',
+    ['operation', 'reason'],
+)
 
 
 def normalized_path(request: Request) -> str:
