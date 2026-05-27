@@ -118,6 +118,7 @@ Opt-in `research_mode=web`, Tavily optional, disclaimer UI. [WEB_RESEARCH.md](./
 |-------|-------------|
 | **6a** | LangGraph `astream_events` → same SSE shape as chain |
 | **6c** | Bounded `grade_documents` / rewrite loop (`RAG_AGENTIC_ENABLED`) |
+| **6d** | Helpdesk agent — multi-turn, multi-tool LangGraph; ASK / AGENT mode split; intent router; HITL ticket filing. See [CONVERSATION_FLOW.md](./CONVERSATION_FLOW.md) and [HELPDESK_AGENT.md](./HELPDESK_AGENT.md). |
 
 ---
 
