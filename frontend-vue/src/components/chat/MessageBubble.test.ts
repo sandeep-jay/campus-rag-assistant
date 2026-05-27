@@ -114,17 +114,33 @@ describe('MessageBubble', () => {
     expect(screen.getByRole('tab', { name: 'Sources' })).toBeInTheDocument()
   })
 
-  it('applies assistant row background tint; user row does not', () => {
-    const { container, unmount } = renderWithProviders(MessageBubble, { props: { message: assistantMessage } })
-    const assistantRow = container.querySelector('[data-testid="assistant-bubble"]') as HTMLElement | null
+  it('keeps assistant and user rows transparent; the bubble carries the visual weight', () => {
+    const assistantMsg: ChatMessage = {
+      id: 7,
+      role: 'assistant',
+      content: 'A',
+      created_at: new Date().toISOString(),
+      metadata: null,
+    }
+    const userMsg: ChatMessage = {
+      id: 8,
+      role: 'user',
+      content: 'B',
+      created_at: new Date().toISOString(),
+      metadata: null,
+    }
+    let { container, unmount } = renderWithProviders(MessageBubble, { props: { message: assistantMsg } })
+    const assistantRow = container.querySelector('[data-testid="assistant-bubble"]')
     expect(assistantRow).toBeTruthy()
-    expect(assistantRow!.className).toContain('bg-muted/20')
+    // Tokens-v2: the row is transparent; the assistant bubble (bg-card)
+    // does the layering against the cool off-white page background.
+    expect(assistantRow!.className).not.toContain('bg-muted')
     unmount()
-
-    const { container: c2 } = renderWithProviders(MessageBubble, { props: { message: userMessage } })
-    const userRow = c2.querySelector('[data-testid="user-bubble"]') as HTMLElement | null
+    ;({ container, unmount } = renderWithProviders(MessageBubble, { props: { message: userMsg } }))
+    const userRow = container.querySelector('[data-testid="user-bubble"]')
     expect(userRow).toBeTruthy()
-    expect(userRow!.className).not.toContain('bg-muted/20')
+    expect(userRow!.className).not.toContain('bg-muted')
+    unmount()
   })
 
   it('shows web disclaimer when metadata.disclaimer is set', () => {

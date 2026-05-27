@@ -58,11 +58,14 @@ const samplePrompts = ['How do I submit an assignment in the learning platform?'
       </li>
 
       <li
-        v-for="message in messages"
-        :key="'id' in message ? message.id : (message as { id: string }).id"
+        v-for="(message, index) in messages"
+        :key="String(message.id)"
         class="list-none w-full"
       >
-        <MessageBubble :message="message" />
+        <MessageBubble
+          :message="message"
+          :is-last-message="index === messages.length - 1 && !streamingMessage"
+        />
       </li>
 
       <li v-if="streamingMessage" class="list-none w-full">

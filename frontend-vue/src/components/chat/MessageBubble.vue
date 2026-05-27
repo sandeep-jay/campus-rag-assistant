@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Copy, Check } from 'lucide-vue-next'
+import { Copy, Check, Info } from 'lucide-vue-next'
 import type { DisplayMessage, ChatMessage } from '@/api/types'
 import { renderMarkdown } from '@/utils/markdown'
 import MessageFeedback from './MessageFeedback.vue'
@@ -57,7 +57,7 @@ function formatTime(dateStr: string): string {
 <template>
   <article
     class="w-full py-3 px-4 sm:px-6 lg:px-8"
-    :class="isAssistant(message) ? 'bg-muted/20' : 'bg-background'"
+    :class="isAssistant(message) ? '' : ''"
     :data-testid="isAssistant(message) ? 'assistant-bubble' : 'user-bubble'"
   >
     <!-- Assistant: avatar left, content right -->
@@ -74,7 +74,7 @@ function formatTime(dateStr: string): string {
 
         <div
           v-if="isStreaming"
-          class="w-full rounded-lg border border-border bg-card px-5 py-4 shadow-sm"
+          class="w-full rounded-lg border border-border bg-card px-5 py-4 shadow-soft"
           aria-live="polite"
           aria-atomic="false"
         >
@@ -91,17 +91,18 @@ function formatTime(dateStr: string): string {
           />
         </div>
 
-        <div v-else class="w-full rounded-lg border border-border bg-card px-5 py-4 shadow-sm">
+        <div v-else class="w-full rounded-lg border border-border bg-card px-5 py-4 shadow-soft">
           <div class="chat-prose dark:prose-invert max-w-none text-foreground" v-html="renderMarkdown(message.content)" />
         </div>
 
         <p
           v-if="disclaimer && !isStreaming"
-          class="w-full rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-chat-caption text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+          class="flex w-full items-start gap-2 rounded-md border border-border bg-muted px-3 py-2 text-chat-caption text-muted-foreground"
           role="note"
           data-testid="web-disclaimer"
         >
-          {{ disclaimer }}
+          <Info class="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent-subtle-foreground" aria-hidden="true" />
+          <span>{{ disclaimer }}</span>
         </p>
 
         <span class="text-chat-meta text-muted-foreground px-1">
@@ -112,16 +113,21 @@ function formatTime(dateStr: string): string {
           v-if="!isOptimistic(message) && !isStreaming"
           class="flex w-full flex-col gap-2"
         >
-          <div class="flex w-full items-center justify-between gap-2 opacity-100 sm:opacity-0 sm:group-hover/bubble:opacity-100 sm:focus-within:opacity-100 transition-opacity">
+          <!-- Always visible message actions: feedback + copy live in the
+               same row so users get the same affordances they expect from
+               other chat tools (ChatGPT / Claude). No hover-to-reveal so
+               the copy action is discoverable on touch + screen readers. -->
+          <div class="flex w-full items-center gap-1">
             <MessageFeedback :message-id="message.id as number" />
             <button
               type="button"
-              aria-label="Copy message to clipboard"
-              class="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              :aria-label="isCopied ? 'Copied to clipboard' : 'Copy message to clipboard'"
+              class="inline-flex items-center gap-1 rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
               @click="copyMessage"
             >
               <Check v-if="isCopied" class="h-4 w-4 text-green-600" aria-hidden="true" />
               <Copy v-else class="h-4 w-4" aria-hidden="true" />
+              <span v-if="isCopied" class="text-xs text-green-700 dark:text-green-400">Copied</span>
             </button>
           </div>
 
@@ -148,7 +154,7 @@ function formatTime(dateStr: string): string {
           <span class="text-chat-label user-message-label px-1">You</span>
 
           <div
-            class="user-message-bubble rounded-lg px-4 py-3 shadow-sm"
+            class="user-message-bubble rounded-lg px-4 py-3 shadow-soft"
             :class="isOptimistic(message) ? 'opacity-70' : ''"
           >
             <p class="whitespace-pre-wrap break-words text-chat-body">
