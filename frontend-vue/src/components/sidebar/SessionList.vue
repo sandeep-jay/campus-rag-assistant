@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { ChevronDown, ChevronRight } from 'lucide-vue-next'
 import type { ChatSession } from '@/api/types'
 import SessionItem from './SessionItem.vue'
 
@@ -7,6 +8,40 @@ const props = defineProps<{ sessions: ChatSession[]; activeSessionId: number | n
 const emit = defineEmits<{ select: [id: number]; delete: [id: number] }>()
 
 const pendingDeleteId = ref<number | null>(null)
+
+// How many sessions to reveal per date group before requiring "Show more".
+// Keeps the sidebar usable when there are dozens or hundreds of conversations.
+const PAGE_SIZE = 8
+const visibleCount = ref<Record<string, number>>({})
+
+// Collapsed/expanded state per group, persisted to localStorage so a user's
+// preferred view survives reloads. Today + active group default to expanded.
+const STORAGE_KEY = 'campusrag.sidebar.collapsedGroups'
+
+function loadCollapsed(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    return typeof parsed === 'object' && parsed !== null ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+const collapsed = ref<Record<string, boolean>>(loadCollapsed())
+
+watch(
+  collapsed,
+  (next) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+    } catch {
+      // Storage may be disabled (private mode, quota); fall back to in-memory only.
+    }
+  },
+  { deep: true },
+)
 
 function getDateGroup(dateStr: string): string {
   const date = new Date(dateStr)
@@ -32,8 +67,31 @@ const groupedSessions = computed(() => {
     if (!groups[group]) groups[group] = []
     groups[group].push(session)
   }
-  return groupOrder.filter((g) => groups[g]).map((g) => ({ label: g, sessions: groups[g] }))
+  return groupOrder
+    .filter((g) => groups[g])
+    .map((g) => ({ label: g, sessions: groups[g] }))
 })
+
+// Default state: 'Today' is always expanded; older groups start collapsed
+// unless the user has explicitly toggled them.
+function isCollapsed(label: string): boolean {
+  if (label in collapsed.value) return collapsed.value[label]
+  return label !== 'Today'
+}
+
+function toggleGroup(label: string): void {
+  collapsed.value = { ...collapsed.value, [label]: !isCollapsed(label) }
+}
+
+function shownInGroup(label: string, total: number): ChatSession[] {
+  const limit = visibleCount.value[label] ?? PAGE_SIZE
+  return groupedSessions.value.find((g) => g.label === label)?.sessions.slice(0, Math.min(limit, total)) ?? []
+}
+
+function showMore(label: string, total: number): void {
+  const current = visibleCount.value[label] ?? PAGE_SIZE
+  visibleCount.value = { ...visibleCount.value, [label]: Math.min(current + PAGE_SIZE, total) }
+}
 
 const pendingDeleteSession = computed(() =>
   props.sessions.find((s) => s.id === pendingDeleteId.value) ?? null,
@@ -61,25 +119,63 @@ function confirmDelete(): void {
       <p class="text-xs text-muted-foreground mt-1">Start a new chat to get help.</p>
     </div>
 
-    <div v-for="group in groupedSessions" :key="group.label" class="mb-4">
-      <h3 class="px-3 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-        {{ group.label }}
-      </h3>
-      <ul class="space-y-0.5">
+    <div v-for="group in groupedSessions" :key="group.label" class="mb-2">
+      <button
+        type="button"
+        class="w-full flex items-center justify-between px-3 py-1 rounded-md hover:bg-sidebar-accent transition-colors text-left"
+        :aria-expanded="!isCollapsed(group.label)"
+        :aria-controls="`group-${group.label.replace(/\s+/g, '-').toLowerCase()}`"
+        @click="toggleGroup(group.label)"
+      >
+        <span class="inline-flex items-center gap-1.5">
+          <component
+            :is="isCollapsed(group.label) ? ChevronRight : ChevronDown"
+            class="h-3.5 w-3.5 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <span class="text-xs font-semibold text-sidebar-foreground uppercase tracking-wider">
+            {{ group.label }}
+          </span>
+        </span>
+        <span class="text-[10px] font-medium text-muted-foreground tabular-nums">
+          {{ group.sessions.length }}
+        </span>
+      </button>
+
+      <ul
+        v-show="!isCollapsed(group.label)"
+        :id="`group-${group.label.replace(/\s+/g, '-').toLowerCase()}`"
+        class="space-y-0.5 mt-1"
+      >
         <SessionItem
-          v-for="session in group.sessions"
+          v-for="session in shownInGroup(group.label, group.sessions.length)"
           :key="session.id"
           :session="session"
           :is-active="activeSessionId === session.id"
           @select="emit('select', $event)"
           @request-delete="requestDelete"
         />
+        <li
+          v-if="group.sessions.length > (visibleCount[group.label] ?? PAGE_SIZE)"
+          class="pt-1"
+        >
+          <button
+            type="button"
+            class="w-full rounded-md px-3 py-1.5 text-xs text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors text-left"
+            @click="showMore(group.label, group.sessions.length)"
+          >
+            Show {{ Math.min(PAGE_SIZE, group.sessions.length - (visibleCount[group.label] ?? PAGE_SIZE)) }} more
+            <span class="text-muted-foreground/70">
+              ({{ group.sessions.length - (visibleCount[group.label] ?? PAGE_SIZE) }} hidden)
+            </span>
+          </button>
+        </li>
       </ul>
     </div>
 
     <div
       v-if="pendingDeleteSession"
-      class="sticky bottom-2 z-20 mx-2 rounded-lg border border-border bg-background shadow-lg p-3"
+      class="sticky bottom-2 z-20 mx-2 rounded-lg border border-border bg-card shadow-pop p-3"
       role="dialog"
       aria-modal="true"
       aria-labelledby="delete-confirm-title"
