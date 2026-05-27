@@ -6,8 +6,9 @@ import { renderMarkdown } from '@/utils/markdown'
 import MessageFeedback from './MessageFeedback.vue'
 import SourcesPanel from './SourcesPanel.vue'
 import SourcesSummary from './SourcesSummary.vue'
+import HelpdeskActions from './HelpdeskActions.vue'
 
-const props = defineProps<{ message: DisplayMessage; isStreaming?: boolean }>()
+const props = defineProps<{ message: DisplayMessage; isStreaming?: boolean; isLastMessage?: boolean }>()
 
 const isCopied = ref(false)
 const showSources = ref(false)
@@ -32,6 +33,10 @@ const hasSources = computed(
 )
 
 const disclaimer = computed(() => getSources(props.message)?.disclaimer ?? null)
+const kbResolved = computed(() => getSources(props.message)?.kb_resolved ?? null)
+const showHelpdeskActions = computed(
+  () => isAssistant(props.message) && (props.isLastMessage ?? false) && kbResolved.value === false,
+)
 
 const panelId = computed(() => {
   const id = 'id' in props.message ? String((props.message as { id: number | string }).id) : 'opt'
@@ -93,6 +98,10 @@ function formatTime(dateStr: string): string {
 
         <div v-else class="w-full rounded-lg border border-border bg-card px-5 py-4 shadow-soft">
           <div class="chat-prose dark:prose-invert max-w-none text-foreground" v-html="renderMarkdown(message.content)" />
+
+          <!-- Escalation prompt + actions live inside the same card so a
+               no-KB-match response reads as one assistant turn. -->
+          <HelpdeskActions v-if="showHelpdeskActions && !isStreaming" />
         </div>
 
         <p

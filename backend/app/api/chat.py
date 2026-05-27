@@ -58,7 +58,7 @@ def _stream_status_message(research_mode: str) -> str:
 
 
 def _stream_done_payload(session_id: int, metadata: dict) -> dict:
-    """SSE done event including web disclaimer when present."""
+    """SSE done event including web disclaimer and helpdesk kb_resolved flag."""
     return {
         'type': 'done',
         'session_id': session_id,
@@ -66,6 +66,7 @@ def _stream_done_payload(session_id: int, metadata: dict) -> dict:
         'document_contents': metadata.get('document_contents', []),
         'source_kind': metadata.get('source_kind', 'kb'),
         'disclaimer': metadata.get('disclaimer'),
+        'kb_resolved': metadata.get('kb_resolved'),
     }
 
 

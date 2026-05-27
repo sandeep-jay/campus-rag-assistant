@@ -48,6 +48,37 @@ CHAT_FIRST_TOKEN_LATENCY_SECONDS = Histogram(
     buckets=(0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 30, 60),
 )
 
+HELPDESK_RECAP_TOTAL = Counter(
+    'chatbot_helpdesk_recap_total',
+    'Helpdesk conversation-recap calls by outcome',
+    ['outcome'],  # success | llm_error | mock
+)
+HELPDESK_RECAP_LATENCY_SECONDS = Histogram(
+    'chatbot_helpdesk_recap_latency_seconds',
+    'Latency of the helpdesk conversation-recap call',
+    buckets=(0.1, 0.25, 0.5, 1, 2, 5, 10, 20),
+)
+HELPDESK_DRAFT_TICKET_TOTAL = Counter(
+    'chatbot_helpdesk_draft_ticket_total',
+    'Helpdesk structured-ticket-draft calls by outcome',
+    ['outcome'],  # success | parse_error | llm_error | mock
+)
+HELPDESK_DRAFT_TICKET_LATENCY_SECONDS = Histogram(
+    'chatbot_helpdesk_draft_ticket_latency_seconds',
+    'Latency of the helpdesk structured-ticket-draft call',
+    buckets=(0.1, 0.25, 0.5, 1, 2, 5, 10, 20),
+)
+HELPDESK_CREATE_ISSUE_TOTAL = Counter(
+    'chatbot_helpdesk_create_issue_total',
+    'Helpdesk GitHub-issue creation by outcome',
+    ['outcome'],  # success | github_error | deduplicated | disabled
+)
+HELPDESK_KB_RESOLVED_TOTAL = Counter(
+    'chatbot_helpdesk_kb_resolved_total',
+    'Count of chat completions tagged with the kb_resolved heuristic',
+    ['value'],  # true | false | unknown
+)
+
 
 def normalized_path(request: Request) -> str:
     route = request.scope.get('route')

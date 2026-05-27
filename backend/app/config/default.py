@@ -180,6 +180,19 @@ class DefaultSettings(BaseSettings):
     AZURE_SEARCH_INDEX: str | None = None
     AZURE_SEARCH_VECTOR_FIELD: str = 'text_vector'
 
+    # Helpdesk escalation (post-RAG summarize + file GitHub issue).
+    # Disabled by default; enabling requires GITHUB_TOKEN + GITHUB_REPO.
+    HELPDESK_ENABLED: bool = False
+    GITHUB_TOKEN: SecretStr | None = None
+    GITHUB_REPO: str | None = None  # 'org/repo' — use a private demo repo
+    GITHUB_DEFAULT_LABELS: str = 'it-helpdesk'
+    # Detection thresholds for the kb_resolved heuristic in graph/format
+    HELPDESK_KB_RESOLVED_MIN_SCORE: float = 0.0  # 0 disables the score floor
+    # Per-user idempotency window for create-issue (seconds)
+    HELPDESK_DEDUP_WINDOW_SECONDS: int = 300
+    # Max conversation turns sent to the summarizer (latest N preserved)
+    HELPDESK_SUMMARIZE_MAX_TURNS: int = 6
+
     # Auth cookies (set AUTH_COOKIE_SECURE=true in production HTTPS)
     AUTH_COOKIE_SECURE: bool = False
     AUTH_COOKIE_SAMESITE: str = 'lax'
