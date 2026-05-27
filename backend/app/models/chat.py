@@ -80,6 +80,12 @@ class ChatSession(Base):
         'ChatMessage',
         back_populates='session',
         cascade='all, delete-orphan',
+        # Deterministic chat ordering on reload. Without this the
+        # backing query has no ORDER BY and rows can come back in
+        # arbitrary order (e.g. after a row update bumps it), which
+        # showed up as agent-summary messages appearing in the wrong
+        # spot relative to earlier user/assistant rows.
+        order_by='ChatMessage.id',
     )
 
 
