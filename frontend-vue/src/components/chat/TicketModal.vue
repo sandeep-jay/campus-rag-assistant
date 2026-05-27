@@ -7,6 +7,7 @@ import type { TicketDraft } from '@/types/helpdesk'
 
 const helpdesk = useHelpdeskStore()
 const chat = useChatStore()
+
 const form = ref<TicketDraft | null>(null)
 const dialog = ref<HTMLDivElement | null>(null)
 const titleId = 'helpdesk-modal-title'
@@ -81,6 +82,16 @@ const submitting = computed(() => helpdesk.submitting)
 
 async function handleSubmit(): Promise<void> {
   if (!form.value) return
+  const agentTurn = helpdesk.activeTurn
+  if (agentTurn?.kind === 'draft_ready') {
+    const filed = await helpdesk.confirmAgent(agentTurn.session_id, form.value, chat.activeSessionId)
+    if (filed) {
+      chat.recordAgentTurnIntoChat(filed.message, filed)
+      helpdesk.reset()
+    }
+    return
+  }
+
   const result = await helpdesk.submitIssue(form.value)
   if (result) {
     const verb = result.deduplicated ? 'is already' : 'was'

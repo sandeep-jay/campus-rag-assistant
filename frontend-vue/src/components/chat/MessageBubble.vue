@@ -7,6 +7,9 @@ import MessageFeedback from './MessageFeedback.vue'
 import SourcesPanel from './SourcesPanel.vue'
 import SourcesSummary from './SourcesSummary.vue'
 import HelpdeskActions from './HelpdeskActions.vue'
+import AgentTurnActions from './AgentTurnActions.vue'
+import AgentTurnBadge from './AgentTurnBadge.vue'
+import AgentActivityTimeline from './AgentActivityTimeline.vue'
 
 const props = defineProps<{ message: DisplayMessage; isStreaming?: boolean; isLastMessage?: boolean }>()
 
@@ -33,9 +36,50 @@ const hasSources = computed(
 )
 
 const disclaimer = computed(() => getSources(props.message)?.disclaimer ?? null)
+
 const kbResolved = computed(() => getSources(props.message)?.kb_resolved ?? null)
+const agentTurn = computed(() => getSources(props.message)?.agent_turn ?? null)
+const agentSummary = computed(() => getSources(props.message)?.agent_summary ?? null)
+const terminalKinds: ReadonlyArray<string> = ['filed', 'linked', 'resolved', 'aborted']
+// Derive the badge payload from EITHER the live AgentTurn or the
+// persisted ``agent_summary`` metadata so the badge (and its issue
+// link) survives a page reload. ``agent_turn`` wins when both exist
+// because it carries the most recent in-memory state.
+const terminalBadge = computed<{ kind: string; linked_issue_url: string | null } | null>(() => {
+  if (agentTurn.value && terminalKinds.includes(String(agentTurn.value.kind))) {
+    return {
+      kind: String(agentTurn.value.kind),
+      linked_issue_url: agentTurn.value.linked_issue_url ?? null,
+    }
+  }
+  if (agentSummary.value) {
+    return {
+      kind: agentSummary.value.kind,
+      linked_issue_url: agentSummary.value.linked_issue_url ?? null,
+    }
+  }
+  return null
+})
+
+// Timeline source: prefer the live ``debug_trace`` when an ``agent_turn``
+// is present (the agent is still running or just terminated in this
+// session), else fall back to the persisted ``agent_summary.trace`` so
+// reloaded conversations still render the full step list.
+const agentTimelineSteps = computed(() => {
+  if (agentTurn.value?.debug_trace?.length) return agentTurn.value.debug_trace
+  if (agentSummary.value?.trace?.length) return agentSummary.value.trace
+  return []
+})
+
+// We treat any non-terminal ``agent_turn`` (``question`` / ``info`` /
+// ``draft_ready``) as 'still running' so the last timeline row pulses.
+const isAgentRunning = computed(() => {
+  if (!agentTurn.value) return false
+  return !terminalKinds.includes(String(agentTurn.value.kind))
+})
+
 const showHelpdeskActions = computed(
-  () => isAssistant(props.message) && (props.isLastMessage ?? false) && kbResolved.value === false,
+  () => isAssistant(props.message) && !agentTurn.value && (props.isLastMessage ?? false) && kbResolved.value === false,
 )
 
 const panelId = computed(() => {
@@ -97,10 +141,23 @@ function formatTime(dateStr: string): string {
         </div>
 
         <div v-else class="w-full rounded-lg border border-border bg-card px-5 py-4 shadow-soft">
+          <div v-if="terminalBadge" class="mb-3">
+            <AgentTurnBadge :kind="terminalBadge.kind" :linked_issue_url="terminalBadge.linked_issue_url" />
+          </div>
+
+          <AgentActivityTimeline
+            v-if="agentTimelineSteps.length"
+            :steps="agentTimelineSteps"
+            :default-expanded="isAgentRunning"
+            :is-running="isAgentRunning"
+            class="mb-3 border-b border-border pb-3"
+          />
+
           <div class="chat-prose dark:prose-invert max-w-none text-foreground" v-html="renderMarkdown(message.content)" />
 
           <!-- Escalation prompt + actions live inside the same card so a
-               no-KB-match response reads as one assistant turn. -->
+               'no KB match' response reads as one assistant turn, not two
+               stacked components. -->
           <HelpdeskActions v-if="showHelpdeskActions && !isStreaming" />
         </div>
 
@@ -113,6 +170,8 @@ function formatTime(dateStr: string): string {
           <Info class="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent-subtle-foreground" aria-hidden="true" />
           <span>{{ disclaimer }}</span>
         </p>
+
+        <AgentTurnActions v-if="agentTurn && !isStreaming" :turn="agentTurn" />
 
         <span class="text-chat-meta text-muted-foreground px-1">
           {{ formatTime(message.created_at) }}
