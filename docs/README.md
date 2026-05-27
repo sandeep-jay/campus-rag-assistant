@@ -22,6 +22,8 @@ See the root [README](../README.md) for setup, features, screenshots, and stack 
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Diagrams, request flows, API and frontend layout |
 | [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md) | Graph nodes, configuration, streaming behavior |
 | [roadmap/WEB_RESEARCH.md](./roadmap/WEB_RESEARCH.md) | Opt-in `research_mode=web` |
+| [roadmap/CONVERSATION_FLOW.md](./roadmap/CONVERSATION_FLOW.md) | Product spec: ASK vs AGENT modes, intent router, cross-mode behaviors |
+| [roadmap/HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md) | Engineering spec: helpdesk LangGraph, tools, specialists, HITL gate, budgets |
 
 
 ## Decisions (ADRs)
