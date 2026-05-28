@@ -7,11 +7,12 @@ so the resulting commit history stays vendor-neutral and reviewable.
 
 Usage:
     python3 tool_attribution_guard.py <path-to-commit-msg-file>
+    python3 tool_attribution_guard.py --check <path> [<path> ...]
 
-The script edits the file in place. It is idempotent and conservative:
-only lines matching documented patterns are removed. Anything else
-(including legitimate ``Co-authored-by:`` lines for human collaborators)
-is preserved.
+Without ``--check``, the script edits one commit-message file in place. In
+``--check`` mode, it scans one or more files and exits non-zero if any
+attribution line is found. The matching is conservative: legitimate
+``Co-authored-by:`` lines for human collaborators are preserved.
 """
 
 from __future__ import annotations
@@ -71,7 +72,29 @@ _LINE_PATTERNS: tuple[re.Pattern[str], ...] = (
         rf"^\s*(?:made|generated|created|written|powered)\s+.*https?://(?:[a-z0-9.-]+\.)?(?:{_TOOLS_ALT})[a-z0-9./?#=&_-]*.*$",
         re.IGNORECASE,
     ),
+    # Standalone vendor identities that can be pasted into PR descriptions.
+    re.compile(
+        r"^.*(?:cursoragent@cursor\.com|https?://(?:www\.)?(?:cursor|anthropic|openai)\.com).*$",
+        re.IGNORECASE,
+    ),
 )
+
+
+def is_tool_attribution_line(line: str) -> bool:
+    """Return whether ``line`` attributes authorship to an AI tool."""
+
+    stripped = line.strip()
+    return any(pat.match(stripped) for pat in _LINE_PATTERNS)
+
+
+def find_tool_attribution_lines(text: str) -> list[tuple[int, str]]:
+    """Return ``(line_number, line)`` pairs for tool-attribution lines."""
+
+    return [
+        (line_number, line)
+        for line_number, line in enumerate(text.splitlines(), 1)
+        if is_tool_attribution_line(line)
+    ]
 
 
 def sanitize(text: str) -> str:
@@ -79,8 +102,7 @@ def sanitize(text: str) -> str:
 
     kept: list[str] = []
     for raw in text.splitlines(keepends=True):
-        stripped = raw.strip()
-        if any(pat.match(stripped) for pat in _LINE_PATTERNS):
+        if is_tool_attribution_line(raw):
             continue
         kept.append(raw)
 
@@ -91,9 +113,26 @@ def sanitize(text: str) -> str:
     return cleaned
 
 
+def check_paths(paths: list[Path]) -> int:
+    """Print findings for ``paths`` and return a process exit status."""
+
+    found = False
+    for path in paths:
+        if not path.is_file():
+            continue
+        for line_number, line in find_tool_attribution_lines(path.read_text()):
+            found = True
+            print(f"{path}:{line_number}: tool attribution: {line}", file=sys.stderr)
+    return 1 if found else 0
+
+
 def main(argv: list[str]) -> int:
     if len(argv) < 2:
         return 0  # Nothing to do; behave like a no-op for safety.
+
+    if argv[1] == "--check":
+        return check_paths([Path(arg) for arg in argv[2:]])
+
     path = Path(argv[1])
     if not path.is_file():
         return 0

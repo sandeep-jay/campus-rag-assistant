@@ -54,6 +54,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Security
 
+- Added a pull-request `no tool attribution` workflow plus a PR template so squash-merge metadata is checked server-side, closing the gap local commit hooks cannot cover.
 - Patched frontend test-tooling transitive `js-cookie` advisory (`GHSA-qjx8-664m-686j`) by refreshing the lockfile to `js-cookie` `3.0.7`; `npm ci` now reports zero frontend vulnerabilities.
 - Redaction pass before summarization/issue filing (emails, JWT-like tokens, AWS keys, GitHub tokens, bearer tokens, and keyed secrets).
 - GitHub issue creation targets a separate private demo repo (`GITHUB_REPO`); documented in `.env.example` and `docs/SECURITY.md`.
