@@ -11,7 +11,7 @@
 
 **Production-style enterprise RAG platform for governed campus knowledge.**
 
-Campus RAG Assistant demonstrates multicloud RAG platform engineering: Vue product UI, FastAPI API, AWS Bedrock KB and Azure AI Search provider boundaries, LangGraph orchestration, citation-first answer UX, RAGAS evaluation, LangSmith observability, and CI/CD that runs safely without cloud credentials.
+Campus RAG Assistant demonstrates multicloud RAG platform engineering plus bounded **agentic orchestration**: Vue product UI, FastAPI API, AWS Bedrock KB and Azure AI Search provider boundaries, LangGraph RAG, a multi-turn **helpdesk agent** with HITL ticket filing, citation-first answer UX, RAGAS evaluation, LangSmith observability, and CI/CD that runs safely without cloud credentials.
 
 **Portfolio focus:** Lead AI Engineering and AI Platform Architecture. Live docs: <https://sandeep-jay.github.io/campus-rag-assistant/>.
 
@@ -27,6 +27,7 @@ Campus RAG Assistant demonstrates multicloud RAG platform engineering: Vue produ
 | Product and architecture narrative | [docs/PORTFOLIO_CASE_STUDY.md](docs/PORTFOLIO_CASE_STUDY.md) |
 | System design | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) + [docs/DESIGN.md](docs/DESIGN.md) |
 | RAG quality | [docs/EVALUATION.md](docs/EVALUATION.md) + [docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md) |
+| Agentic orchestration | [docs/roadmap/HELPDESK_AGENT.md](docs/roadmap/HELPDESK_AGENT.md) + [docs/roadmap/CONVERSATION_FLOW.md](docs/roadmap/CONVERSATION_FLOW.md) |
 | Operations and security | [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/CI.md](docs/CI.md), [docs/SECURITY.md](docs/SECURITY.md) |
 
 ## Why this project matters
@@ -34,6 +35,7 @@ Campus RAG Assistant demonstrates multicloud RAG platform engineering: Vue produ
 - Turns scattered institutional docs (Canvas LMS, ServiceNow, policies) into **cited, natural-language answers** users can verify.
 - Shows **production RAG** concerns end-to-end: retrieval quality, observability, auth, streaming, evals, and deployment.
 - Demonstrates **platform architecture**: AWS/Azure/mock providers, tenant config, feature flags, and CI-safe local mode.
+- Goes beyond chat with a **bounded helpdesk agent**: a real LangGraph supervisor that picks tools (KB retry, web search, GitHub-issue search, file-ticket), pauses for clarifying questions, and gates ticket filing on human review.
 
 ## Role alignment
 
@@ -61,12 +63,17 @@ This project is designed to demonstrate strengths relevant to:
 flowchart LR
   VueSPA["Vue 3 SPA"] --> FastAPI["FastAPI"]
   FastAPI --> LangGraph["LangGraph RAG"]
+  FastAPI --> HelpdeskAgent["Helpdesk Agent (LangGraph)"]
+  HelpdeskAgent --> AgentTools["KB retry / web search / GitHub-issue search"]
+  HelpdeskAgent --> Checkpoint["SQLite checkpointer"]
+  HelpdeskAgent --> GHIssues["GitHub Issues (HITL)"]
   LangGraph --> Providers["Provider Registry"]
   Providers --> BedrockKB["AWS Bedrock KB"]
   Providers --> AzureAI["Azure AI Search"]
   FastAPI --> Postgres[("Postgres")]
   FastAPI --> Prometheus["Prometheus"]
   LangGraph --> LangSmith["LangSmith"]
+  HelpdeskAgent --> LangSmith
   LangGraph --> RAGAS["RAGAS eval"]
 ```
 

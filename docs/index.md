@@ -10,7 +10,7 @@
 
 **Production-style enterprise RAG platform for governed campus knowledge.**
 
-Campus RAG Assistant demonstrates how institutional knowledge can be served through a measurable, observable, citation-first RAG platform. It combines a Vue product UI, FastAPI backend, AWS / Azure / mock provider boundaries, LangGraph orchestration, RAGAS evaluation, LangSmith traces, CI/CD, load testing, and operational hardening docs.
+Campus RAG Assistant demonstrates how institutional knowledge can be served through a measurable, observable, citation-first RAG platform plus bounded **agentic orchestration** (a multi-turn helpdesk agent with HITL ticket filing). It combines a Vue product UI, FastAPI backend, AWS / Azure / mock provider boundaries, LangGraph orchestration, RAGAS evaluation, LangSmith traces, CI/CD, load testing, and operational hardening docs.
 
 **Portfolio focus:** Lead AI Engineering and AI Platform Architecture.
 
@@ -29,6 +29,7 @@ Campus RAG Assistant demonstrates how institutional knowledge can be served thro
 | Evaluating ownership and judgment | [Case Study](PORTFOLIO_CASE_STUDY.md) |
 | Reviewing architecture | [Architecture](ARCHITECTURE.md) + [Design Notes](DESIGN.md) |
 | Reviewing AI quality | [Evaluation](EVALUATION.md) + [Baseline](eval_baseline_2026-05-19.md) |
+| Reviewing agentic orchestration | [Helpdesk Agent](roadmap/HELPDESK_AGENT.md) + [Conversation Flow](roadmap/CONVERSATION_FLOW.md) |
 | Reviewing production maturity | [CI/CD](CI.md) + [Operations](OPERATIONS.md) + [Security](SECURITY.md) |
 
 ## Senior engineering signals
