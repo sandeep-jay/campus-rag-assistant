@@ -1,0 +1,36 @@
+name: No tool attribution
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  scan:
+    name: no tool attribution
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan PR metadata and commit messages
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          scan_file="$(mktemp)"
+          {
+            printf 'PR title\n%s\n\n' "$PR_TITLE"
+            printf 'PR body\n%s\n\n' "${PR_BODY:-}"
+            printf 'Commit messages\n'
+            git log --format=%B "$BASE_SHA..$HEAD_SHA"
+          } > "$scan_file"
+          python3 .githooks/tool_attribution_guard.py --check "$scan_file"

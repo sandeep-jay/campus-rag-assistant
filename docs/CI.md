@@ -9,6 +9,7 @@ Automated checks replace Travis CI. **Tox** remains the source of truth for what
 | **CI** | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | Push to `main`; PRs to `main`, `qa`, `release` |
 | **CD** | [`.github/workflows/cd.yml`](../.github/workflows/cd.yml) | Push to `qa` or `release`; manual `workflow_dispatch` |
 | **Docs** | [`.github/workflows/docs.yml`](../.github/workflows/docs.yml) | PRs touching docs/site files; push to `main`; manual `workflow_dispatch` |
+| **No tool attribution** | [`.github/workflows/no-tool-attribution.yml`](../.github/workflows/no-tool-attribution.yml) | PRs to any protected branch |
 
 ### CI jobs
 
@@ -34,6 +35,12 @@ Automated checks replace Travis CI. **Tox** remains the source of truth for what
    - Fails when a dependency change introduces a new advisory at `high` or
      `critical` severity. Existing alerts remain in the manual Dependabot
      alert queue; Dependabot auto-update PRs stay disabled.
+
+4. **`no tool attribution`**
+   - Runs on pull requests and scans the PR title, PR body, and commit messages
+     with `.githooks/tool_attribution_guard.py --check`.
+   - Fails before squash merge if an AI-tool authorship footer or generated-by
+     line appears in metadata that local git hooks cannot sanitize.
 
 ### Docs site
 
