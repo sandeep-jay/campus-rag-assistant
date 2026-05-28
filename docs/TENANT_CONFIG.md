@@ -32,7 +32,7 @@ alembic upgrade head
 
 ## Example campus sample (optional)
 
-Reference profile: [samples/berkeley/tenant_rag_config.json](../samples/berkeley/tenant_rag_config.json) (Canvas LMS, LTI, accessibility, inclusive teaching). Copy into a tenant’s `rag_config` or use as a seed — not loaded automatically.
+Reference profile: [samples/acme-university/tenant_rag_config.json](../samples/acme-university/tenant_rag_config.json) (generic campus profile: Canvas LMS, LTI, accessibility, inclusive teaching). Copy into a tenant’s `rag_config` or use as a seed — not loaded automatically.
 
 ## Knowledge base
 

@@ -14,7 +14,7 @@ test.describe('Chat', () => {
   test('focus returns to textarea after sending a message', async ({ authedPage }) => {
     await authedPage.goto('/chat/1')
     const textarea = authedPage.getByRole('textbox')
-    await textarea.fill('What is BCourses?')
+    await textarea.fill('What is Canvas LMS?')
     await authedPage.keyboard.press('Enter')
     await authedPage.waitForTimeout(500)
     await expect(textarea).toBeFocused()

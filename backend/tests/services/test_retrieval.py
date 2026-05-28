@@ -31,10 +31,10 @@ def test_expand_search_queries_with_llm(mock_settings):
     mock_settings.MULTI_QUERY_ENABLED = True
     mock_settings.MULTI_QUERY_COUNT = 2
     rag = MagicMock()
-    rag.llm.invoke.return_value = 'Kaltura embed bCourses\nRich Content Editor media'
-    rag._extract_answer_text.return_value = 'Kaltura embed bCourses\nRich Content Editor media'
-    queries = expand_search_queries(rag, 'How do I embed Kaltura in bCourses?')
-    assert queries[0] == 'How do I embed Kaltura in bCourses?'
+    rag.llm.invoke.return_value = 'Kaltura embed Canvas LMS\nRich Content Editor media'
+    rag._extract_answer_text.return_value = 'Kaltura embed Canvas LMS\nRich Content Editor media'
+    queries = expand_search_queries(rag, 'How do I embed Kaltura in Canvas LMS?')
+    assert queries[0] == 'How do I embed Kaltura in Canvas LMS?'
     assert len(queries) >= 2
 
 

@@ -168,7 +168,7 @@ def display_chat_interface():
     """Display the main chat interface."""
     st.title('Campus RAG Assistant')
     st.write(
-        'RAG Chatbot that uses Bedrock to answer questions on tools like bCourses, Ally, Kaltura etc.',
+        'RAG Chatbot that uses Bedrock to answer questions on tools like Canvas LMS, Ally, Kaltura etc.',
     )
 
     # Display chat messages
@@ -275,7 +275,7 @@ def main():
     else:
         st.title('Campus RAG Assistant')
         st.write(
-            'RAG Chatbot that uses Bedrock to answer questions on tools like bCourses, Ally, Kaltura etc.',
+            'RAG Chatbot that uses Bedrock to answer questions on tools like Canvas LMS, Ally, Kaltura etc.',
         )
         st.write('Please login or register to start chatting!')
 

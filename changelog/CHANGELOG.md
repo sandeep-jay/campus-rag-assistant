@@ -86,6 +86,10 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
+- **Generic terminology pass** — replaced institution-specific brand names so the repo reads as a generic campus platform: `bCourses` → `Canvas LMS` across app code, prompt templates, frontend strings, and eval fixtures (~330 occurrences across 15 files); FastAPI app title, description, and welcome message rebranded to `Campus AI Assistant API`.
+
+- **Sample tenant renamed** — `samples/berkeley/tenant_rag_config.json` → `samples/acme-university/tenant_rag_config.json`; `assistant_name` becomes "Acme University Teaching & Learning Assistant" so the sample reads as a generic placeholder rather than a real institution.
+
 - **Documentation accuracy pass** — aligned CI/branch-protection docs with `Protect main` required checks, local tox parity (`secrets` without mandatory `docs`), `PIP_SYNC=0` backend startup, helpdesk agent API surface, and roadmap status after helpdesk merge (PRs #37–#43). Also surfaced the helpdesk agent in README, docs landing page, REVIEWER_GUIDE, PORTFOLIO_CASE_STUDY, DESIGN, OPERATIONS (runtime flags + metrics), SECURITY (privacy/redaction/kill-switch), CI (env vars), and EVALUATION (agent scenario eval).
 
 - **Environment identifier consolidated** — dropped the legacy `ENVIRONMENT` field from `DefaultSettings`/`DevelopmentSettings`/`TestSettings`; `APP_ENV` is now the only source of truth. Updated `backend/app/main.py`, `backend/app/api/oauth_routes.py`, `backend/verify_configs.py`, `frontend-streamlit/app/{config,main}.py`, `scripts/verify_oauth.py`, `tox.ini` (removed three redundant `ENVIRONMENT = test` lines), `.env.example`, and `docs/ARCHITECTURE.md`.
@@ -212,7 +216,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 - **`backend/app/services/tenant_rag_config.py`** — load branding from env + `tenant.rag_config` (JSONB).
 - **Alembic `0002`** — `tenant.rag_config` column.
 - **`docs/TENANT_CONFIG.md`** — config shape and resolution order.
-- **`samples/berkeley/tenant_rag_config.json`** — optional Berkeley RTL sample profile (not default).
+- **`samples/acme-university/tenant_rag_config.json`** — generic campus sample tenant profile (not default; renamed from the original `samples/berkeley/` path during the documentation accuracy pass).
 
 ### Changed
 
