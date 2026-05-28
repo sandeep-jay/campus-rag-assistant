@@ -11,7 +11,7 @@
 
 **Production-style enterprise RAG platform for governed campus knowledge.**
 
-Campus RAG Assistant demonstrates multicloud RAG platform engineering: Vue product UI, FastAPI API, AWS Bedrock KB and Azure AI Search provider boundaries, LangGraph orchestration, citation-first answer UX, RAGAS evaluation, LangSmith observability, and CI/CD that runs safely without cloud credentials.
+Campus RAG Assistant demonstrates multicloud RAG platform engineering plus bounded **agentic orchestration**: Vue product UI, FastAPI API, AWS Bedrock KB and Azure AI Search provider boundaries, LangGraph RAG, a multi-turn **helpdesk agent** with HITL ticket filing, citation-first answer UX, RAGAS evaluation, LangSmith observability, and CI/CD that runs safely without cloud credentials.
 
 **Portfolio focus:** Lead AI Engineering and AI Platform Architecture. Live docs: <https://sandeep-jay.github.io/campus-rag-assistant/>.
 
@@ -27,6 +27,7 @@ Campus RAG Assistant demonstrates multicloud RAG platform engineering: Vue produ
 | Product and architecture narrative | [docs/PORTFOLIO_CASE_STUDY.md](docs/PORTFOLIO_CASE_STUDY.md) |
 | System design | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) + [docs/DESIGN.md](docs/DESIGN.md) |
 | RAG quality | [docs/EVALUATION.md](docs/EVALUATION.md) + [docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md) |
+| Agentic orchestration | [docs/roadmap/HELPDESK_AGENT.md](docs/roadmap/HELPDESK_AGENT.md) + [docs/roadmap/CONVERSATION_FLOW.md](docs/roadmap/CONVERSATION_FLOW.md) |
 | Operations and security | [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/CI.md](docs/CI.md), [docs/SECURITY.md](docs/SECURITY.md) |
 
 ## Why this project matters
@@ -34,6 +35,7 @@ Campus RAG Assistant demonstrates multicloud RAG platform engineering: Vue produ
 - Turns scattered institutional docs (Canvas LMS, ServiceNow, policies) into **cited, natural-language answers** users can verify.
 - Shows **production RAG** concerns end-to-end: retrieval quality, observability, auth, streaming, evals, and deployment.
 - Demonstrates **platform architecture**: AWS/Azure/mock providers, tenant config, feature flags, and CI-safe local mode.
+- Goes beyond chat with a **bounded helpdesk agent**: a real LangGraph supervisor that picks tools (KB retry, web search, GitHub-issue search, file-ticket), pauses for clarifying questions, and gates ticket filing on human review.
 
 ## Role alignment
 
@@ -52,7 +54,8 @@ This project is designed to demonstrate strengths relevant to:
 | **RAG engineering** | LangGraph retrieval stages, multi-query retrieval, rerank hooks, fallback chain streaming, and explicit source contracts |
 | **Platform architecture** | AWS/Azure/mock provider registry, tenant config, feature flags, Alembic migrations, and CI-safe local mode |
 | **Evaluation** | RAGAS golden-set regression harness, documented Phase 5 baseline, and LangSmith traces for KB/web paths |
-| **Operations** | GitHub Actions, gitleaks, dependency review, Prometheus metrics, k6 load tests, release docs, and runbooks |
+| **Helpdesk agent** | Multi-turn LangGraph escalation: KB retry, web search, duplicate-issue search, HITL ticket filing to a demo GitHub repo, four explicit outcomes |
+| **Operations** | GitHub Actions, gitleaks, dependency review, no tool attribution, Prometheus metrics, k6 load tests, release docs, and runbooks |
 
 ## System at a glance
 
@@ -60,12 +63,17 @@ This project is designed to demonstrate strengths relevant to:
 flowchart LR
   VueSPA["Vue 3 SPA"] --> FastAPI["FastAPI"]
   FastAPI --> LangGraph["LangGraph RAG"]
+  FastAPI --> HelpdeskAgent["Helpdesk Agent (LangGraph)"]
+  HelpdeskAgent --> AgentTools["KB retry / web search / GitHub-issue search"]
+  HelpdeskAgent --> Checkpoint["SQLite checkpointer"]
+  HelpdeskAgent --> GHIssues["GitHub Issues (HITL)"]
   LangGraph --> Providers["Provider Registry"]
   Providers --> BedrockKB["AWS Bedrock KB"]
   Providers --> AzureAI["Azure AI Search"]
   FastAPI --> Postgres[("Postgres")]
   FastAPI --> Prometheus["Prometheus"]
   LangGraph --> LangSmith["LangSmith"]
+  HelpdeskAgent --> LangSmith
   LangGraph --> RAGAS["RAGAS eval"]
 ```
 
@@ -81,6 +89,7 @@ Extended from the public upstream [ets-berkeley-edu/chabot](https://github.com/e
 - **Tenant-hydrated prompts** — `tenant.rag_config` in Postgres
 - **RAGAS + LangSmith** — golden-set regression evals and per-node traces
 - **Production ops** — Prometheus, request IDs, rate limits, k6, Alembic, GitHub Actions CI/CD
+- **Helpdesk agent** — LangGraph multi-turn agent with KB retry, web search, GitHub-issue search, HITL ticket filing, and SQLite checkpointer
 
 ## Quality baseline
 
@@ -183,6 +192,14 @@ Enable `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, and `LANGCHAIN_PROJECT` in `
 - **UI** — dark/light mode, mobile-friendly layout, copy answer
 - **Ops** — rate limiting, `X-Request-ID`, Alembic migrations, optional Streamlit client on the same API
 
+### Helpdesk agent (post-RAG escalation)
+
+- **`metadata.kb_resolved`** signal — Vue surfaces escalation chips when the KB cannot answer.
+- **ASK-mode actions** — one-shot `/summarize` and `/draft-ticket`; reviewed drafts are filed via `/create-issue` to a private demo GitHub repo (HITL-gated).
+- **AGENT mode** — multi-turn LangGraph agent (`HELPDESK_AGENT_ENABLED`) with supervisor + clarifier/classifier/writer specialists, KB retry / web search / GitHub-search tools, SQLite checkpointer, SSE status, and four explicit outcomes (`resolved_by_agent`, `linked`, `filed`, `aborted`).
+- **Privacy** — emails, JWTs, AWS keys, GitHub tokens, and bearer tokens are redacted before summarization or issue filing.
+- Specs: [docs/roadmap/CONVERSATION_FLOW.md](docs/roadmap/CONVERSATION_FLOW.md), [docs/roadmap/HELPDESK_AGENT.md](docs/roadmap/HELPDESK_AGENT.md).
+
 ## Stack
 
 | Layer                 | Technologies                                                                                              |
@@ -193,9 +210,10 @@ Enable `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, and `LANGCHAIN_PROJECT` in `
 | **Retrieval**         | **Vector stores:** Bedrock KB → OpenSearch Serverless (vector/keyword/hybrid); Azure AI Search (vector + keyword/hybrid); multi-query + RRF; optional FlashRank / keyword rerank |
 | **LLM**               | AWS Bedrock, Azure OpenAI, or **mock** (`LLM_PROVIDER` / `RETRIEVER_PROVIDER`)                            |
 | **Web search**        | Mock or **Tavily** (`tavily-python`) behind `research_mode=web`                                           |
+| **Helpdesk agent**    | LangGraph supervisor + tools, SQLite checkpointer, HITL ticket filing to a private demo GitHub repo (`HELPDESK_AGENT_ENABLED`) |
 | **Eval**              | **RAGAS** harness (`backend/tests/eval/`), golden dataset, `tox -e eval`                                  |
 | **Observability**     | **LangSmith** (`LANGCHAIN_TRACING_V2`), structured logs, first-token latency metric                       |
-| **CI/CD**             | GitHub Actions — tox suite, docs build, gitleaks, dependency review, and optional CD ([docs/CI.md](docs/CI.md))          |
+| **CI/CD**             | GitHub Actions — tox suite, gitleaks, dependency review, no tool attribution, docs build, and optional CD ([docs/CI.md](docs/CI.md))          |
 | **Load tests**        | k6 ([docs/LOAD_TESTING.md](docs/LOAD_TESTING.md))                                                         |
 
 Local demos: `RAG_FORCE_MOCK=true` with no cloud credentials. Design detail: [docs/roadmap/LANGGRAPH.md](docs/roadmap/LANGGRAPH.md), [docs/roadmap/WEB_RESEARCH.md](docs/roadmap/WEB_RESEARCH.md).
@@ -208,6 +226,7 @@ Local demos: `RAG_FORCE_MOCK=true` with no cloud credentials. Design detail: [do
 | **AWS Bedrock KB** | Managed KB retrieval, Bedrock generation, LangGraph retrieval stages, LangSmith trace capture |
 | **Azure OpenAI + AI Search** | Azure provider path with vector/keyword/hybrid retrieval and cited answers |
 | **Web research enabled** | Per-message web mode with disclaimer UI and WEB-labeled sources (`mock` or Tavily) |
+| **Helpdesk agent enabled** | ASK-mode escalation chips + multi-turn AGENT mode (`HELPDESK_ENABLED=true`, `HELPDESK_AGENT_ENABLED=true`); requires `GITHUB_TOKEN` + `GITHUB_REPO` for ticket filing |
 | **OAuth configured** | GitHub OAuth handoff to Vue; Google-ready provider config |
 | **Eval keys available** | RAGAS golden-set runs, release quality gates, LangSmith trace inspection |
 
@@ -230,7 +249,7 @@ cp .env.example .env
 createdb chatbot_dev   # or name from POSTGRES_DB in .env
 alembic upgrade head
 
-./scripts/run-backend-venv.sh          # terminal 1 — http://127.0.0.1:8000
+PIP_SYNC=0 ./scripts/run-backend-venv.sh          # terminal 1 — http://127.0.0.1:8000
 cp frontend-vue/.env.example frontend-vue/.env.local
 # VITE_API_URL=http://127.0.0.1:8000
 # GitHub OAuth: VITE_OAUTH_API_URL=http://127.0.0.1:8000 — see docs/PRODUCTION_TLS.md
@@ -270,14 +289,14 @@ Set `RAG_FORCE_MOCK=false` and configure providers in `.env` (see [docs/OPERATIO
 **CI-style suite (local):**
 
 ```bash
-tox -e lint,backend,frontend-streamlit,frontend-vue,docs,secrets
+tox -e lint,backend,frontend-streamlit,frontend-vue,secrets
 ```
 
 **Optional suites:**
 
 ```bash
 tox -e eval    # RAGAS golden-dataset eval (slow; judge LLM — docs/EVALUATION.md)
-tox -e e2e     # Playwright; start API first: ./scripts/run-backend-venv.sh
+tox -e e2e     # Playwright; start API first: PIP_SYNC=0 ./scripts/run-backend-venv.sh
 tox -e docs    # GitHub Pages / MkDocs strict build
 ```
 

@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-MULTI_QUERY_TEMPLATE = """You help improve search over a campus EdTech knowledge base (bCourses, Kaltura, Gradescope, Ally, etc.).
+MULTI_QUERY_TEMPLATE = """You help improve search over a campus EdTech knowledge base (Canvas LMS, Kaltura, Gradescope, Ally, etc.).
 
 Given the user question, write {count} short alternative search queries for the same information need.
 One query per line. No numbering or bullets.

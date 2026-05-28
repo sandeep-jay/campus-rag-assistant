@@ -90,7 +90,7 @@ def test_run_rag_graph_rerank_node(mock_node_settings, graph_rag_mocks):
     mock_retriever = graph_rag_mocks[1]
     mock_retriever.invoke.return_value = [
         Document(page_content='noise document', metadata={'source': 'n'}),
-        Document(page_content='bCourses password reset instructions', metadata={'source': 'kb-2'}),
+        Document(page_content='Canvas LMS password reset instructions', metadata={'source': 'kb-2'}),
     ]
     with patch('backend.app.services.rerank.settings') as mock_rerank_settings:
         mock_rerank_settings.RERANK_ENABLED = True

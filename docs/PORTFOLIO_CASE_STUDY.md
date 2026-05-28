@@ -26,6 +26,7 @@ The project builds from the public [`ets-berkeley-edu/chabot`](https://github.co
 | **Providers** | AWS Bedrock KB, Azure AI Search + OpenAI, mock (CI/local) |
 | **Data** | PostgreSQL + Alembic; per-tenant `rag_config` |
 | **Quality** | RAGAS golden set, LangSmith traces, Prometheus, k6 |
+| **Helpdesk agent** | LangGraph supervisor + tools (KB retry, web search, GitHub-issue search), SQLite checkpoint, HITL ticket filing to a private demo repo |
 
 Detailed diagrams and request flows: [ARCHITECTURE.md](./ARCHITECTURE.md).
 
@@ -38,12 +39,13 @@ Detailed diagrams and request flows: [ARCHITECTURE.md](./ARCHITECTURE.md).
 | **Opt-in web research** | Governed KB-first; open web is explicit per message with disclaimer | [ADR-003](./adr/ADR-003-opt-in-web-research.md) |
 | **RAGAS gates as release controls** | Honest baselines on PR CI; strict gates on release milestones only | [ADR-004](./adr/ADR-004-eval-gating-policy.md) |
 | **Bedrock KB API** (not direct OpenSearch) | Managed sync, retrieve, and citation metadata; simpler ops | [DESIGN.md](./DESIGN.md#bedrock-knowledge-base-with-opensearch-aws) |
+| **Bounded helpdesk agent** | Real agentic loop (LLM-chosen tools, multi-turn checkpointing, HITL gate) without unbounded autonomy; original one-shot endpoints kept as fallbacks | [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md) |
 
 ## Measured outcomes
 
 | Signal | Evidence |
 |--------|----------|
-| **Test breadth** | ~48 backend, frontend, e2e, and eval test files; `tox -e lint,backend,frontend-vue` on every PR |
+| **Test breadth** | ~48 backend, frontend, e2e, and eval test files; `tox (lint, backend, frontends)` on every PR |
 | **RAGAS baseline** | 10-question golden set; AWS Phase 5 tuned profile: **context_recall 0.80** (passes gate) |
 | **CI without cloud** | Mock providers; `RAG_FORCE_MOCK=true`; no AWS credentials in GitHub Actions |
 | **Load profile** | k6 validates auth, session CRUD, and chat under load — [LOAD_TESTING.md](./LOAD_TESTING.md) |

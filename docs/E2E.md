@@ -22,7 +22,7 @@ tox -e e2e
 Terminal 1 — backend (example):
 
 ```bash
-./scripts/run-backend-venv.sh
+PIP_SYNC=0 ./scripts/run-backend-venv.sh
 # or: uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 

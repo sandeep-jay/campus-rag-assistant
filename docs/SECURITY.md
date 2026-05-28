@@ -45,8 +45,9 @@ they make accidental disclosure vanishingly unlikely.
 | 1 | **`.gitignore` catch-all** | `.gitignore` | `.env*` (with `.env.example` / `.env.test` whitelisted) plus pattern blocks for TLS/SSH keys, AWS/GCP/Azure credentials, `secrets/`, `credentials/`, `*.tfvars`, etc. |
 | 2 | **CI guard for env template** | `backend/tests/core/test_env_template.py` | Every `Settings` field must appear in `.env.example`; no `SecretStr` field may carry a real-looking uncommented value. Fails `tox -e backend`. |
 | 3 | **Local `pre-push` gitleaks hook** | `.githooks/pre-push` | Blocks `git push` if `gitleaks detect` finds a credential in the commits being uploaded. Wired by `./scripts/install-hooks.sh` (and `--global` for every repo on the workstation). |
-| 4 | **CI `secrets-scan` job** | `.github/workflows/ci.yml` (job `secrets-scan`) + `tox -e secrets` | Runs `gitleaks detect --log-opts="--all --reflog --no-merges"` on every PR and push to `main`. Fails the build on any finding. |
+| 4 | **CI gitleaks job** | `.github/workflows/ci.yml` (job `gitleaks (history + diff)`) + `tox -e secrets` | Runs `gitleaks detect --log-opts="--all --reflog --no-merges"` on every PR and push to `main`. Fails the build on any finding. |
 | 5 | **GitHub Push Protection** | repo Settings → Code security & analysis | Even `git push --no-verify` is rejected by GitHub if the push contains a known-provider credential pattern (AWS, Google, Slack, Stripe, GitHub PATs, …). Secret Scanning, Push Protection, and Dependabot **alerts** are enabled on this repo. Dependabot **security updates** (auto-PRs that bump versions) are intentionally left **off** — they were observed to break the build mid-sprint, so vulnerabilities are triaged manually from the alert queue instead. |
+| 6 | **Tool attribution guard** | `.githooks/tool_attribution_guard.py`, `.githooks/commit-msg`, `.github/workflows/no-tool-attribution.yml` | Strips AI-tool authorship lines from commit messages locally; PR workflow runs `--check` on title, body, and commit messages. Required status check: `no tool attribution` on `Protect main`. |
 
 ### How to run gitleaks locally
 
@@ -101,6 +102,7 @@ cleartext is only read at the boundary that needs it via
 - `OAUTH_GOOGLE_CLIENT_SECRET`, `OAUTH_GITHUB_CLIENT_SECRET`.
 - `GITHUB_TOKEN` (helpdesk escalation only — fine-grained PAT scoped to a **private demo**
   repo with `issues:write`; never commit; do not point at the main portfolio repo).
+  See **Helpdesk agent privacy** below for redaction and kill-switch detail.
 - `LANGCHAIN_API_KEY`, `TAVILY_API_KEY`.
 
 ### Production checklist
@@ -114,7 +116,7 @@ cleartext is only read at the boundary that needs it via
   signed with the old key will be invalidated, which is the desired behaviour.
 - Keep `.env.example` placeholder-only. Two CI guards enforce this:
   `backend/tests/core/test_env_template.py` (no real-looking values for any
-  `SecretStr` field, every field documented) and the `secrets-scan` job
+  `SecretStr` field, every field documented) and the `gitleaks (history + diff)` job
   (gitleaks on full history). The local `.githooks/pre-push` hook runs the
   same gitleaks scan before a push leaves your machine.
 - The pydantic settings model uses `extra='ignore'`, so typos in env var names
@@ -131,8 +133,18 @@ Dependabot **alerts** are enabled, but Dependabot **security updates** (automati
 version-bump PRs) are disabled because they have broken the build during active
 work. Triage alerts manually from the GitHub Security tab, batch related updates
 into reviewable PRs, and let CI validate them. New PRs are guarded by the
-`dependency review (new high/critical CVEs)` job, which fails if a dependency
+`dependency review (new high/critical CVEs)` and `no tool attribution` jobs; dependency review fails if a dependency
 change introduces a new high or critical advisory.
+
+### Helpdesk agent privacy
+
+When `HELPDESK_ENABLED=true` (or `HELPDESK_AGENT_ENABLED=true`), the chat path can summarize, draft tickets, and file GitHub issues based on user transcripts. To bound exposure:
+
+- **Redaction** — `services/helpdesk/redaction.py` strips emails, JWT-like tokens, AWS access keys, GitHub tokens, bearer tokens, and `key=value` secret patterns from any text passed to summarize/draft/create-issue.
+- **Demo repo only** — `GITHUB_REPO` must be a **private** demo repo distinct from the source repo. The token is a fine-grained PAT with `issues:write` only.
+- **HITL gate** — tickets are filed only after the user reviews the structured `TicketDraft` (ASK-mode modal) or confirms the agent draft (`/api/helpdesk/agent/confirm`).
+- **Kill switch** — `HELPDESK_AGENT_KILL_SWITCH=true` aborts all in-flight agent sessions immediately; bind it to an emergency runbook entry.
+- **Audit** — Prometheus counters expose start/outcome/tool/error funnels (`chatbot_helpdesk_agent_*`); LangSmith traces are gated so trace failures cannot affect user responses.
 
 ### If a secret leaks
 

@@ -10,7 +10,7 @@
 
 **Production-style enterprise RAG platform for governed campus knowledge.**
 
-Campus RAG Assistant demonstrates how institutional knowledge can be served through a measurable, observable, citation-first RAG platform. It combines a Vue product UI, FastAPI backend, AWS / Azure / mock provider boundaries, LangGraph orchestration, RAGAS evaluation, LangSmith traces, CI/CD, load testing, and operational hardening docs.
+Campus RAG Assistant demonstrates how institutional knowledge can be served through a measurable, observable, citation-first RAG platform plus bounded **agentic orchestration** (a multi-turn helpdesk agent with HITL ticket filing). It combines a Vue product UI, FastAPI backend, AWS / Azure / mock provider boundaries, LangGraph orchestration, RAGAS evaluation, LangSmith traces, CI/CD, load testing, and operational hardening docs.
 
 **Portfolio focus:** Lead AI Engineering and AI Platform Architecture.
 
@@ -29,6 +29,7 @@ Campus RAG Assistant demonstrates how institutional knowledge can be served thro
 | Evaluating ownership and judgment | [Case Study](PORTFOLIO_CASE_STUDY.md) |
 | Reviewing architecture | [Architecture](ARCHITECTURE.md) + [Design Notes](DESIGN.md) |
 | Reviewing AI quality | [Evaluation](EVALUATION.md) + [Baseline](eval_baseline_2026-05-19.md) |
+| Reviewing agentic orchestration | [Helpdesk Agent](roadmap/HELPDESK_AGENT.md) + [Conversation Flow](roadmap/CONVERSATION_FLOW.md) |
 | Reviewing production maturity | [CI/CD](CI.md) + [Operations](OPERATIONS.md) + [Security](SECURITY.md) |
 
 ## Senior engineering signals
@@ -40,6 +41,7 @@ Campus RAG Assistant demonstrates how institutional knowledge can be served thro
 | Evaluation | RAGAS baseline is documented honestly, with gates used as release controls |
 | Observability | LangSmith spans, Prometheus metrics, request IDs, structured logs |
 | Product judgment | KB-first answers, cited sources, opt-in web research, visible disclaimer |
+| Agentic depth | Bounded LangGraph helpdesk agent with HITL ticket filing — [Conversation Flow](roadmap/CONVERSATION_FLOW.md), [Helpdesk Agent](roadmap/HELPDESK_AGENT.md) |
 | CI safety | Mock providers allow tests without cloud credentials |
 
 ## What this shows
@@ -50,7 +52,8 @@ Campus RAG Assistant demonstrates how institutional knowledge can be served thro
 | **RAG engineering** | LangGraph retrieval stages, multi-query retrieval, rerank hooks, fallback chain streaming, and explicit source contracts |
 | **Platform architecture** | AWS/Azure/mock provider registry, tenant config, feature flags, Alembic migrations, and CI-safe local mode |
 | **Evaluation** | RAGAS golden-set regression harness, documented Phase 5 baseline, and LangSmith traces for KB/web paths |
-| **Operations** | GitHub Actions, gitleaks, dependency review, Prometheus metrics, k6 load tests, release docs, and runbooks |
+| **Helpdesk agent** | Multi-turn LangGraph escalation with KB retry, web search, duplicate-issue search, and HITL ticket filing to a demo GitHub repo |
+| **Operations** | GitHub Actions, gitleaks, dependency review, no tool attribution, Prometheus metrics, k6 load tests, release docs, and runbooks |
 
 ## Quality baseline
 
@@ -120,7 +123,7 @@ More assets: [screenshots catalog](assets/README.md).
 | **LLM** | AWS Bedrock, Azure OpenAI, or mock provider |
 | **Web search** | Mock or Tavily behind `research_mode=web` |
 | **Eval** | RAGAS golden dataset, `tox -e eval`, LangSmith traces |
-| **CI/CD** | GitHub Actions, tox, gitleaks, dependency review, optional EB deploy |
+| **CI/CD** | GitHub Actions, tox, gitleaks, dependency review, no tool attribution, optional EB deploy |
 
 ## Feature availability
 
@@ -142,7 +145,7 @@ cp .env.example .env
 # set RAG_FORCE_MOCK=true, LLM_PROVIDER=mock, RETRIEVER_PROVIDER=mock
 createdb chatbot_dev
 alembic upgrade head
-./scripts/run-backend-venv.sh          # http://127.0.0.1:8000
+PIP_SYNC=0 ./scripts/run-backend-venv.sh          # http://127.0.0.1:8000
 ./scripts/run-frontend-vue.sh          # http://127.0.0.1:5173
 ```
 

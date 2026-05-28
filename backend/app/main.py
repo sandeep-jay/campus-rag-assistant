@@ -33,8 +33,8 @@ _docs = '/api/docs' if settings.ENABLE_OPENAPI_DOCS else None
 _redoc = '/api/redoc' if settings.ENABLE_OPENAPI_DOCS else None
 
 app = FastAPI(
-    title='BCourses Chatbot API',
-    description='API for the BCourses Chatbot with RAG capabilities.',
+    title='Campus AI Assistant API',
+    description='API for the Campus AI Assistant with RAG capabilities.',
     version='1.0.0',
     docs_url=_docs,
     redoc_url=_redoc,
@@ -85,7 +85,7 @@ async def root_base():
 @app.get('/api/')
 async def root() -> dict:
     logger.debug('Root endpoint accessed')
-    return {'message': 'Welcome to BCourses Chatbot API'}
+    return {'message': 'Welcome to Campus AI Assistant API'}
 
 
 @app.get('/api/health')

@@ -24,7 +24,7 @@ Rules:
 - Lead with one short sentence stating what to do.
 - Then give 2-6 numbered steps or short bullets the user can act on.
 - Reference the user's environment if it appears in the question
-  (e.g. bCourses, Kaltura, Oracle Financials).
+  (e.g. Canvas LMS, Kaltura, Oracle Financials).
 - If the context does not actually answer the question, say so briefly in
   one sentence and suggest what the user should try next. Never invent
   steps, links, or KB article IDs that are not present in the context.

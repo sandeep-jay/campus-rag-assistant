@@ -18,7 +18,7 @@ Setup and overview: root [README](../README.md).
 
 Copy [`.env.example`](./.env.example) to `.env.local` as needed.
 
-- **`VITE_API_URL`**: Backend origin (e.g. `http://localhost:8000`). Empty string uses same-origin + Vite proxy.
+- **`VITE_API_URL`**: Backend origin (e.g. `http://127.0.0.1:8000`). Empty string uses same-origin + Vite proxy.
 - **`VITE_ENABLE_MSW`**: Set to `true` to mock HTTP with MSW in **dev only** (`src/main.ts` starts the worker). Vitest uses the Node MSW server from `src/test/setup.ts`.
 
 ## Layout

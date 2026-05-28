@@ -20,7 +20,8 @@ Campus RAG Assistant is a production-style enterprise RAG platform for governed 
 | Evaluation discipline | RAGAS golden set, documented baseline, release-oriented gates — [Evaluation](EVALUATION.md) |
 | Observability | LangSmith traces, request IDs, Prometheus metrics — [Operations](OPERATIONS.md) |
 | Product judgment | KB-first answers, opt-in web research, source transparency, feedback — [Web Research roadmap](roadmap/WEB_RESEARCH.md) |
-| Production thinking | CI/CD, gitleaks, dependency review, rate limits, load testing, hardening backlog — [CI/CD](CI.md), [Security](SECURITY.md), [Load Testing](LOAD_TESTING.md), [Production Hardening](PRODUCTION_HARDENING.md) |
+| Production thinking | CI/CD, gitleaks, dependency review, no tool attribution, rate limits, load testing, hardening backlog — [CI/CD](CI.md), [Security](SECURITY.md), [Load Testing](LOAD_TESTING.md), [Production Hardening](PRODUCTION_HARDENING.md) |
+| Agentic engineering | Bounded helpdesk LangGraph (supervisor + tools, HITL ticket filing, SQLite checkpoint) — [Conversation Flow](roadmap/CONVERSATION_FLOW.md), [Helpdesk Agent](roadmap/HELPDESK_AGENT.md) |
 
 ## What this repository implements
 
@@ -33,7 +34,8 @@ This project builds from the public [`ets-berkeley-edu/chabot`](https://github.c
 - RAGAS evaluation harness with documented baseline
 - LangSmith trace capture for KB and web research paths
 - Opt-in web research path with disclaimer UI and WEB-labeled sources
-- CI/CD, gitleaks, dependency review, k6 load testing, release docs, and a production hardening backlog
+- Helpdesk agent (post-RAG escalation): ASK-mode `/summarize`, `/draft-ticket`, `/create-issue` plus multi-turn AGENT-mode LangGraph (`/api/helpdesk/agent/*`) with HITL ticket filing
+- CI/CD, gitleaks, dependency review, no tool attribution, k6 load testing, release docs, and a production hardening backlog
 
 ## Suggested review paths
 
@@ -44,6 +46,7 @@ This project builds from the public [`ets-berkeley-edu/chabot`](https://github.c
 | AI engineer | [Evaluation](EVALUATION.md), [LangGraph roadmap](roadmap/LANGGRAPH.md), [Provider registry ADR](adr/ADR-001-provider-registry.md) |
 | Platform / DevOps reviewer | [CI/CD](CI.md), [Operations](OPERATIONS.md), [Security](SECURITY.md), [Load Testing](LOAD_TESTING.md) |
 | Product reviewer | [Screenshots](assets/README.md), [Case Study](PORTFOLIO_CASE_STUDY.md), [Product Roadmap](roadmap/PRODUCT_ROADMAP.md) |
+| Agent / orchestration reviewer | [Conversation Flow](roadmap/CONVERSATION_FLOW.md), [Helpdesk Agent](roadmap/HELPDESK_AGENT.md), [Architecture: helpdesk](ARCHITECTURE.md#helpdesk-capabilities-post-rag) |
 
 ## What this is not
 

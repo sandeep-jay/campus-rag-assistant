@@ -47,7 +47,7 @@ The checked-in golden set was bootstrapped from one **campus knowledge base** de
 
 | Event | `RAGAS_QUALITY_GATE` | Notes |
 |-------|----------------------|--------|
-| PR / `main` CI (`tox -e lint,backend,frontend-vue`) | **0** (default) | Eval not required; keeps PRs fast without AWS |
+| PR / `main` CI (`tox (lint, backend, frontends)`) | **0** (default) | Eval not required; keeps PRs fast without AWS |
 | Local / release milestone | **1** | `tox -e eval` or `./scripts/run_eval_phase5.sh`; needs judge + Bedrock |
 | CD `release` workflow | **1** when secrets configured | See [CI.md](./CI.md) |
 
@@ -97,6 +97,14 @@ Requires judge LLM: `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, or `RAGAS_LLM_PROV
 - **LangGraph parity:** ship if RAGAS within ε of chain and tests green.
 - **Retrieval / prompts:** ship if primary metric improves and guardrails hold.
 - **Agentic (Phase 6 (agentic)):** flag-only until staging week is stable.
+
+---
+
+## Helpdesk agent evaluation
+
+The helpdesk LangGraph has its own scenario harness (mock-conversation -> expected `next_action`) under `backend/tests/eval/test_helpdesk_agent_scenarios.py`. It runs as part of `tox -e backend` against the mock LLM provider; no AWS credentials are required. Outcome distribution and tool usage are exposed via the `chatbot_helpdesk_agent_*` Prometheus metrics for live evaluation.
+
+Engineering detail: [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md) (eval rig section).
 
 ---
 

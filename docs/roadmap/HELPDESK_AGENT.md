@@ -4,7 +4,7 @@ Multi-turn, multi-agent helpdesk capability that sits inside the chatbot's
 AGENT mode. Product-level shape (modes, intent routing, UX) lives in
 [CONVERSATION_FLOW.md](./CONVERSATION_FLOW.md).
 
-**Status (2026-05-25):** Design locked with full P0+P1 hardening (security, reliability, privacy, observability, operations, rollout, eval format, extension points); implementation pending on `feat/helpdesk-agent`.
+**Status (2026-05-27):** Implemented on `main` (PRs #37–#43). This document remains the engineering spec; see [ARCHITECTURE.md](../ARCHITECTURE.md) for the live API surface.
 
 ---
 
@@ -685,7 +685,7 @@ frontend-vue/src/components/chat/EscalationChips.vue
 
 ## Phasing inside this branch
 
-All phases land on `feat/helpdesk-agent`. Commit-disciplined so we can
+Phases #37–#43 landed on `main`. Use feature branches for follow-up work. Commit-disciplined so we can
 cherry-split into separate PRs at the end if reviewers prefer.
 
 ### Phase A — Agentic skeleton

@@ -21,7 +21,7 @@ describe('normalizeAssistantContent', () => {
 
   it('strips condensed question before em-dash answer', () => {
     const raw =
-      'How do I submit an assignment in the learning platform?— Students can submit assignments in bCourses.'
+      'How do I submit an assignment in the learning platform?— Students can submit assignments in Canvas LMS.'
     const result = normalizeAssistantContent(raw)
     expect(result).not.toMatch(/^How do I submit/)
     expect(result).toContain('Students can submit')

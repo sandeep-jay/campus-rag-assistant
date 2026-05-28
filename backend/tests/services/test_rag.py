@@ -226,10 +226,10 @@ def test_mock_mode(rag_mocks):
             {
                 'input': 'What are the steps to create an assignment in Gradescope?',
                 'output': [
-                    '1. Create a bCourses assignment to add a new item to the gradebook.',
+                    '1. Create a Canvas LMS assignment to add a new item to the gradebook.',
                     "2. Set submission type as 'External Tool', then click 'Find' and select 'Gradescope'. Set a point value, then Save.",
                     '3. The page will re-load with Gradescope embedded where you can create your Gradescope assignment.',
-                    '4. Link your Gradescope assignment to the bCourses assignment/gradebook.',
+                    '4. Link your Gradescope assignment to the Canvas LMS assignment/gradebook.',
                     '5. When you have completed grading in Gradescope, you can sync your scores to the gradebook.',
                 ],
             }

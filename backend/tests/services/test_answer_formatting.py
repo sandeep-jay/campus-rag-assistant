@@ -39,17 +39,17 @@ def test_preserves_model_markdown_structure():
   - Post announcements
   - Reply to threads
 
-1. Open bCourses
+1. Open Canvas LMS
 2. Select Discussions
 """
     out = _fmt(raw)
     assert '## Discussion Tools' in out
-    assert '1. Open bCourses' in out
+    assert '1. Open Canvas LMS' in out
     assert '  - Post announcements' in out
 
 
 def test_strip_condensed_question_before_em_dash():
-    raw = 'How do I submit an assignment in the learning platform?' '— Students can submit assignments in bCourses.'
+    raw = 'How do I submit an assignment in the learning platform?' '— Students can submit assignments in Canvas LMS.'
     out = _fmt(raw)
     assert not out.startswith('How do I submit')
     assert 'Students can submit' in out

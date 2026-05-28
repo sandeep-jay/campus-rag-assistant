@@ -24,13 +24,13 @@ def test_from_tenant_overrides_settings_fields():
     tenant = _FakeTenant(
         {
             'assistant_name': 'Campus Bot',
-            'supported_topics': 'bCourses',
-            'out_of_scope_message': 'Ask about bCourses only.',
+            'supported_topics': 'Canvas LMS',
+            'out_of_scope_message': 'Ask about Canvas LMS only.',
         },
     )
     config = TenantRagConfig.from_tenant(tenant)
     assert config.assistant_name == 'Campus Bot'
-    assert config.supported_topics == 'bCourses'
+    assert config.supported_topics == 'Canvas LMS'
 
 
 def test_from_tenant_few_shot_examples():

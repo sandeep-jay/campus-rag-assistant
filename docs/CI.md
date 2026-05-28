@@ -9,7 +9,7 @@ Automated checks replace Travis CI. **Tox** remains the source of truth for what
 | **CI** | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | Push to `main`; PRs to `main`, `qa`, `release` |
 | **CD** | [`.github/workflows/cd.yml`](../.github/workflows/cd.yml) | Push to `qa` or `release`; manual `workflow_dispatch` |
 | **Docs** | [`.github/workflows/docs.yml`](../.github/workflows/docs.yml) | PRs touching docs/site files; push to `main`; manual `workflow_dispatch` |
-| **No tool attribution** | [`.github/workflows/no-tool-attribution.yml`](../.github/workflows/no-tool-attribution.yml) | PRs to any protected branch |
+| **No tool attribution** | [`.github/workflows/no-tool-attribution.yml`](../.github/workflows/no-tool-attribution.yml) | Pull requests; required on `main` by the `Protect main` ruleset |
 
 ### CI jobs
 
@@ -44,7 +44,7 @@ Automated checks replace Travis CI. **Tox** remains the source of truth for what
 
 ### Docs site
 
-`docs.yml` builds the MkDocs Material site with `mkdocs build --strict` on pull requests that touch docs, `mkdocs.yml`, or root license/notice/changelog files. On push to `main`, the same workflow deploys to GitHub Pages using `actions/deploy-pages`. Enable repository Pages source **GitHub Actions** before the first deploy. After the first successful merge, add the `Docs / build` job to the `Protect main` required checks.
+`docs.yml` builds the MkDocs Material site with `mkdocs build --strict` on pull requests that touch docs, `mkdocs.yml`, or root license/notice/changelog files. On push to `main`, the same workflow deploys to GitHub Pages using `actions/deploy-pages`. Enable repository Pages source **GitHub Actions** before the first deploy. The `Docs / build` job is optional for merge gating; add it to `Protect main` if you want doc breakage to block merges.
 
 ### CD pipeline
 
@@ -68,6 +68,8 @@ Without AWS configuration, CD still validates builds; deploy and RAGAS jobs are 
 | `EB_DEPLOY_ENABLED` | Set to `true` to run Elastic Beanstalk deploy job |
 | `AWS_REGION` | e.g. `us-west-2` (optional; defaults to `us-west-2`) |
 | `RAGAS_QUALITY_GATE` | Set to `1` to run `tox -e eval` on `release` (slow; needs judge LLM secrets in env) |
+| `HELPDESK_ENABLED` | Enables ASK-mode helpdesk endpoints (`/summarize`, `/draft-ticket`, `/create-issue`) |
+| `HELPDESK_AGENT_ENABLED` | Enables multi-turn AGENT-mode helpdesk LangGraph endpoints |
 
 ### Secrets
 
@@ -78,6 +80,8 @@ Without AWS configuration, CD still validates builds; deploy and RAGAS jobs are 
 | `EB_APPLICATION_NAME` | Elastic Beanstalk application |
 | `EB_ENVIRONMENT_NAME_QA` | QA environment name |
 | `EB_ENVIRONMENT_NAME_RELEASE` | Production environment name |
+| `GITHUB_TOKEN` (helpdesk) | Fine-grained PAT (`issues:write`) for the private demo repo issues are filed to |
+| `GITHUB_REPO` | `owner/repo` of the private demo repo (e.g. `sandeep-jay/campus-helpdesk-demo`) |
 
 For RAGAS on release, add Bedrock/judge keys as secrets or environment-scoped variables expected by `tox -e eval` (see [EVALUATION.md](./EVALUATION.md)).
 
@@ -90,12 +94,15 @@ CD uses GitHub **environments** `qa` and `production` on deploy jobs (approval r
 **Fast CI check** (Vue only, no Streamlit): `tox -e lint,backend,frontend-vue` — matches [PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md). Full CI parity includes `frontend-streamlit` as in `.github/workflows/ci.yml`.
 
 ```bash
-tox -e lint,backend,frontend-streamlit,frontend-vue,docs,secrets
-# Dependency review runs in GitHub only because it compares PR dependency diffs
+tox -e lint,backend,frontend-streamlit,frontend-vue,secrets
+# Optional: tox -e docs  (MkDocs strict build)
+# dependency review (new high/critical CVEs) runs in GitHub only — compares PR dependency diffs
 ```
 
 The local `.githooks/pre-push` hook runs the same gitleaks scan before any
-push leaves your machine — install with `./scripts/install-hooks.sh`.
+push leaves your machine — install with `./scripts/install-hooks.sh --global`
+for commit-msg + pre-push protections on every repo, or omit `--global` for
+repo-local hooks only.
 
 ## Branch flow
 
@@ -115,6 +122,15 @@ See [RELEASE.md](./RELEASE.md) for promotion commands and tagging.
 | `Cannot find module @rollup/rollup-linux-x64-gnu` | Use `HUSKY=0 npm ci` (not `--ignore-scripts`); `@rollup/rollup-*` pinned in `frontend-vue` optionalDependencies |
 | Slow `frontend-vue` tox setup | Env no longer installs root `requirements.txt` — Node/npm only |
 
-## Migrating from Travis
+## Branch protection (rulesets)
 
-`.travis.yml` is removed. Enable Actions under repo **Settings → Actions** if disabled. Add branch protection: require **CI / tox** on `main`.
+The **`Protect main`** ruleset on the default branch requires these status checks before merge:
+
+- `tox (lint, backend, frontends)`
+- `gitleaks (history + diff)`
+- `dependency review (new high/critical CVEs)`
+- `no tool attribution`
+
+A separate ruleset, **`Protect main, qa, release from deletion`**, blocks branch deletion on `main`, `qa`, and `release`.
+
+Remote branches on `origin`: `main`, `qa`, `release`. Release tags: `v0.1`, `v2.0`.
