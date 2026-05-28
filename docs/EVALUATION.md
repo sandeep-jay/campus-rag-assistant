@@ -100,6 +100,14 @@ Requires judge LLM: `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, or `RAGAS_LLM_PROV
 
 ---
 
+## Helpdesk agent evaluation
+
+The helpdesk LangGraph has its own scenario harness (mock-conversation -> expected `next_action`) under `backend/tests/eval/test_helpdesk_agent_scenarios.py`. It runs as part of `tox -e backend` against the mock LLM provider; no AWS credentials are required. Outcome distribution and tool usage are exposed via the `chatbot_helpdesk_agent_*` Prometheus metrics for live evaluation.
+
+Engineering detail: [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md) (eval rig section).
+
+---
+
 ## LangGraph-specific evaluation
 
 1. Baseline RAGAS on `RAG_ENGINE=chain` (or current default).

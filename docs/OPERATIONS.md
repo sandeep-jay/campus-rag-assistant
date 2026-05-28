@@ -119,6 +119,23 @@ Included metrics:
 2. Reduce worker count or per-worker concurrency to lower connection demand.
 3. Increase DB max connections and corresponding app pool settings.
 
+## Helpdesk agent runtime
+
+| Flag / variable | Purpose |
+|---|---|
+| `HELPDESK_ENABLED` | Master flag for ASK-mode `/api/helpdesk/{summarize,draft-ticket,create-issue}` |
+| `HELPDESK_AGENT_ENABLED` | Enables AGENT-mode `/api/helpdesk/agent/*` LangGraph endpoints |
+| `HELPDESK_AGENT_KILL_SWITCH` | Set `true` to short-circuit all in-flight agent sessions (returns `aborted`) |
+| `GITHUB_TOKEN` | Fine-grained PAT (`issues:write`) for the demo repo; **SecretStr**, never log |
+| `GITHUB_REPO` | `owner/repo` of the **private** demo repo issues are filed to |
+| `GITHUB_DEFAULT_LABELS` | Comma-separated labels added to every filed issue |
+| `HELPDESK_KB_RESOLVED_MIN_SCORE` | Optional rerank-score floor for `kb_resolved` heuristic |
+| `HELPDESK_DEDUP_WINDOW_SECONDS` | Suppress duplicate filings inside this window |
+| `HELPDESK_SUMMARIZE_MAX_TURNS` | Number of recent chat turns fed into recap/draft |
+| `HELPDESK_AGENT_CHECKPOINT_PATH` | SQLite checkpointer path (`.helpdesk_agent_checkpoints.sqlite` by default) |
+
+Prometheus metrics: `chatbot_helpdesk_recap_*`, `chatbot_helpdesk_draft_ticket_*`, `chatbot_helpdesk_create_issue_total`, `chatbot_helpdesk_kb_resolved_total`, `chatbot_helpdesk_agent_started_total`, `chatbot_helpdesk_agent_tool_total`, `chatbot_helpdesk_agent_outcome_total`, `chatbot_helpdesk_agent_funnel_total`, `chatbot_helpdesk_agent_error_total`. Engineering spec: [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md).
+
 ## OAuth and local development
 
 - Enable providers in `.env`: `OAUTH_ENABLED_PROVIDERS=github` (or `google,github`) plus client ID/secret vars (see `.env.example`).

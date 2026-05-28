@@ -161,6 +161,16 @@ GitHub OAuth callback runs on the **API origin** (`OAUTH_REDIRECT_BASE_URL`, typ
 
 ---
 
+### Helpdesk agent (post-RAG escalation)
+
+When KB retrieval cannot resolve a question (`metadata.kb_resolved=false`), the product offers escalation paths:
+
+- **ASK mode** ships three LLM endpoints — `/api/helpdesk/summarize`, `/api/helpdesk/draft-ticket`, `/api/helpdesk/create-issue` — gated by `HELPDESK_ENABLED`. The Vue chat surfaces them as inline chips and a structured `TicketDraft` review modal that files to a private demo GitHub repo (HITL).
+- **AGENT mode** (`HELPDESK_AGENT_ENABLED=true`) wraps these endpoints in a real LangGraph agent: supervisor LLM chooses actions, tools (KB retry, web search, duplicate-issue search, file-ticket) execute and return observations, and a SQLite checkpointer persists state across pauses for clarifying questions. Each session terminates with one of four explicit outcomes: `resolved_by_agent`, `linked`, `filed`, or `aborted`.
+- **Privacy** — `services/helpdesk/redaction.py` strips emails, JWT-like tokens, AWS keys, GitHub tokens, bearer tokens, and keyed secrets before summarization or issue filing.
+- **Boundary** — the agent loop is bounded (no unbounded multi-agent autonomy); tool budgets and a kill switch (`HELPDESK_AGENT_KILL_SWITCH`) cap blast radius.
+- Specs: [Conversation Flow](./roadmap/CONVERSATION_FLOW.md) (UX contract) and [Helpdesk Agent](./roadmap/HELPDESK_AGENT.md) (engineering spec).
+
 ### Tenant-hydrated prompts
 
 Per-tenant `tenant.rag_config` in Postgres can override topics, prompts, and related RAG settings.
@@ -178,6 +188,8 @@ Chat history is capped (`CHAT_HISTORY_MAX_MESSAGES`) to bound prompt size and co
 ---
 
 ## Capability map (where to read more)
+
+- Helpdesk agent: [CONVERSATION_FLOW.md](./roadmap/CONVERSATION_FLOW.md), [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md), [ARCHITECTURE.md helpdesk section](./ARCHITECTURE.md#helpdesk-capabilities-post-rag).
 
 | Capability | Primary doc | Implementation |
 |------------|-------------|----------------|

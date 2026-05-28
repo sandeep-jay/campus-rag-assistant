@@ -68,6 +68,8 @@ Without AWS configuration, CD still validates builds; deploy and RAGAS jobs are 
 | `EB_DEPLOY_ENABLED` | Set to `true` to run Elastic Beanstalk deploy job |
 | `AWS_REGION` | e.g. `us-west-2` (optional; defaults to `us-west-2`) |
 | `RAGAS_QUALITY_GATE` | Set to `1` to run `tox -e eval` on `release` (slow; needs judge LLM secrets in env) |
+| `HELPDESK_ENABLED` | Enables ASK-mode helpdesk endpoints (`/summarize`, `/draft-ticket`, `/create-issue`) |
+| `HELPDESK_AGENT_ENABLED` | Enables multi-turn AGENT-mode helpdesk LangGraph endpoints |
 
 ### Secrets
 
@@ -78,6 +80,8 @@ Without AWS configuration, CD still validates builds; deploy and RAGAS jobs are 
 | `EB_APPLICATION_NAME` | Elastic Beanstalk application |
 | `EB_ENVIRONMENT_NAME_QA` | QA environment name |
 | `EB_ENVIRONMENT_NAME_RELEASE` | Production environment name |
+| `GITHUB_TOKEN` (helpdesk) | Fine-grained PAT (`issues:write`) for the private demo repo issues are filed to |
+| `GITHUB_REPO` | `owner/repo` of the private demo repo (e.g. `sandeep-jay/campus-helpdesk-demo`) |
 
 For RAGAS on release, add Bedrock/judge keys as secrets or environment-scoped variables expected by `tox -e eval` (see [EVALUATION.md](./EVALUATION.md)).
 

@@ -52,6 +52,7 @@ This project is designed to demonstrate strengths relevant to:
 | **RAG engineering** | LangGraph retrieval stages, multi-query retrieval, rerank hooks, fallback chain streaming, and explicit source contracts |
 | **Platform architecture** | AWS/Azure/mock provider registry, tenant config, feature flags, Alembic migrations, and CI-safe local mode |
 | **Evaluation** | RAGAS golden-set regression harness, documented Phase 5 baseline, and LangSmith traces for KB/web paths |
+| **Helpdesk agent** | Multi-turn LangGraph escalation: KB retry, web search, duplicate-issue search, HITL ticket filing to a demo GitHub repo, four explicit outcomes |
 | **Operations** | GitHub Actions, gitleaks, dependency review, no tool attribution, Prometheus metrics, k6 load tests, release docs, and runbooks |
 
 ## System at a glance
@@ -81,6 +82,7 @@ Extended from the public upstream [ets-berkeley-edu/chabot](https://github.com/e
 - **Tenant-hydrated prompts** — `tenant.rag_config` in Postgres
 - **RAGAS + LangSmith** — golden-set regression evals and per-node traces
 - **Production ops** — Prometheus, request IDs, rate limits, k6, Alembic, GitHub Actions CI/CD
+- **Helpdesk agent** — LangGraph multi-turn agent with KB retry, web search, GitHub-issue search, HITL ticket filing, and SQLite checkpointer
 
 ## Quality baseline
 
@@ -183,6 +185,14 @@ Enable `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, and `LANGCHAIN_PROJECT` in `
 - **UI** — dark/light mode, mobile-friendly layout, copy answer
 - **Ops** — rate limiting, `X-Request-ID`, Alembic migrations, optional Streamlit client on the same API
 
+### Helpdesk agent (post-RAG escalation)
+
+- **`metadata.kb_resolved`** signal — Vue surfaces escalation chips when the KB cannot answer.
+- **ASK-mode actions** — one-shot `/summarize` and `/draft-ticket`; reviewed drafts are filed via `/create-issue` to a private demo GitHub repo (HITL-gated).
+- **AGENT mode** — multi-turn LangGraph agent (`HELPDESK_AGENT_ENABLED`) with supervisor + clarifier/classifier/writer specialists, KB retry / web search / GitHub-search tools, SQLite checkpointer, SSE status, and four explicit outcomes (`resolved_by_agent`, `linked`, `filed`, `aborted`).
+- **Privacy** — emails, JWTs, AWS keys, GitHub tokens, and bearer tokens are redacted before summarization or issue filing.
+- Specs: [docs/roadmap/CONVERSATION_FLOW.md](docs/roadmap/CONVERSATION_FLOW.md), [docs/roadmap/HELPDESK_AGENT.md](docs/roadmap/HELPDESK_AGENT.md).
+
 ## Stack
 
 | Layer                 | Technologies                                                                                              |
@@ -193,6 +203,7 @@ Enable `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, and `LANGCHAIN_PROJECT` in `
 | **Retrieval**         | **Vector stores:** Bedrock KB → OpenSearch Serverless (vector/keyword/hybrid); Azure AI Search (vector + keyword/hybrid); multi-query + RRF; optional FlashRank / keyword rerank |
 | **LLM**               | AWS Bedrock, Azure OpenAI, or **mock** (`LLM_PROVIDER` / `RETRIEVER_PROVIDER`)                            |
 | **Web search**        | Mock or **Tavily** (`tavily-python`) behind `research_mode=web`                                           |
+| **Helpdesk agent**    | LangGraph supervisor + tools, SQLite checkpointer, HITL ticket filing to a private demo GitHub repo (`HELPDESK_AGENT_ENABLED`) |
 | **Eval**              | **RAGAS** harness (`backend/tests/eval/`), golden dataset, `tox -e eval`                                  |
 | **Observability**     | **LangSmith** (`LANGCHAIN_TRACING_V2`), structured logs, first-token latency metric                       |
 | **CI/CD**             | GitHub Actions — tox suite, gitleaks, dependency review, no tool attribution, docs build, and optional CD ([docs/CI.md](docs/CI.md))          |
@@ -208,6 +219,7 @@ Local demos: `RAG_FORCE_MOCK=true` with no cloud credentials. Design detail: [do
 | **AWS Bedrock KB** | Managed KB retrieval, Bedrock generation, LangGraph retrieval stages, LangSmith trace capture |
 | **Azure OpenAI + AI Search** | Azure provider path with vector/keyword/hybrid retrieval and cited answers |
 | **Web research enabled** | Per-message web mode with disclaimer UI and WEB-labeled sources (`mock` or Tavily) |
+| **Helpdesk agent enabled** | ASK-mode escalation chips + multi-turn AGENT mode (`HELPDESK_ENABLED=true`, `HELPDESK_AGENT_ENABLED=true`); requires `GITHUB_TOKEN` + `GITHUB_REPO` for ticket filing |
 | **OAuth configured** | GitHub OAuth handoff to Vue; Google-ready provider config |
 | **Eval keys available** | RAGAS golden-set runs, release quality gates, LangSmith trace inspection |
 

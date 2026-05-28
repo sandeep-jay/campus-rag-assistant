@@ -102,6 +102,7 @@ cleartext is only read at the boundary that needs it via
 - `OAUTH_GOOGLE_CLIENT_SECRET`, `OAUTH_GITHUB_CLIENT_SECRET`.
 - `GITHUB_TOKEN` (helpdesk escalation only — fine-grained PAT scoped to a **private demo**
   repo with `issues:write`; never commit; do not point at the main portfolio repo).
+  See **Helpdesk agent privacy** below for redaction and kill-switch detail.
 - `LANGCHAIN_API_KEY`, `TAVILY_API_KEY`.
 
 ### Production checklist
@@ -134,6 +135,16 @@ work. Triage alerts manually from the GitHub Security tab, batch related updates
 into reviewable PRs, and let CI validate them. New PRs are guarded by the
 `dependency review (new high/critical CVEs)` and `no tool attribution` jobs; dependency review fails if a dependency
 change introduces a new high or critical advisory.
+
+### Helpdesk agent privacy
+
+When `HELPDESK_ENABLED=true` (or `HELPDESK_AGENT_ENABLED=true`), the chat path can summarize, draft tickets, and file GitHub issues based on user transcripts. To bound exposure:
+
+- **Redaction** — `services/helpdesk/redaction.py` strips emails, JWT-like tokens, AWS access keys, GitHub tokens, bearer tokens, and `key=value` secret patterns from any text passed to summarize/draft/create-issue.
+- **Demo repo only** — `GITHUB_REPO` must be a **private** demo repo distinct from the source repo. The token is a fine-grained PAT with `issues:write` only.
+- **HITL gate** — tickets are filed only after the user reviews the structured `TicketDraft` (ASK-mode modal) or confirms the agent draft (`/api/helpdesk/agent/confirm`).
+- **Kill switch** — `HELPDESK_AGENT_KILL_SWITCH=true` aborts all in-flight agent sessions immediately; bind it to an emergency runbook entry.
+- **Audit** — Prometheus counters expose start/outcome/tool/error funnels (`chatbot_helpdesk_agent_*`); LangSmith traces are gated so trace failures cannot affect user responses.
 
 ### If a secret leaks
 

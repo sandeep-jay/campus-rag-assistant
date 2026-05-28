@@ -40,6 +40,7 @@ Campus RAG Assistant demonstrates how institutional knowledge can be served thro
 | Evaluation | RAGAS baseline is documented honestly, with gates used as release controls |
 | Observability | LangSmith spans, Prometheus metrics, request IDs, structured logs |
 | Product judgment | KB-first answers, cited sources, opt-in web research, visible disclaimer |
+| Agentic depth | Bounded LangGraph helpdesk agent with HITL ticket filing — [Conversation Flow](roadmap/CONVERSATION_FLOW.md), [Helpdesk Agent](roadmap/HELPDESK_AGENT.md) |
 | CI safety | Mock providers allow tests without cloud credentials |
 
 ## What this shows
@@ -50,6 +51,7 @@ Campus RAG Assistant demonstrates how institutional knowledge can be served thro
 | **RAG engineering** | LangGraph retrieval stages, multi-query retrieval, rerank hooks, fallback chain streaming, and explicit source contracts |
 | **Platform architecture** | AWS/Azure/mock provider registry, tenant config, feature flags, Alembic migrations, and CI-safe local mode |
 | **Evaluation** | RAGAS golden-set regression harness, documented Phase 5 baseline, and LangSmith traces for KB/web paths |
+| **Helpdesk agent** | Multi-turn LangGraph escalation with KB retry, web search, duplicate-issue search, and HITL ticket filing to a demo GitHub repo |
 | **Operations** | GitHub Actions, gitleaks, dependency review, no tool attribution, Prometheus metrics, k6 load tests, release docs, and runbooks |
 
 ## Quality baseline

@@ -12,6 +12,7 @@ See the root [README](../README.md) for setup, features, screenshots, and stack 
 | **New to the codebase** | [DESIGN.md](./DESIGN.md) → [ARCHITECTURE.md](./ARCHITECTURE.md) → [README#quick-start](../README.md#quick-start-mock-rag-no-cloud) |
 | **RAG / LangGraph** | [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md) → [EVALUATION.md](./EVALUATION.md) |
 | **Ops / release** | [OPERATIONS.md](./OPERATIONS.md) → [CI.md](./CI.md) → [RELEASE.md](./RELEASE.md) |
+| **Helpdesk / agentic** | [roadmap/CONVERSATION_FLOW.md](./roadmap/CONVERSATION_FLOW.md) → [roadmap/HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md) → [ARCHITECTURE.md#helpdesk-capabilities-post-rag](./ARCHITECTURE.md#helpdesk-capabilities-post-rag) |
 
 ## Design and architecture
 

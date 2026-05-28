@@ -26,6 +26,7 @@ Priority: **P1** (before multi-tenant production) · **P2** (scale / cost) · **
 | **Postgres DR / backup posture** | P2 | Data loss on failure | Automated backups, restore drill, RPO/RTO doc | Operator-dependent |
 | **LangGraph-native SSE** (Phase 6a) | P3 | Higher TTFT on graph path | `astream_events` from graph; same SSE contract as chain | Optional — [LANGGRAPH.md](./roadmap/LANGGRAPH.md) |
 | **Expand RAGAS golden set** (10 → 30–50) | P3 | Thin regression signal | Bootstrap + manual curation; tag by topic/difficulty | 10 rows today |
+| **Expand helpdesk-agent eval set** | P3 | Thin agent-decision regression signal | Add scenarios under `backend/tests/eval/test_helpdesk_agent_scenarios.py` (clarify, retry-kb, web, file/link branches) | Initial scenarios shipped — [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md) |
 | **RAG service lifecycle** (singleton vs per-request) | P3 | Latency / connection churn | Document tradeoff; optional app-state singleton with config refresh | Per-request construction today |
 | **Chain vs LangGraph consolidation** | P3 | Dual maintenance | Keep both until 6a; deprecate chain when graph streams | Explicit ADR — [ADR-002](./adr/ADR-002-langgraph-vs-chain.md) |
 

@@ -86,7 +86,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
-- **Documentation accuracy pass** — aligned CI/branch-protection docs with `Protect main` required checks, local tox parity (`secrets` without mandatory `docs`), `PIP_SYNC=0` backend startup, helpdesk agent API surface, and roadmap status after helpdesk merge (PRs #37–#43).
+- **Documentation accuracy pass** — aligned CI/branch-protection docs with `Protect main` required checks, local tox parity (`secrets` without mandatory `docs`), `PIP_SYNC=0` backend startup, helpdesk agent API surface, and roadmap status after helpdesk merge (PRs #37–#43). Also surfaced the helpdesk agent in README, docs landing page, REVIEWER_GUIDE, PORTFOLIO_CASE_STUDY, DESIGN, OPERATIONS (runtime flags + metrics), SECURITY (privacy/redaction/kill-switch), CI (env vars), and EVALUATION (agent scenario eval).
 
 - **Environment identifier consolidated** — dropped the legacy `ENVIRONMENT` field from `DefaultSettings`/`DevelopmentSettings`/`TestSettings`; `APP_ENV` is now the only source of truth. Updated `backend/app/main.py`, `backend/app/api/oauth_routes.py`, `backend/verify_configs.py`, `frontend-streamlit/app/{config,main}.py`, `scripts/verify_oauth.py`, `tox.ini` (removed three redundant `ENVIRONMENT = test` lines), `.env.example`, and `docs/ARCHITECTURE.md`.
 - **GitHub Pages documentation site** — added MkDocs Material scaffold, docs CI build/deploy workflow, `tox -e docs`, a Pages landing page, and README/documentation positioning polish around the independent extension framing.
