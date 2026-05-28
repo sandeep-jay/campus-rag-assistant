@@ -138,7 +138,7 @@ Opt-in `research_mode=web`, Tavily optional, disclaimer UI. [WEB_RESEARCH.md](./
 
 | Priority | Focus |
 |----------|--------|
-| **Now** | Ship product increments; optional branch protection on `main` |
+| **Now** | Ship product increments; `Protect main` requires tox, gitleaks, dependency review, and no tool attribution; deletion blocked on `main`/`qa`/`release` |
 | **Optional** | Phase 6a LangGraph SSE; grow golden set; faithfulness/precision via ingestion |
 | **Later** | Campus scale track — [PHASED_IMPROVEMENT_ROADMAP.md](./archive/PHASED_IMPROVEMENT_ROADMAP.md) |
 

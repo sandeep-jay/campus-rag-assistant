@@ -20,7 +20,7 @@ Use **two complementary tools** with distinct roles:
 
 | Event | `RAGAS_QUALITY_GATE` | Notes |
 |-------|----------------------|--------|
-| PR / `main` CI (`tox -e lint,backend,frontend-vue`) | **0** | Eval not required; mock RAG |
+| PR / `main` CI (`tox (lint, backend, frontends)`) | **0** | Eval not required; mock RAG |
 | Local / release milestone | **1** | `tox -e eval` or `./scripts/run_eval_phase5.sh` |
 | CD `release` workflow | **1** when secrets configured | See [CI.md](../CI.md) |
 

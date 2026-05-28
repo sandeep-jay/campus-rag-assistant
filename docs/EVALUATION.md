@@ -47,7 +47,7 @@ The checked-in golden set was bootstrapped from one **campus knowledge base** de
 
 | Event | `RAGAS_QUALITY_GATE` | Notes |
 |-------|----------------------|--------|
-| PR / `main` CI (`tox -e lint,backend,frontend-vue`) | **0** (default) | Eval not required; keeps PRs fast without AWS |
+| PR / `main` CI (`tox (lint, backend, frontends)`) | **0** (default) | Eval not required; keeps PRs fast without AWS |
 | Local / release milestone | **1** | `tox -e eval` or `./scripts/run_eval_phase5.sh`; needs judge + Bedrock |
 | CD `release` workflow | **1** when secrets configured | See [CI.md](./CI.md) |
 

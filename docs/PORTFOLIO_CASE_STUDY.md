@@ -43,7 +43,7 @@ Detailed diagrams and request flows: [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 | Signal | Evidence |
 |--------|----------|
-| **Test breadth** | ~48 backend, frontend, e2e, and eval test files; `tox -e lint,backend,frontend-vue` on every PR |
+| **Test breadth** | ~48 backend, frontend, e2e, and eval test files; `tox (lint, backend, frontends)` on every PR |
 | **RAGAS baseline** | 10-question golden set; AWS Phase 5 tuned profile: **context_recall 0.80** (passes gate) |
 | **CI without cloud** | Mock providers; `RAG_FORCE_MOCK=true`; no AWS credentials in GitHub Actions |
 | **Load profile** | k6 validates auth, session CRUD, and chat under load — [LOAD_TESTING.md](./LOAD_TESTING.md) |

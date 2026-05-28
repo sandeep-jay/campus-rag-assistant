@@ -52,7 +52,7 @@ This project is designed to demonstrate strengths relevant to:
 | **RAG engineering** | LangGraph retrieval stages, multi-query retrieval, rerank hooks, fallback chain streaming, and explicit source contracts |
 | **Platform architecture** | AWS/Azure/mock provider registry, tenant config, feature flags, Alembic migrations, and CI-safe local mode |
 | **Evaluation** | RAGAS golden-set regression harness, documented Phase 5 baseline, and LangSmith traces for KB/web paths |
-| **Operations** | GitHub Actions, gitleaks, dependency review, Prometheus metrics, k6 load tests, release docs, and runbooks |
+| **Operations** | GitHub Actions, gitleaks, dependency review, no tool attribution, Prometheus metrics, k6 load tests, release docs, and runbooks |
 
 ## System at a glance
 
@@ -195,7 +195,7 @@ Enable `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, and `LANGCHAIN_PROJECT` in `
 | **Web search**        | Mock or **Tavily** (`tavily-python`) behind `research_mode=web`                                           |
 | **Eval**              | **RAGAS** harness (`backend/tests/eval/`), golden dataset, `tox -e eval`                                  |
 | **Observability**     | **LangSmith** (`LANGCHAIN_TRACING_V2`), structured logs, first-token latency metric                       |
-| **CI/CD**             | GitHub Actions — tox suite, docs build, gitleaks, dependency review, and optional CD ([docs/CI.md](docs/CI.md))          |
+| **CI/CD**             | GitHub Actions — tox suite, gitleaks, dependency review, no tool attribution, docs build, and optional CD ([docs/CI.md](docs/CI.md))          |
 | **Load tests**        | k6 ([docs/LOAD_TESTING.md](docs/LOAD_TESTING.md))                                                         |
 
 Local demos: `RAG_FORCE_MOCK=true` with no cloud credentials. Design detail: [docs/roadmap/LANGGRAPH.md](docs/roadmap/LANGGRAPH.md), [docs/roadmap/WEB_RESEARCH.md](docs/roadmap/WEB_RESEARCH.md).
@@ -230,7 +230,7 @@ cp .env.example .env
 createdb chatbot_dev   # or name from POSTGRES_DB in .env
 alembic upgrade head
 
-./scripts/run-backend-venv.sh          # terminal 1 — http://127.0.0.1:8000
+PIP_SYNC=0 ./scripts/run-backend-venv.sh          # terminal 1 — http://127.0.0.1:8000
 cp frontend-vue/.env.example frontend-vue/.env.local
 # VITE_API_URL=http://127.0.0.1:8000
 # GitHub OAuth: VITE_OAUTH_API_URL=http://127.0.0.1:8000 — see docs/PRODUCTION_TLS.md
@@ -270,14 +270,14 @@ Set `RAG_FORCE_MOCK=false` and configure providers in `.env` (see [docs/OPERATIO
 **CI-style suite (local):**
 
 ```bash
-tox -e lint,backend,frontend-streamlit,frontend-vue,docs,secrets
+tox -e lint,backend,frontend-streamlit,frontend-vue,secrets
 ```
 
 **Optional suites:**
 
 ```bash
 tox -e eval    # RAGAS golden-dataset eval (slow; judge LLM — docs/EVALUATION.md)
-tox -e e2e     # Playwright; start API first: ./scripts/run-backend-venv.sh
+tox -e e2e     # Playwright; start API first: PIP_SYNC=0 ./scripts/run-backend-venv.sh
 tox -e docs    # GitHub Pages / MkDocs strict build
 ```
 

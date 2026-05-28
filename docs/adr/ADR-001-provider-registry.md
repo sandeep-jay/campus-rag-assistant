@@ -22,7 +22,7 @@ Implementations live under `backend/app/services/providers/`. The API and Vue cl
 **Positive**
 
 - Clone → mock mode → chat in minutes without cloud accounts.
-- `tox -e lint,backend,frontend-vue` runs on every PR without AWS secrets.
+- `tox (lint, backend, frontends)` runs on every PR without AWS secrets.
 - Same response shape (`message`, `metadata`, `sources`) across providers.
 
 **Negative**

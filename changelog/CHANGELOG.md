@@ -54,7 +54,8 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Security
 
-- Added a pull-request `no tool attribution` workflow plus a PR template so squash-merge metadata is checked server-side, closing the gap local commit hooks cannot cover.
+- **PR #44** — `no tool attribution` workflow (`.github/workflows/no-tool-attribution.yml`) scans PR title, body, and commit messages via `.githooks/tool_attribution_guard.py --check`; required on `Protect main`.
+- **PR #45** — PR template trimmed to **Summary** and **Test plan** only (no Notes section).
 - Patched frontend test-tooling transitive `js-cookie` advisory (`GHSA-qjx8-664m-686j`) by refreshing the lockfile to `js-cookie` `3.0.7`; `npm ci` now reports zero frontend vulnerabilities.
 - Redaction pass before summarization/issue filing (emails, JWT-like tokens, AWS keys, GitHub tokens, bearer tokens, and keyed secrets).
 - GitHub issue creation targets a separate private demo repo (`GITHUB_REPO`); documented in `.env.example` and `docs/SECURITY.md`.
@@ -77,13 +78,15 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
   3. local `.githooks/pre-push` runs `gitleaks detect --log-opts="<remote>..HEAD"` and fails the push on any finding (`scripts/install-hooks.sh` wires it locally and, with `--global`, into `~/.config/git/hooks`);
   4. new `tox -e secrets` env and `gitleaks (history + diff)` job in `.github/workflows/ci.yml` run `gitleaks detect --all --reflog --no-merges` on every PR and push;
   5. GitHub repo settings now have **Secret Scanning**, **Push Protection**, and **Dependabot alerts** enabled — even `git push --no-verify` is blocked at GitHub's edge for known-provider patterns. (Dependabot **security updates** / auto-PR bumps are intentionally left off — they kept breaking the build; vulnerabilities are triaged manually from the alert queue.)
-- **Tool attribution guard** — `.githooks/commit-msg` delegates to `.githooks/tool_attribution_guard.py`, stripping AI-tool authorship/attribution lines (`Co-authored-by:`, `Signed-off-by:`, `Made with <tool> ...`, vendor URL footers) from commit messages. `scripts/install-hooks.sh --global` installs the same guard into `~/.config/git/hooks/` so every repo on the workstation gets the same protection.
+- **Tool attribution guard** — `.githooks/commit-msg` delegates to `.githooks/tool_attribution_guard.py` (local strip + `--check` for CI). Strips AI-tool authorship lines (`Co-authored-by:`, `Signed-off-by:`, vendor URL footers) from commit messages. `scripts/install-hooks.sh --global` installs commit-msg + pre-push protections into `~/.config/git/hooks/`.
 - **Secret hardening (Pydantic `SecretStr`)** — `SECRET_KEY`, `AWS_SECRET_ACCESS_KEY`, `AZURE_OPENAI_API_KEY`, `AZURE_SEARCH_KEY`, `OAUTH_GOOGLE_CLIENT_SECRET`, `OAUTH_GITHUB_CLIENT_SECRET`, `LANGCHAIN_API_KEY`, and `TAVILY_API_KEY` in `backend/app/config/default.py` are now typed `SecretStr`, so they redact in `repr`, logs, exceptions, and `model_dump_json`. Cleartext is read only at the boundary (JWT codec, OAuth client, Azure SDK, Tavily, LangSmith). `simple_tracer.py` no longer logs the LangSmith key in env-var dumps.
 - **Pydantic settings tightening** — `DefaultSettings.model_config` switched from `extra='allow'` to `extra='ignore'` with explicit `SettingsConfigDict` (case-sensitive, UTF-8, optional `secrets_dir` for Docker/K8s secret mounts). Previously-undeclared `AZURE_SEARCH_VECTOR_FIELD` now declared (`text_vector` default) and documented in `.env.example`.
 - **CI guard for env template** — `backend/tests/core/test_env_template.py` asserts every `DefaultSettings` field is documented in `.env.example` (per-field for `SecretStr` fields) and that no `SecretStr` field carries a non-placeholder uncommented value.
 - **Secrets management doc** — `docs/SECURITY.md` now describes the load precedence, the list of `SecretStr` fields, a production checklist (secret stores, instance roles, rotation), and the leak-response runbook.
 
 ### Changed
+
+- **Documentation accuracy pass** — aligned CI/branch-protection docs with `Protect main` required checks, local tox parity (`secrets` without mandatory `docs`), `PIP_SYNC=0` backend startup, helpdesk agent API surface, and roadmap status after helpdesk merge (PRs #37–#43).
 
 - **Environment identifier consolidated** — dropped the legacy `ENVIRONMENT` field from `DefaultSettings`/`DevelopmentSettings`/`TestSettings`; `APP_ENV` is now the only source of truth. Updated `backend/app/main.py`, `backend/app/api/oauth_routes.py`, `backend/verify_configs.py`, `frontend-streamlit/app/{config,main}.py`, `scripts/verify_oauth.py`, `tox.ini` (removed three redundant `ENVIRONMENT = test` lines), `.env.example`, and `docs/ARCHITECTURE.md`.
 - **GitHub Pages documentation site** — added MkDocs Material scaffold, docs CI build/deploy workflow, `tox -e docs`, a Pages landing page, and README/documentation positioning polish around the independent extension framing.

@@ -50,7 +50,7 @@ Campus RAG Assistant demonstrates how institutional knowledge can be served thro
 | **RAG engineering** | LangGraph retrieval stages, multi-query retrieval, rerank hooks, fallback chain streaming, and explicit source contracts |
 | **Platform architecture** | AWS/Azure/mock provider registry, tenant config, feature flags, Alembic migrations, and CI-safe local mode |
 | **Evaluation** | RAGAS golden-set regression harness, documented Phase 5 baseline, and LangSmith traces for KB/web paths |
-| **Operations** | GitHub Actions, gitleaks, dependency review, Prometheus metrics, k6 load tests, release docs, and runbooks |
+| **Operations** | GitHub Actions, gitleaks, dependency review, no tool attribution, Prometheus metrics, k6 load tests, release docs, and runbooks |
 
 ## Quality baseline
 
@@ -120,7 +120,7 @@ More assets: [screenshots catalog](assets/README.md).
 | **LLM** | AWS Bedrock, Azure OpenAI, or mock provider |
 | **Web search** | Mock or Tavily behind `research_mode=web` |
 | **Eval** | RAGAS golden dataset, `tox -e eval`, LangSmith traces |
-| **CI/CD** | GitHub Actions, tox, gitleaks, dependency review, optional EB deploy |
+| **CI/CD** | GitHub Actions, tox, gitleaks, dependency review, no tool attribution, optional EB deploy |
 
 ## Feature availability
 
@@ -142,7 +142,7 @@ cp .env.example .env
 # set RAG_FORCE_MOCK=true, LLM_PROVIDER=mock, RETRIEVER_PROVIDER=mock
 createdb chatbot_dev
 alembic upgrade head
-./scripts/run-backend-venv.sh          # http://127.0.0.1:8000
+PIP_SYNC=0 ./scripts/run-backend-venv.sh          # http://127.0.0.1:8000
 ./scripts/run-frontend-vue.sh          # http://127.0.0.1:5173
 ```
 

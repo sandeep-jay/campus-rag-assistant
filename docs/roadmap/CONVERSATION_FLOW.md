@@ -4,7 +4,7 @@ Product spec for the end-to-end chatbot experience. The helpdesk agent is one
 capability inside this shape, not the shape itself. Engineering details for
 the agent live in [HELPDESK_AGENT.md](./HELPDESK_AGENT.md).
 
-**Status (2026-05-25):** Design locked with full P0+P1 hardening (cross-mode edge cases, accessibility); implementation pending on `feat/helpdesk-agent`.
+**Status (2026-05-27):** Implemented on `main` (PRs #37–#43). This document is the product/UX contract for ASK vs AGENT behavior.
 
 ---
 
