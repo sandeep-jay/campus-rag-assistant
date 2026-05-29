@@ -15,8 +15,8 @@ Campus RAG Assistant demonstrates how institutional knowledge can be served thro
 **Portfolio focus:** Lead AI Engineering and AI Platform Architecture. The full surface area is designed to demonstrate strengths relevant to:
 
 - Higher Education / EdTech AI Strategist
-- Lead / Senior / Staff AI Engineer
 - Lead Data & AI Platform Architect
+- Lead / Senior / Staff AI Engineer
 - GenAI Platform Engineer
 - Applied ML / LLMOps Engineer
 - Full Stack Engineer
