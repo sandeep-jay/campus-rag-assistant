@@ -1,0 +1,72 @@
+%% Campus RAG Assistant — RAG pipeline (AI engineering depth)
+%% Companion diagram to architecture_detailed_v3.mmd. Zooms into the
+%% LangGraph RAG with every retrieval / eval lever labeled.
+flowchart LR
+  Q["User question + chat history<br/>X-Request-ID"]
+  TenantHydrate["tenant.rag_config<br/>assistant_name · supported_topics · few-shot"]
+
+  subgraph Graph ["LangGraph RAG · backend/app/services/graph/"]
+    direction LR
+    Condense["condense<br/>follow-up → standalone query"]
+    MultiQuery["multi_query<br/>N rephrasings · RRF fusion<br/>MULTI_QUERY_*"]
+    Retrieve["retrieve<br/>vector / keyword / hybrid<br/>METADATA_FILTER_* · RERANK_CANDIDATE_K"]
+    Rerank["rerank<br/>FlashRank | keyword<br/>RERANK_*"]
+    Generate["generate<br/>grounded LLM call<br/>cited chunks only"]
+    Format["format<br/>markdown shape · sources · source_kind<br/>kb_resolved heuristic"]
+  end
+
+  subgraph WebPath ["Opt-in web research path · WEB_RESEARCH_ENABLED"]
+    direction LR
+    WebSearch["web_search<br/>Tavily | mock"]
+  end
+
+  subgraph Providers ["Provider lanes · same registry"]
+    direction TB
+    AWSLane["AWS · Bedrock LLM + KB on OpenSearch"]
+    AzureLane["Azure · OpenAI + AI Search"]
+    MockLane["Local / CI · mock LLM + retriever"]
+  end
+
+  subgraph Eval ["Evaluation discipline"]
+    direction TB
+    Golden["RAGAS golden set<br/>10 rows · backend/tests/eval/"]
+    Metrics["RAGAS metrics<br/>faithfulness · answer_relevancy<br/>context_recall · context_precision"]
+    Gates["Release gates<br/>RAGAS_QUALITY_GATE=1 on release"]
+    Scenario["Helpdesk agent scenario eval<br/>mock-conversation → expected next_action"]
+    LangSmith["LangSmith<br/>per-node spans · chat-session-{id}"]
+    PromMetrics["Prometheus<br/>first-token latency · helpdesk_agent_*"]
+  end
+
+  Q --> Condense
+  TenantHydrate -.injects prompt.-> Generate
+  TenantHydrate -.bounds topics.-> Format
+
+  Condense --> MultiQuery --> Retrieve --> Rerank --> Generate --> Format
+  Format -->|answer + sources + source_kind| Out((To Vue / Streamlit via SSE))
+  Format -.kb_resolved=false.-> Escalation((Helpdesk agent))
+
+  %% Web path bypasses rerank
+  Condense -.research_mode=web.-> WebSearch
+  WebSearch -->|web sources| Generate
+
+  %% Provider routing
+  Retrieve --> Providers
+  Generate --> Providers
+
+  %% Eval coupling
+  Golden -.feeds.-> Q
+  Graph -.scored by.-> Metrics
+  Metrics --> Gates
+  Graph -.spans.-> LangSmith
+  Graph -.metrics.-> PromMetrics
+  Scenario -.guards.-> Escalation
+
+  %% Style classes
+  classDef stage fill:#1f3a5e,stroke:#5b9bd5,stroke-width:2px,color:#ffffff
+  classDef evalNode fill:#3a1f3a,stroke:#c93da3,stroke-width:2px,color:#ffffff
+  classDef tenantNode fill:#1f3a2c,stroke:#5bd57a,stroke-width:2px,color:#ffffff
+  classDef webNode fill:#3a2c1f,stroke:#d59b5b,stroke-width:2px,stroke-dasharray:5 5,color:#ffffff
+  class Condense,MultiQuery,Retrieve,Rerank,Generate,Format stage
+  class Golden,Metrics,Gates,Scenario,LangSmith,PromMetrics evalNode
+  class TenantHydrate tenantNode
+  class WebSearch webNode

@@ -1,75 +1,88 @@
 %% Campus RAG Assistant — detailed architecture (v3)
-%% Medium-detail source of truth: enough detail for architecture review without
-%% the edge-spaghetti of architecture_detailed_v2.
-flowchart LR
+%% Portfolio framing: same Vue + FastAPI app runs across AWS Bedrock,
+%% Azure OpenAI/AI Search, and a mock CI mode — the multicloud provider
+%% registry is the centerpiece. Per-stage AI-engineering detail lives
+%% in rag_pipeline_v3.mmd; the helpdesk agent topology lives in
+%% docs/roadmap/HELPDESK_AGENT.md.
+flowchart TB
   User((User))
 
   subgraph FE ["Frontend clients"]
-    direction TB
-    Vue["Vue 3 SPA<br/>sessions · source panel · feedback<br/>SSE streaming · OAuth handoff"]
+    direction LR
+    Vue["Vue 3 SPA<br/>sessions · sources · feedback<br/>SSE streaming · OAuth handoff"]
     Streamlit["Streamlit UI<br/>(optional / legacy)"]
   end
 
   subgraph Edge ["Edge / deploy"]
-    direction TB
+    direction LR
     Nginx["Nginx<br/>reverse proxy"]
     EB["Elastic Beanstalk<br/>FastAPI workers"]
-    Terraform["Terraform<br/>IaC"]
+    Terraform["Terraform IaC"]
   end
 
-  subgraph API ["Backend API"]
+  subgraph API ["Backend API · FastAPI"]
     direction TB
-    FastAPI["FastAPI app"]
-    ChatAPI["Chat router<br/>/api/chat/stream · /chat<br/>sessions · messages · feedback"]
+    ChatAPI["Chat router<br/>/api/chat/stream · /chat<br/>sessions · feedback"]
     AuthAPI["Auth router<br/>JWT cookies · GitHub OAuth"]
-    HelpAPI["Helpdesk router<br/>/summarize · /draft-ticket · /create-issue<br/>/agent/start · /resume · /confirm · /abort"]
-    MetricsAPI["Health + metrics<br/>/api/health · /api/metrics"]
-    Guardrails["API guardrails<br/>CORS · rate limits · prod docs off"]
+    HelpAPI["Helpdesk router<br/>/summarize · /draft-ticket · /create-issue<br/>/agent/start · resume · confirm · abort"]
+    MetricsAPI["Health · metrics<br/>/api/health · /api/metrics"]
+    Guardrails["API guardrails<br/>CORS · rate limits · prod docs off · X-Request-ID"]
+    TenantConfig["tenant.rag_config<br/>per-tenant prompt + topic hydration"]
   end
 
-  subgraph AI ["AI orchestration"]
+  subgraph AI ["AI orchestration · LangGraph"]
     direction TB
-    RAG["LangGraph RAG<br/>condense → multi_query → retrieve → rerank → generate → format"]
-    Registry["Provider registry<br/>LLM_PROVIDER · RETRIEVER_PROVIDER · RAG_FORCE_MOCK"]
-    Helpdesk["Helpdesk agent<br/>bounded LangGraph supervisor"]
-    Specialists["Agent specialists<br/>clarifier · classifier · draft writer"]
+    RAG["LangGraph RAG<br/>condense → multi_query (RRF) → retrieve → rerank → generate → format<br/>RAG_ENGINE=chain (true SSE) | langgraph (per-node spans)"]
+    Helpdesk["Helpdesk agent · bounded LangGraph<br/>supervisor + clarifier · classifier · writer<br/>4 outcomes: resolved · linked · filed · aborted"]
     Tools["Agent tools<br/>retry_kb · web_search · search_dups · file_ticket"]
     Redaction["Redaction<br/>emails · JWTs · AWS keys · GitHub tokens"]
+    Budgets["Budgets · kill switch<br/>max steps · per-tool · per-token · per-user-day<br/>HELPDESK_AGENT_KILL_SWITCH"]
+    Registry{{"Provider registry<br/>LLM_PROVIDER · RETRIEVER_PROVIDER · RAG_FORCE_MOCK"}}
   end
 
-  subgraph AWS ["AWS provider path"]
-    direction TB
-    BedrockLLM["Bedrock LLM<br/>Claude / Converse"]
-    BedrockKB["Bedrock Knowledge Base<br/>retrieve API · citations"]
-    OpenSearch["OpenSearch Serverless<br/>managed vector store behind KB"]
-  end
-
-  subgraph Azure ["Azure provider path"]
-    direction TB
-    AzureOpenAI["Azure OpenAI<br/>chat + embeddings"]
-    AzureSearch["Azure AI Search<br/>vector / keyword / hybrid"]
-  end
-
-  subgraph Mock ["Local / CI path"]
-    direction TB
-    MockProvider["Mock LLM + retriever<br/>no cloud credentials"]
-    MockAgent["Scripted helpdesk scenario<br/>Oracle Financials sentinel query"]
+  subgraph Multicloud ["Multicloud provider paths · same registry · same API"]
+    direction LR
+    subgraph AWS ["AWS path · provider=aws"]
+      direction TB
+      BedrockLLM["Bedrock LLM<br/>Claude · Converse"]
+      BedrockKB["Bedrock Knowledge Base<br/>retrieve API · citations · metadata filters"]
+      OpenSearch["OpenSearch Serverless<br/>managed vector store behind KB"]
+    end
+    subgraph Azure ["Azure path · provider=azure"]
+      direction TB
+      AzureOpenAI["Azure OpenAI<br/>chat + embeddings"]
+      AzureSearch["Azure AI Search<br/>vector / keyword / hybrid"]
+    end
+    subgraph Mock ["Local / CI · RAG_FORCE_MOCK=true"]
+      direction TB
+      MockProvider["Mock LLM + retriever<br/>no cloud credentials"]
+      MockAgent["Scripted helpdesk scenario<br/>Oracle Financials sentinel"]
+    end
   end
 
   subgraph External ["External services"]
-    direction TB
+    direction LR
     GitHub["GitHub Issues<br/>private demo repo · HITL ticket target"]
-    Tavily["Tavily / web search<br/>only when enabled"]
+    Tavily["Tavily / web search<br/>only when WEB_RESEARCH_ENABLED"]
   end
 
   subgraph DataObs ["Data, evaluation, observability"]
     direction TB
     Postgres[("PostgreSQL<br/>users · sessions · messages · feedback · tenant.rag_config")]
     SQLite[("SQLite checkpointer<br/>agent session state · 24h TTL")]
-    Prometheus["Prometheus<br/>chat latency · RAG · helpdesk-agent metrics"]
-    LangSmith["LangSmith<br/>per-node traces · chat-session tags"]
-    RAGAS["RAGAS eval<br/>golden set · release gates"]
-    Alembic["Alembic migrations"]
+    Alembic["Alembic migrations<br/>no create_all in prod"]
+    Prometheus["Prometheus<br/>chat first-token · RAG · helpdesk_agent_*"]
+    LangSmith["LangSmith<br/>per-node spans · chat-session-{id} tags"]
+    RAGAS["RAGAS golden set<br/>release gates · scenario eval for agent"]
+  end
+
+  subgraph CICD ["CI / CD · production gates"]
+    direction LR
+    GHA["GitHub Actions<br/>tox lint · backend · frontends · docs"]
+    Gitleaks["gitleaks<br/>history + diff"]
+    DepReview["dependency review<br/>new high/critical CVEs"]
+    NoAttr["no tool attribution"]
+    Pages["Pages deploy<br/>mkdocs --strict"]
   end
 
   %% Primary user path
@@ -77,37 +90,44 @@ flowchart LR
   User -.legacy / dev.-> Streamlit
   Vue -->|REST + SSE| Nginx
   Streamlit -.same API.-> Nginx
-  Nginx --> EB --> FastAPI
+  Nginx --> EB
   Terraform -.provision.-> EB
 
-  %% FastAPI routers
-  FastAPI --> ChatAPI
-  FastAPI --> AuthAPI
-  FastAPI --> HelpAPI
-  FastAPI --> MetricsAPI
-  Guardrails -.protects.-> FastAPI
+  %% Edge → API
+  EB --> ChatAPI
+  EB --> AuthAPI
+  EB --> HelpAPI
+  EB --> MetricsAPI
+  Guardrails -.applies to.-> ChatAPI
+  Guardrails -.applies to.-> HelpAPI
+  Guardrails -.applies to.-> AuthAPI
 
-  %% Core RAG flow
-  ChatAPI -->|stream_query| RAG
+  %% API → AI
+  ChatAPI -->|stream_query + history + tenant_id| RAG
+  HelpAPI --> Helpdesk
+  TenantConfig -.hydrates prompts.-> RAG
+
+  %% AI orchestration
   RAG --> Registry
+  Tools --> Registry
+  Helpdesk --> Tools
+  Budgets -.bounds.-> Helpdesk
+  Redaction -.guards LLM input + outbound.-> Helpdesk
+  Redaction -.guards.-> Tools
+  RAG -.kb_resolved=false.-> Helpdesk
+
+  %% Provider registry → multicloud
   Registry --> BedrockLLM
   Registry --> BedrockKB
   BedrockKB -.backed by.-> OpenSearch
   Registry --> AzureOpenAI
   Registry --> AzureSearch
   Registry --> MockProvider
+  MockAgent -.deterministic plan.-> Helpdesk
 
-  %% Helpdesk escalation and tools
-  RAG -.kb_resolved=false.-> Helpdesk
-  HelpAPI --> Helpdesk
-  Helpdesk --> Specialists
-  Helpdesk --> Tools
-  Tools -->|retry_kb| Registry
+  %% Tools → external
   Tools -->|web_search| Tavily
   Tools -.HITL confirm only.-> GitHub
-  Redaction -.guards LLM + issue body.-> Helpdesk
-  Redaction -.guards outbound tools.-> Tools
-  MockAgent -.deterministic plan.-> Helpdesk
 
   %% Persistence and observability
   ChatAPI -->|sessions / messages| Postgres
@@ -118,3 +138,21 @@ flowchart LR
   RAG -.traces.-> LangSmith
   Helpdesk -.traces.-> LangSmith
   RAGAS -.golden_dataset.-> RAG
+  RAGAS -.scenario eval.-> Helpdesk
+
+  %% CI/CD gates protect the deploy
+  GHA --> Gitleaks
+  GHA --> DepReview
+  GHA --> NoAttr
+  GHA --> Pages
+  GHA -.deploy on release.-> EB
+
+  %% Style classes — emphasise multicloud lanes
+  classDef awsLane fill:#1f2d3d,stroke:#ff9900,stroke-width:2px,color:#ffffff
+  classDef azureLane fill:#1f2d3d,stroke:#0078d4,stroke-width:2px,color:#ffffff
+  classDef mockLane fill:#1f2d3d,stroke:#888,stroke-width:2px,stroke-dasharray:5 5,color:#ffffff
+  classDef registryNode fill:#3c1e5e,stroke:#a06cd5,stroke-width:2px,color:#ffffff
+  class BedrockLLM,BedrockKB,OpenSearch awsLane
+  class AzureOpenAI,AzureSearch azureLane
+  class MockProvider,MockAgent mockLane
+  class Registry registryNode
