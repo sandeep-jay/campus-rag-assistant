@@ -45,7 +45,7 @@ This project is designed to demonstrate strengths relevant to:
 - Lead Data & AI Platform Architect
 - Senior / Staff Applied AI Engineer
 - GenAI Platform Engineer
-- LLMOps Engineer
+- Applied ML / LLMOps Engineer
 - Full Stack Engineer
 
 ## What this shows
