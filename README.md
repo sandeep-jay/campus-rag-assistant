@@ -42,9 +42,8 @@ Campus RAG Assistant demonstrates multicloud RAG platform engineering plus bound
 This project is designed to demonstrate strengths relevant to:
 
 - Higher Education / EdTech AI Strategist
-- Lead AI Engineer
+- Lead / Senior / Staff AI Engineer
 - Lead Data & AI Platform Architect
-- Senior / Staff Applied AI Engineer
 - GenAI Platform Engineer
 - Applied ML / LLMOps Engineer
 - Full Stack Engineer
