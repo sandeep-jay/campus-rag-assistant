@@ -1,79 +1,120 @@
 %% Campus RAG Assistant — detailed architecture (v3)
-%% Source of truth for `architecture_detailed_v3`. Render inline via mkdocs
-%% (pymdownx.snippets in a ```mermaid fence) or to PNG via mermaid-cli:
-%%   mmdc -i architecture_detailed_v3.mmd -o architecture_detailed_v3.png
-flowchart TB
+%% Medium-detail source of truth: enough detail for architecture review without
+%% the edge-spaghetti of architecture_detailed_v2.
+flowchart LR
   User((User))
 
-  subgraph FE ["Frontend"]
-    direction LR
-    Vue["Vue 3 SPA<br/>SSE · OAuth handoff"]
-    Streamlit["Streamlit (optional)"]
+  subgraph FE ["Frontend clients"]
+    direction TB
+    Vue["Vue 3 SPA<br/>sessions · source panel · feedback<br/>SSE streaming · OAuth handoff"]
+    Streamlit["Streamlit UI<br/>(optional / legacy)"]
   end
 
-  Edge["Edge · Infra<br/>Nginx · Elastic Beanstalk · Terraform"]
+  subgraph Edge ["Edge / deploy"]
+    direction TB
+    Nginx["Nginx<br/>reverse proxy"]
+    EB["Elastic Beanstalk<br/>FastAPI workers"]
+    Terraform["Terraform<br/>IaC"]
+  end
 
-  API["FastAPI<br/>/api/auth · /api/chat ·<br/>/api/helpdesk · /api/helpdesk/agent · /api/metrics"]
+  subgraph API ["Backend API"]
+    direction TB
+    FastAPI["FastAPI app"]
+    ChatAPI["Chat router<br/>/api/chat/stream · /chat<br/>sessions · messages · feedback"]
+    AuthAPI["Auth router<br/>JWT cookies · GitHub OAuth"]
+    HelpAPI["Helpdesk router<br/>/summarize · /draft-ticket · /create-issue<br/>/agent/start · /resume · /confirm · /abort"]
+    MetricsAPI["Health + metrics<br/>/api/health · /api/metrics"]
+    Guardrails["API guardrails<br/>CORS · rate limits · prod docs off"]
+  end
 
-  subgraph AI ["AI &amp; Agents"]
+  subgraph AI ["AI orchestration"]
     direction TB
     RAG["LangGraph RAG<br/>condense → multi_query → retrieve → rerank → generate → format"]
-    Help["Helpdesk Agent (bounded)<br/>Supervisor · Clarifier · Classifier · Writer"]
-    Tools["Agent Tools<br/>retry_kb · web_search · search_dups · file_ticket"]
-    Reg["Provider Registry"]
+    Registry["Provider registry<br/>LLM_PROVIDER · RETRIEVER_PROVIDER · RAG_FORCE_MOCK"]
+    Helpdesk["Helpdesk agent<br/>bounded LangGraph supervisor"]
+    Specialists["Agent specialists<br/>clarifier · classifier · draft writer"]
+    Tools["Agent tools<br/>retry_kb · web_search · search_dups · file_ticket"]
+    Redaction["Redaction<br/>emails · JWTs · AWS keys · GitHub tokens"]
   end
 
-  subgraph Prov ["Providers"]
-    direction LR
-    AWS["AWS<br/>Bedrock LLM ·<br/>Bedrock KB ·<br/>OpenSearch Serverless"]
-    Azure["Azure<br/>OpenAI ·<br/>AI Search"]
-    Mock["Local / CI<br/>Mock LLM + retriever<br/>(RAG_FORCE_MOCK)"]
+  subgraph AWS ["AWS provider path"]
+    direction TB
+    BedrockLLM["Bedrock LLM<br/>Claude / Converse"]
+    BedrockKB["Bedrock Knowledge Base<br/>retrieve API · citations"]
+    OpenSearch["OpenSearch Serverless<br/>managed vector store behind KB"]
   end
 
-  subgraph Ext ["External Services"]
-    direction LR
-    GH["GitHub Issues<br/>HITL ticket target"]
-    Web["Tavily · Web search"]
+  subgraph Azure ["Azure provider path"]
+    direction TB
+    AzureOpenAI["Azure OpenAI<br/>chat + embeddings"]
+    AzureSearch["Azure AI Search<br/>vector / keyword / hybrid"]
   end
 
-  subgraph Data ["Data &amp; Observability"]
-    direction LR
-    PG[("PostgreSQL<br/>users · sessions ·<br/>tenant.rag_config")]
-    SQLite[("SQLite Checkpointer<br/>agent state · 24h TTL")]
-    Prom["Prometheus"]
-    LS["LangSmith"]
-    RAGAS["RAGAS eval"]
+  subgraph Mock ["Local / CI path"]
+    direction TB
+    MockProvider["Mock LLM + retriever<br/>no cloud credentials"]
+    MockAgent["Scripted helpdesk scenario<br/>Oracle Financials sentinel query"]
   end
 
-  %% Top-to-bottom flow: User → Frontend → Edge → API
+  subgraph External ["External services"]
+    direction TB
+    GitHub["GitHub Issues<br/>private demo repo · HITL ticket target"]
+    Tavily["Tavily / web search<br/>only when enabled"]
+  end
+
+  subgraph DataObs ["Data, evaluation, observability"]
+    direction TB
+    Postgres[("PostgreSQL<br/>users · sessions · messages · feedback · tenant.rag_config")]
+    SQLite[("SQLite checkpointer<br/>agent session state · 24h TTL")]
+    Prometheus["Prometheus<br/>chat latency · RAG · helpdesk-agent metrics"]
+    LangSmith["LangSmith<br/>per-node traces · chat-session tags"]
+    RAGAS["RAGAS eval<br/>golden set · release gates"]
+    Alembic["Alembic migrations"]
+  end
+
+  %% Primary user path
   User --> Vue
-  Vue -->|REST + SSE| Edge
-  Streamlit -.same API.-> Edge
-  Edge --> API
+  User -.legacy / dev.-> Streamlit
+  Vue -->|REST + SSE| Nginx
+  Streamlit -.same API.-> Nginx
+  Nginx --> EB --> FastAPI
+  Terraform -.provision.-> EB
 
-  %% API → AI / Data
-  API -->|stream_query| RAG
-  API --> Help
-  API -->|sessions / auth| PG
+  %% FastAPI routers
+  FastAPI --> ChatAPI
+  FastAPI --> AuthAPI
+  FastAPI --> HelpAPI
+  FastAPI --> MetricsAPI
+  Guardrails -.protects.-> FastAPI
 
-  %% RAG → escalation → Helpdesk
-  RAG -.kb_resolved=false.-> Help
-  Help --> Tools
-  Help -->|state| SQLite
+  %% Core RAG flow
+  ChatAPI -->|stream_query| RAG
+  RAG --> Registry
+  Registry --> BedrockLLM
+  Registry --> BedrockKB
+  BedrockKB -.backed by.-> OpenSearch
+  Registry --> AzureOpenAI
+  Registry --> AzureSearch
+  Registry --> MockProvider
 
-  %% AI → Providers
-  RAG --> Reg
-  Tools --> Reg
-  Reg --> AWS
-  Reg --> Azure
-  Reg --> Mock
+  %% Helpdesk escalation and tools
+  RAG -.kb_resolved=false.-> Helpdesk
+  HelpAPI --> Helpdesk
+  Helpdesk --> Specialists
+  Helpdesk --> Tools
+  Tools -->|retry_kb| Registry
+  Tools -->|web_search| Tavily
+  Tools -.HITL confirm only.-> GitHub
+  Redaction -.guards LLM + issue body.-> Helpdesk
+  Redaction -.guards outbound tools.-> Tools
+  MockAgent -.deterministic plan.-> Helpdesk
 
-  %% Tools → External (HITL + web)
-  Tools -.HITL gate.-> GH
-  Tools -.web_search.-> Web
-
-  %% Observability
-  RAG -.traces.-> LS
-  Help -.traces.-> LS
-  API --> Prom
+  %% Persistence and observability
+  ChatAPI -->|sessions / messages| Postgres
+  AuthAPI -->|users / tokens| Postgres
+  Helpdesk -->|checkpoint| SQLite
+  Alembic -.upgrade.-> Postgres
+  MetricsAPI --> Prometheus
+  RAG -.traces.-> LangSmith
+  Helpdesk -.traces.-> LangSmith
   RAGAS -.golden_dataset.-> RAG
