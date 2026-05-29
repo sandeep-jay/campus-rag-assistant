@@ -1,0 +1,118 @@
+%% Campus RAG Assistant — detailed architecture (v3)
+%% Source of truth for `architecture_detailed_v3`. Render inline via mkdocs
+%% (pymdownx.snippets in a ```mermaid fence) or to PNG via mermaid-cli:
+%%   mmdc -i architecture_detailed_v3.mmd -o architecture_detailed_v3.png
+flowchart LR
+  User((User))
+
+  subgraph Frontend ["Frontend"]
+    direction TB
+    Vue["Vue 3 SPA<br/>Pinia · SSE · OAuth handoff"]
+    Streamlit["Streamlit (optional)"]
+  end
+
+  subgraph Edge ["Edge / Infrastructure"]
+    direction TB
+    Nginx["Nginx (reverse proxy)"]
+    EB["AWS Elastic Beanstalk"]
+    Terraform["Terraform IaC"]
+  end
+
+  subgraph API ["Backend API — FastAPI"]
+    direction TB
+    Routers["/api/auth · /api/chat · /api/helpdesk · /api/helpdesk/agent · /api/metrics · /api/health"]
+    Auth["JWT cookies + OAuth"]
+    Rate["Rate limiter"]
+    Alembic["Alembic migrations"]
+  end
+
+  subgraph AIAgents ["AI &amp; Agents"]
+    direction TB
+    subgraph RAG ["LangGraph RAG"]
+      direction LR
+      C[condense] --> MQ[multi_query] --> R[retrieve] --> RR[rerank] --> G[generate] --> F[format]
+    end
+    subgraph Help ["Helpdesk Agent (bounded)"]
+      direction TB
+      Sup["Supervisor LLM"]
+      Spec["Specialists:<br/>clarifier · classifier · writer"]
+    end
+    Tools["Agent Tools:<br/>retry_kb · web_search ·<br/>search_dups · file_ticket"]
+    Redact["Redaction<br/>(emails · JWT · AWS · GH tokens)"]
+    Reg["Provider Registry"]
+    SQLite[("SQLite Checkpointer<br/>agent state · 24h TTL")]
+  end
+
+  subgraph AWS ["AWS provider"]
+    direction TB
+    BLLM["Bedrock LLM<br/>Claude · Converse"]
+    BKB["Bedrock Knowledge Base"]
+    OS["OpenSearch Serverless"]
+  end
+
+  subgraph Azure ["Azure provider"]
+    direction TB
+    AOAI["Azure OpenAI<br/>chat + embeddings"]
+    AS["Azure AI Search"]
+  end
+
+  subgraph Mock ["Local / CI"]
+    direction TB
+    MM["Mock LLM + retriever<br/>RAG_FORCE_MOCK=true"]
+  end
+
+  subgraph Ext ["External Services"]
+    direction TB
+    GH["GitHub Issues<br/>private demo repo"]
+    Tavily["Tavily / Web search"]
+  end
+
+  subgraph Data ["Data &amp; Observability"]
+    direction TB
+    PG[("PostgreSQL<br/>users · sessions ·<br/>messages · tenant.rag_config")]
+    Prom["Prometheus<br/>chatbot_* metrics"]
+    LS["LangSmith<br/>per-node traces"]
+    RAGAS["RAGAS eval<br/>offline / CI"]
+  end
+
+  %% Frontend -> Edge -> API
+  User -->|start chat| Vue
+  Vue -->|REST + SSE| Nginx
+  Streamlit -.same API.-> Nginx
+  Nginx --> EB --> API
+  Terraform -.deploy.-> EB
+
+  %% API -> AI / Data
+  Routers -->|stream_query| RAG
+  Routers --> Help
+  Routers -->|sessions/auth| PG
+  Auth --> PG
+  Rate -.-> Routers
+  Alembic -.upgrade.-> PG
+
+  %% Helpdesk loop
+  RAG -.kb_resolved=false · escalation.-> Help
+  Help --> Sup
+  Sup --> Spec
+  Sup --> Tools
+  Help -->|state| SQLite
+  Tools -.HITL gate.-> GH
+  Tools -->|web_search| Tavily
+  Redact -.guards.-> Sup
+  Redact -.guards.-> Tools
+
+  %% Provider routing
+  RAG --> Reg
+  Tools --> Reg
+  Reg -->|tokens / generate| BLLM
+  Reg -->|retrieve / documents| BKB
+  BKB --- OS
+  Reg --> AOAI
+  Reg --> AS
+  Reg --> MM
+
+  %% Observability
+  RAG -.traces.-> LS
+  Help -.traces.-> LS
+  Routers -->|expose| Prom
+  RAGAS -.golden_dataset.-> RAG
