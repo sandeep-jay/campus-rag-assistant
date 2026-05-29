@@ -1,0 +1,76 @@
+%% Helpdesk agent orchestration — multi-turn loop on a time axis
+%%
+%% Reviewer narrative:
+%%   "Is this really agentic, or just a chain of LLM calls?"
+%%   This diagram shows the supervisor picking next_action, tools returning
+%%   observations, pause/resume across SSE, and the HITL gate on file_ticket.
+%%
+%% Companion diagrams:
+%%   - helpdesk_agent_state_v3.mmd      (state machine + 4 terminal outcomes)
+%%   - architecture_detailed_v3.mmd     (system context)
+%%   - rag_pipeline_v3.mmd              (the path the agent escalates from)
+sequenceDiagram
+    autonumber
+    actor User
+    participant Vue as Vue (AGENT mode)
+    participant API as FastAPI<br/>/api/helpdesk/agent/*
+    participant Sup as Supervisor LLM<br/>(LangGraph node)
+    participant Tools as Agent tools<br/>retry_kb · web_search ·<br/>search_dups · file_ticket
+    participant Ext as External<br/>GitHub · Tavily
+    participant State as SQLite checkpointer<br/>session_id · 24h TTL
+    participant Obs as LangSmith · Prometheus
+
+    Note over User,Vue: Triggered when RAG returns metadata.kb_resolved=false
+
+    User->>Vue: Get help
+    Vue->>API: POST /agent/start/stream
+    API->>Sup: initial state + question
+    Note over Sup: budgets enforced<br/>max steps · per-tool · per-token<br/>HELPDESK_AGENT_KILL_SWITCH
+
+    %% Iteration 1 — supervisor picks a tool, sees observation
+    Sup-->>Sup: next_action = retry_kb
+    Sup->>Tools: retry_kb(reformulated query)
+    Tools->>Ext: provider call via registry
+    Ext-->>Tools: documents
+    Tools-->>Sup: observation
+    Sup-->>Obs: per-node span · tokens · latency
+
+    %% Pause for clarifying question
+    Sup-->>Sup: next_action = clarify
+    Sup-->>API: AgentTurn(clarify · question · choices)
+    API-->>Vue: SSE status events ... AgentTurn
+    Vue-->>User: render question + radio chips
+    User->>Vue: reply
+    Vue->>API: POST /agent/resume/stream
+    API->>State: load checkpoint(session_id)
+    State-->>Sup: resumed state
+
+    %% Iteration 2 — search for duplicate, branch to linked or write draft
+    Sup-->>Sup: next_action = search_dups
+    Sup->>Tools: search_dups(text)
+    Tools->>Ext: GitHub issue search
+    Ext-->>Tools: candidate issues
+    alt duplicate match
+        Tools-->>Sup: link suggestion
+        Sup-->>API: AgentTurn(outcome=linked, url)
+        API-->>Obs: helpdesk_agent_outcome_total{linked}
+    else no duplicate · draft a ticket
+        Sup-->>Sup: next_action = write_draft
+        Sup->>Tools: write_draft (specialist LLM)
+        Tools-->>Sup: TicketDraft
+        Sup-->>API: AgentTurn(draft_ready · draft)
+        API-->>Vue: SSE done
+        Vue-->>User: review modal (TICKET_REVIEW)
+
+        %% HITL gate — file_ticket reachable only via /agent/confirm
+        User->>Vue: Confirm
+        Vue->>API: POST /agent/confirm
+        Note over API,Tools: HITL gate · redaction applied to draft<br/>and again to outbound issue body
+        API->>Tools: file_ticket(redacted draft)
+        Tools->>Ext: POST /repos/{demo}/issues
+        Ext-->>Tools: issue URL
+        Tools-->>API: AgentTurn(outcome=filed, url)
+        API-->>Obs: helpdesk_agent_outcome_total{filed}
+    end
+
+    Note over Sup,Obs: Terminal outcomes are explicit · resolved · linked · filed · aborted<br/>Scenario eval (test_helpdesk_agent_scenarios.py) asserts<br/>mock-conversation -> expected next_action without AWS / GitHub

@@ -1,0 +1,40 @@
+%% Helpdesk agent state machine — four explicit terminal outcomes
+%%
+%% Reviewer narrative:
+%%   "What stops this agent from running forever or filing the wrong ticket?"
+%%   Every transition is labeled with the API call or guard that triggers it.
+%%   Terminal outcomes are exhaustive: resolved · linked · filed · aborted.
+stateDiagram-v2
+    direction LR
+    [*] --> Idle
+    Idle --> Running: POST /agent/start[/stream]
+    Running --> Running: tool_call → observation<br/>(retry_kb · web_search · search_dups)
+    Running --> AwaitingUser: next_action = clarify<br/>SSE AgentTurn(question)
+    AwaitingUser --> Running: POST /agent/resume[/stream]<br/>(checkpoint reloaded)
+    AwaitingUser --> Aborted: POST /agent/abort
+    Running --> Linked: search_dups returns match
+    Running --> Resolved: next_action = resolved_by_agent
+    Running --> Aborted: budget exhausted<br/>(max_steps · tokens · per-user-day)<br/>or HELPDESK_AGENT_KILL_SWITCH
+    Running --> AwaitingConfirm: next_action = write_draft<br/>SSE AgentTurn(draft_ready)
+    AwaitingConfirm --> Aborted: POST /agent/abort
+    AwaitingConfirm --> Filing: POST /agent/confirm<br/>(HITL gate)
+    Filing --> Filed: file_ticket success<br/>(redacted at boundary)
+    Filing --> Aborted: file_ticket error
+    Filed --> [*]
+    Resolved --> [*]
+    Linked --> [*]
+    Aborted --> [*]
+
+    note right of Filing
+        file_ticket is reachable
+        only via /agent/confirm.
+        Redaction applied twice:
+        once on draft, again on
+        outbound issue body.
+    end note
+
+    note left of Running
+        Bounded loop · LangGraph
+        SqliteSaver checkpoint
+        per session_id · 24h TTL
+    end note
