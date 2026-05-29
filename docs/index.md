@@ -20,6 +20,7 @@ Campus RAG Assistant demonstrates how institutional knowledge can be served thro
 - GenAI Platform Engineer
 - Applied ML / LLMOps Engineer
 - Full Stack Engineer
+- Higher Education AI Leader
 
 !!! note "Review model"
     This project is evaluated through source code, architecture docs, screenshots, evaluation results, and operational artifacts. It is not presented as a hosted public product.

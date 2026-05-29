@@ -47,6 +47,7 @@ This project is designed to demonstrate strengths relevant to:
 - GenAI Platform Engineer
 - Applied ML / LLMOps Engineer
 - Full Stack Engineer
+- Higher Education AI Leader
 
 ## What this shows
 
