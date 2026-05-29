@@ -2,117 +2,78 @@
 %% Source of truth for `architecture_detailed_v3`. Render inline via mkdocs
 %% (pymdownx.snippets in a ```mermaid fence) or to PNG via mermaid-cli:
 %%   mmdc -i architecture_detailed_v3.mmd -o architecture_detailed_v3.png
-flowchart LR
+flowchart TB
   User((User))
 
-  subgraph Frontend ["Frontend"]
-    direction TB
-    Vue["Vue 3 SPA<br/>Pinia · SSE · OAuth handoff"]
+  subgraph FE ["Frontend"]
+    direction LR
+    Vue["Vue 3 SPA<br/>SSE · OAuth handoff"]
     Streamlit["Streamlit (optional)"]
   end
 
-  subgraph Edge ["Edge / Infrastructure"]
-    direction TB
-    Nginx["Nginx (reverse proxy)"]
-    EB["AWS Elastic Beanstalk"]
-    Terraform["Terraform IaC"]
-  end
+  Edge["Edge · Infra<br/>Nginx · Elastic Beanstalk · Terraform"]
 
-  subgraph API ["Backend API — FastAPI"]
-    direction TB
-    Routers["/api/auth · /api/chat · /api/helpdesk · /api/helpdesk/agent · /api/metrics · /api/health"]
-    Auth["JWT cookies + OAuth"]
-    Rate["Rate limiter"]
-    Alembic["Alembic migrations"]
-  end
+  API["FastAPI<br/>/api/auth · /api/chat ·<br/>/api/helpdesk · /api/helpdesk/agent · /api/metrics"]
 
-  subgraph AIAgents ["AI &amp; Agents"]
+  subgraph AI ["AI &amp; Agents"]
     direction TB
-    subgraph RAG ["LangGraph RAG"]
-      direction LR
-      C[condense] --> MQ[multi_query] --> R[retrieve] --> RR[rerank] --> G[generate] --> F[format]
-    end
-    subgraph Help ["Helpdesk Agent (bounded)"]
-      direction TB
-      Sup["Supervisor LLM"]
-      Spec["Specialists:<br/>clarifier · classifier · writer"]
-    end
-    Tools["Agent Tools:<br/>retry_kb · web_search ·<br/>search_dups · file_ticket"]
-    Redact["Redaction<br/>(emails · JWT · AWS · GH tokens)"]
+    RAG["LangGraph RAG<br/>condense → multi_query → retrieve → rerank → generate → format"]
+    Help["Helpdesk Agent (bounded)<br/>Supervisor · Clarifier · Classifier · Writer"]
+    Tools["Agent Tools<br/>retry_kb · web_search · search_dups · file_ticket"]
     Reg["Provider Registry"]
-    SQLite[("SQLite Checkpointer<br/>agent state · 24h TTL")]
   end
 
-  subgraph AWS ["AWS provider"]
-    direction TB
-    BLLM["Bedrock LLM<br/>Claude · Converse"]
-    BKB["Bedrock Knowledge Base"]
-    OS["OpenSearch Serverless"]
-  end
-
-  subgraph Azure ["Azure provider"]
-    direction TB
-    AOAI["Azure OpenAI<br/>chat + embeddings"]
-    AS["Azure AI Search"]
-  end
-
-  subgraph Mock ["Local / CI"]
-    direction TB
-    MM["Mock LLM + retriever<br/>RAG_FORCE_MOCK=true"]
+  subgraph Prov ["Providers"]
+    direction LR
+    AWS["AWS<br/>Bedrock LLM ·<br/>Bedrock KB ·<br/>OpenSearch Serverless"]
+    Azure["Azure<br/>OpenAI ·<br/>AI Search"]
+    Mock["Local / CI<br/>Mock LLM + retriever<br/>(RAG_FORCE_MOCK)"]
   end
 
   subgraph Ext ["External Services"]
-    direction TB
-    GH["GitHub Issues<br/>private demo repo"]
-    Tavily["Tavily / Web search"]
+    direction LR
+    GH["GitHub Issues<br/>HITL ticket target"]
+    Web["Tavily · Web search"]
   end
 
   subgraph Data ["Data &amp; Observability"]
-    direction TB
-    PG[("PostgreSQL<br/>users · sessions ·<br/>messages · tenant.rag_config")]
-    Prom["Prometheus<br/>chatbot_* metrics"]
-    LS["LangSmith<br/>per-node traces"]
-    RAGAS["RAGAS eval<br/>offline / CI"]
+    direction LR
+    PG[("PostgreSQL<br/>users · sessions ·<br/>tenant.rag_config")]
+    SQLite[("SQLite Checkpointer<br/>agent state · 24h TTL")]
+    Prom["Prometheus"]
+    LS["LangSmith"]
+    RAGAS["RAGAS eval"]
   end
 
-  %% Frontend -> Edge -> API
-  User -->|start chat| Vue
-  Vue -->|REST + SSE| Nginx
-  Streamlit -.same API.-> Nginx
-  Nginx --> EB --> API
-  Terraform -.deploy.-> EB
+  %% Top-to-bottom flow: User → Frontend → Edge → API
+  User --> Vue
+  Vue -->|REST + SSE| Edge
+  Streamlit -.same API.-> Edge
+  Edge --> API
 
-  %% API -> AI / Data
-  Routers -->|stream_query| RAG
-  Routers --> Help
-  Routers -->|sessions/auth| PG
-  Auth --> PG
-  Rate -.-> Routers
-  Alembic -.upgrade.-> PG
+  %% API → AI / Data
+  API -->|stream_query| RAG
+  API --> Help
+  API -->|sessions / auth| PG
 
-  %% Helpdesk loop
-  RAG -.kb_resolved=false · escalation.-> Help
-  Help --> Sup
-  Sup --> Spec
-  Sup --> Tools
+  %% RAG → escalation → Helpdesk
+  RAG -.kb_resolved=false.-> Help
+  Help --> Tools
   Help -->|state| SQLite
-  Tools -.HITL gate.-> GH
-  Tools -->|web_search| Tavily
-  Redact -.guards.-> Sup
-  Redact -.guards.-> Tools
 
-  %% Provider routing
+  %% AI → Providers
   RAG --> Reg
   Tools --> Reg
-  Reg -->|tokens / generate| BLLM
-  Reg -->|retrieve / documents| BKB
-  BKB --- OS
-  Reg --> AOAI
-  Reg --> AS
-  Reg --> MM
+  Reg --> AWS
+  Reg --> Azure
+  Reg --> Mock
+
+  %% Tools → External (HITL + web)
+  Tools -.HITL gate.-> GH
+  Tools -.web_search.-> Web
 
   %% Observability
   RAG -.traces.-> LS
   Help -.traces.-> LS
-  Routers -->|expose| Prom
+  API --> Prom
   RAGAS -.golden_dataset.-> RAG
