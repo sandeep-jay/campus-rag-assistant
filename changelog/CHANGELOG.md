@@ -41,6 +41,10 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Documentation
 
+- **Helpdesk agent surfacing** — added top-level **Helpdesk Agent** section to MkDocs nav with a new overview page (`docs/helpdesk/index.md`), pulled the existing product spec (`CONVERSATION_FLOW.md`) and engineering spec (`HELPDESK_AGENT.md`) out of the orphaned roadmap subtree into nav, replaced the ASCII topology in the engineering spec with a Mermaid diagram, expanded the helpdesk evaluation section, and cross-linked the new hub from README, docs landing, REVIEWER_GUIDE, PORTFOLIO_CASE_STUDY, DESIGN, and docs/README. Also surfaced previously-orphaned `TENANT_CONFIG.md` and `PERFORMANCE.md` in nav and broke the four ADR files out as individual nav entries (previously only `adr/README.md` was reachable).
+- **ADR-005 — Bounded helpdesk agent** — recorded the decision to ship a single-supervisor LangGraph with hard tool budgets and a HITL gate on `file_ticket` rather than open multi-agent autonomy; added to the ADR index and case-study decision table.
+- **`docs/PERFORMANCE.md` reframed** as a forward-looking backlog tracker (campus production-scale track) so readers do not confuse Phase 1-3 with implementation status.
+- **Repository hygiene** — removed `docs/.DS_Store` from the working tree (already covered by `.gitignore`).
 - Updated `docs/ARCHITECTURE.md` to mark the AGENT-mode Vue wiring as shipped on top of the backend helpdesk agent endpoints.
 
 - Documented the backend helpdesk-agent endpoint surface, state/checkpoint model, tool flow, and HITL confirmation path in `docs/ARCHITECTURE.md`.

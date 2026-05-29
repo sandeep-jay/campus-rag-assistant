@@ -12,7 +12,7 @@ See the root [README](../README.md) for setup, features, screenshots, and stack 
 | **New to the codebase** | [DESIGN.md](./DESIGN.md) → [ARCHITECTURE.md](./ARCHITECTURE.md) → [README#quick-start](../README.md#quick-start-mock-rag-no-cloud) |
 | **RAG / LangGraph** | [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md) → [EVALUATION.md](./EVALUATION.md) |
 | **Ops / release** | [OPERATIONS.md](./OPERATIONS.md) → [CI.md](./CI.md) → [RELEASE.md](./RELEASE.md) |
-| **Helpdesk / agentic** | [roadmap/CONVERSATION_FLOW.md](./roadmap/CONVERSATION_FLOW.md) → [roadmap/HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md) → [ARCHITECTURE.md#helpdesk-capabilities-post-rag](./ARCHITECTURE.md#helpdesk-capabilities-post-rag) |
+| **Helpdesk / agentic** | [helpdesk/index.md](./helpdesk/index.md) (overview) -> [roadmap/CONVERSATION_FLOW.md](./roadmap/CONVERSATION_FLOW.md) (product spec) -> [roadmap/HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md) (engineering spec) -> [adr/ADR-005-bounded-helpdesk-agent.md](./adr/ADR-005-bounded-helpdesk-agent.md) -> [ARCHITECTURE.md#helpdesk-capabilities-post-rag](./ARCHITECTURE.md#helpdesk-capabilities-post-rag) |
 
 ## Design and architecture
 
@@ -23,6 +23,7 @@ See the root [README](../README.md) for setup, features, screenshots, and stack 
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Diagrams, request flows, API and frontend layout |
 | [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md) | Graph nodes, configuration, streaming behavior |
 | [roadmap/WEB_RESEARCH.md](./roadmap/WEB_RESEARCH.md) | Opt-in `research_mode=web` |
+| [helpdesk/index.md](./helpdesk/index.md) | **Helpdesk Agent overview** — entry point for the agentic capability |
 | [roadmap/CONVERSATION_FLOW.md](./roadmap/CONVERSATION_FLOW.md) | Product spec: ASK vs AGENT modes, intent router, cross-mode behaviors |
 | [roadmap/HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md) | Engineering spec: helpdesk LangGraph, tools, specialists, HITL gate, budgets |
 
@@ -36,6 +37,7 @@ See the root [README](../README.md) for setup, features, screenshots, and stack 
 | [adr/ADR-002-langgraph-vs-chain.md](./adr/ADR-002-langgraph-vs-chain.md) | Dual `RAG_ENGINE` tradeoffs |
 | [adr/ADR-003-opt-in-web-research.md](./adr/ADR-003-opt-in-web-research.md) | Per-message web research |
 | [adr/ADR-004-eval-gating-policy.md](./adr/ADR-004-eval-gating-policy.md) | RAGAS gates as release controls |
+| [adr/ADR-005-bounded-helpdesk-agent.md](./adr/ADR-005-bounded-helpdesk-agent.md) | Bounded helpdesk agent (LangGraph) over open multi-agent autonomy |
 
 ## Screenshots and demos
 

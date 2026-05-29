@@ -39,7 +39,7 @@ Detailed diagrams and request flows: [ARCHITECTURE.md](./ARCHITECTURE.md).
 | **Opt-in web research** | Governed KB-first; open web is explicit per message with disclaimer | [ADR-003](./adr/ADR-003-opt-in-web-research.md) |
 | **RAGAS gates as release controls** | Honest baselines on PR CI; strict gates on release milestones only | [ADR-004](./adr/ADR-004-eval-gating-policy.md) |
 | **Bedrock KB API** (not direct OpenSearch) | Managed sync, retrieve, and citation metadata; simpler ops | [DESIGN.md](./DESIGN.md#bedrock-knowledge-base-with-opensearch-aws) |
-| **Bounded helpdesk agent** | Real agentic loop (LLM-chosen tools, multi-turn checkpointing, HITL gate) without unbounded autonomy; original one-shot endpoints kept as fallbacks | [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md) |
+| **Bounded helpdesk agent** | Real agentic loop (LLM-chosen tools, multi-turn checkpointing, HITL gate) without unbounded autonomy; original one-shot endpoints kept as fallbacks | [ADR-005](./adr/ADR-005-bounded-helpdesk-agent.md), [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md) |
 
 ## Measured outcomes
 
@@ -50,6 +50,7 @@ Detailed diagrams and request flows: [ARCHITECTURE.md](./ARCHITECTURE.md).
 | **CI without cloud** | Mock providers; `RAG_FORCE_MOCK=true`; no AWS credentials in GitHub Actions |
 | **Load profile** | k6 validates auth, session CRUD, and chat under load — [LOAD_TESTING.md](./LOAD_TESTING.md) |
 | **Observability** | LangSmith per-node spans on LangGraph path; Prometheus `/api/metrics` |
+| **Helpdesk agent eval** | Scenario rig (`backend/tests/eval/test_helpdesk_agent_scenarios.py`) asserts mock-conversation -> expected `next_action`; `chatbot_helpdesk_agent_*` Prometheus metrics surface outcome distribution and tool usage |
 
 Full score tables: [eval_baseline_2026-05-19.md](./eval_baseline_2026-05-19.md).
 

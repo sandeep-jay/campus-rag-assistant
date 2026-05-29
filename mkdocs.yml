@@ -25,6 +25,7 @@ theme:
     - navigation.sections
     - navigation.top
     - navigation.tracking
+    - navigation.indexes
     - search.suggest
     - search.highlight
     - content.code.copy
@@ -74,6 +75,10 @@ nav:
   - Case Study: PORTFOLIO_CASE_STUDY.md
   - Architecture: ARCHITECTURE.md
   - Design Notes: DESIGN.md
+  - Helpdesk Agent:
+      - Overview: helpdesk/index.md
+      - Conversation Flow (product spec): roadmap/CONVERSATION_FLOW.md
+      - Engineering Spec: roadmap/HELPDESK_AGENT.md
   - Evaluation:
       - Approach: EVALUATION.md
       - Baseline: eval_baseline_2026-05-19.md
@@ -84,13 +89,21 @@ nav:
       - Security: SECURITY.md
       - Production Hardening: PRODUCTION_HARDENING.md
       - Production TLS: PRODUCTION_TLS.md
+      - Performance: PERFORMANCE.md
       - Load Testing: LOAD_TESTING.md
+      - Tenant Config: TENANT_CONFIG.md
       - E2E: E2E.md
+  - Architecture Decisions:
+      - Index: adr/README.md
+      - ADR-001 — Provider registry: adr/ADR-001-provider-registry.md
+      - ADR-002 — LangGraph vs chain: adr/ADR-002-langgraph-vs-chain.md
+      - ADR-003 — Opt-in web research: adr/ADR-003-opt-in-web-research.md
+      - ADR-004 — Eval gating policy: adr/ADR-004-eval-gating-policy.md
+      - ADR-005 — Bounded helpdesk agent: adr/ADR-005-bounded-helpdesk-agent.md
   - Roadmap:
       - Product Roadmap: roadmap/PRODUCT_ROADMAP.md
       - LangGraph: roadmap/LANGGRAPH.md
       - Web Research: roadmap/WEB_RESEARCH.md
-      - ADRs: adr/README.md
   - Changelog: changelog.md
   - Notice: notice.md
   - License: license.md

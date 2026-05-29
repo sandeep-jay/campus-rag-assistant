@@ -35,35 +35,34 @@ What "agentic" means here, concretely:
 
 ## Topology
 
+```mermaid
+flowchart TB
+  Start([session start]) --> Supervisor
+  Supervisor{{Supervisor LLM<br/>picks next_action}}
+  Supervisor -->|retry_kb| RetryKB[retry_kb tool]
+  Supervisor -->|web_search| WebSearch[web_search tool]
+  Supervisor -->|search_dups| SearchDups[search_dups tool]
+  Supervisor -->|clarify| Clarifier[Clarifier specialist LLM]
+  Supervisor -->|classify| Classifier[Classifier specialist LLM]
+  Supervisor -->|propose_solution| Proposer[propose_solution LLM node]
+  Supervisor -->|write_draft| Writer[Draft writer specialist LLM]
+  RetryKB --> Supervisor
+  WebSearch --> Supervisor
+  SearchDups --> Supervisor
+  Clarifier -->|pause for user reply| AwaitUser([await user reply])
+  AwaitUser -->|/agent/resume| Supervisor
+  Classifier --> Supervisor
+  Proposer --> Supervisor
+  Writer --> AwaitConfirm([await_user_confirm])
+  Supervisor -->|resolved_by_agent| Resolved([END: resolved_by_agent])
+  Supervisor -->|abort| Aborted([END: aborted])
+  AwaitConfirm -->|/agent/confirm HITL| FileTicket[file_ticket tool]
+  AwaitConfirm -->|/agent/abort| Aborted
+  FileTicket --> Filed([END: filed])
+  SearchDups -.->|duplicate found| Linked([END: linked])
 ```
-                       +----------------------+
-                       |     Supervisor       |
-                       |  (LLM, picks next    |
-                       |   action each turn)  |
-                       +----------+-----------+
-                                  |
-   +----------+----------+--------+--------+----------+----------+
-   |          |          |        |        |          |          |
-   v          v          v        v        v          v          v
-retry_kb   web_search  search    clarify classify propose_   write_draft
- (tool)     (tool)     dups     (spec.) (spec.)  solution    (spec.)
-                       (tool)                     (LLM node)
-   |          |          |        |        |          |          |
-   +----------+----------+--------+--------+----------+----------+
-                                  |
-                                  v
-                            back to Supervisor
-                                  |
-              +-------------------+-------------------+
-              |                   |                   |
-              v                   v                   v
-       resolved_by_agent    await_user_confirm     abort
-              |                   |                   |
-              END             file_ticket           END
-                                  |
-                                  v
-                                 END
-```
+
+The supervisor is the only LLM that picks `next_action`; tools return structured observations and route back. Specialists (clarifier / classifier / writer) are LLM nodes with focused prompts. The four terminal states are explicit and exhaustive.
 
 **Supervisor** (LLM): one node, sees full state, returns `next_action`.
 Bounded loop (hard cap N=8 turns).
