@@ -2,6 +2,9 @@
 
 Operational tuning for latency, throughput, and cost.
 
+!!! info "Status — backlog tracker"
+    This page is a **forward-looking backlog** for the **campus production-scale track**. Phase 0 items are shipped on `main`; Phases 1-3 are planned scope, not implementation status. For shipped retrieval and observability work, see [LANGGRAPH.md](./roadmap/LANGGRAPH.md), [OPERATIONS.md](./OPERATIONS.md), and the [product roadmap](./roadmap/PRODUCT_ROADMAP.md).
+
 > **Phase numbering:** [PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md) tracks **product delivery** (RAG features on `main`). This doc and [archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md) describe a separate **campus production scale** track (Redis HA, caching, EB hardening). **Phase 5 (retrieval stack)** — multi-query, rerank — is **shipped** on `main`; see [LANGGRAPH.md](./roadmap/LANGGRAPH.md).
 
 ## Campus track Phase 0 — Shipped on `main`

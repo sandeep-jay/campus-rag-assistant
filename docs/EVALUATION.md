@@ -102,9 +102,23 @@ Requires judge LLM: `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, or `RAGAS_LLM_PROV
 
 ## Helpdesk agent evaluation
 
-The helpdesk LangGraph has its own scenario harness (mock-conversation -> expected `next_action`) under `backend/tests/eval/test_helpdesk_agent_scenarios.py`. It runs as part of `tox -e backend` against the mock LLM provider; no AWS credentials are required. Outcome distribution and tool usage are exposed via the `chatbot_helpdesk_agent_*` Prometheus metrics for live evaluation.
+The helpdesk LangGraph has its own scenario harness (mock-conversation -> expected `next_action`) under `backend/tests/eval/test_helpdesk_agent_scenarios.py`. It runs as part of `tox -e backend` against the mock LLM provider; no AWS credentials are required.
 
-Engineering detail: [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md) (eval rig section).
+| Layer | What it answers | Where |
+|---|---|---|
+| **Scenario rig** | Does the supervisor pick the expected `next_action` for known mock conversations end-to-end? | `backend/tests/eval/test_helpdesk_agent_scenarios.py` (in `tox -e backend`) |
+| **Outcome distribution** | What fraction of agent sessions terminate as `resolved_by_agent` / `linked` / `filed` / `aborted`? | `chatbot_helpdesk_agent_outcome_total{outcome=...}` |
+| **Tool usage** | How often does the agent reach for `retry_kb` / `web_search` / `search_dups` / `file_ticket`? | `chatbot_helpdesk_agent_tool_total{tool=...}` |
+| **Budget pressure** | Are sessions hitting the supervisor-step or token caps? | `chatbot_helpdesk_agent_budget_*` |
+| **HITL gate** | Are tickets ever filed without explicit `/agent/confirm`? (Guard: must be 0.) | `chatbot_helpdesk_create_issue_total` cross-checked against `/agent/confirm` calls |
+
+Run scenario eval locally:
+
+```bash
+tox -e backend  # includes test_helpdesk_agent_scenarios.py
+```
+
+Engineering detail and the eval rig design: [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md). Bounded-agent rationale: [ADR-005](./adr/ADR-005-bounded-helpdesk-agent.md).
 
 ---
 

@@ -163,6 +163,8 @@ GitHub OAuth callback runs on the **API origin** (`OAUTH_REDIRECT_BASE_URL`, typ
 
 ### Helpdesk agent (post-RAG escalation)
 
+> **At-a-glance overview:** [docs/helpdesk/index.md](./helpdesk/index.md). Full UX contract: [Conversation Flow](./roadmap/CONVERSATION_FLOW.md). Engineering detail: [Helpdesk Agent](./roadmap/HELPDESK_AGENT.md). Decision rationale: [ADR-005](./adr/ADR-005-bounded-helpdesk-agent.md).
+
 When KB retrieval cannot resolve a question (`metadata.kb_resolved=false`), the product offers escalation paths:
 
 - **ASK mode** ships three LLM endpoints — `/api/helpdesk/summarize`, `/api/helpdesk/draft-ticket`, `/api/helpdesk/create-issue` — gated by `HELPDESK_ENABLED`. The Vue chat surfaces them as inline chips and a structured `TicketDraft` review modal that files to a private demo GitHub repo (HITL).

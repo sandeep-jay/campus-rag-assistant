@@ -12,7 +12,14 @@
 
 Campus RAG Assistant demonstrates how institutional knowledge can be served through a measurable, observable, citation-first RAG platform plus bounded **agentic orchestration** (a multi-turn helpdesk agent with HITL ticket filing). It combines a Vue product UI, FastAPI backend, AWS / Azure / mock provider boundaries, LangGraph orchestration, RAGAS evaluation, LangSmith traces, CI/CD, load testing, and operational hardening docs.
 
-**Portfolio focus:** Lead AI Engineering and AI Platform Architecture.
+**Portfolio focus:** Lead AI Engineering and AI Platform Architecture. The full surface area is designed to demonstrate strengths relevant to:
+
+- Higher Education / EdTech AI Strategist
+- Lead Data & AI Platform Architect
+- Lead / Senior / Staff AI Engineer
+- GenAI Platform Engineer
+- Applied ML / LLMOps Engineer
+- Full Stack Engineer
 
 !!! note "Review model"
     This project is evaluated through source code, architecture docs, screenshots, evaluation results, and operational artifacts. It is not presented as a hosted public product.
@@ -29,7 +36,7 @@ Campus RAG Assistant demonstrates how institutional knowledge can be served thro
 | Evaluating ownership and judgment | [Case Study](PORTFOLIO_CASE_STUDY.md) |
 | Reviewing architecture | [Architecture](ARCHITECTURE.md) + [Design Notes](DESIGN.md) |
 | Reviewing AI quality | [Evaluation](EVALUATION.md) + [Baseline](eval_baseline_2026-05-19.md) |
-| Reviewing agentic orchestration | [Helpdesk Agent](roadmap/HELPDESK_AGENT.md) + [Conversation Flow](roadmap/CONVERSATION_FLOW.md) |
+| Reviewing agentic orchestration | [Helpdesk Agent overview](helpdesk/index.md) -> [Conversation Flow](roadmap/CONVERSATION_FLOW.md) (product spec) + [Engineering Spec](roadmap/HELPDESK_AGENT.md) + [ADR-005](adr/ADR-005-bounded-helpdesk-agent.md) |
 | Reviewing production maturity | [CI/CD](CI.md) + [Operations](OPERATIONS.md) + [Security](SECURITY.md) |
 
 ## Senior engineering signals
@@ -87,6 +94,7 @@ Design detail: [Architecture](ARCHITECTURE.md) and [Design Notes](DESIGN.md).
 | New here | This page |
 | Hiring / portfolio reviewer | [Case Study](PORTFOLIO_CASE_STUDY.md) |
 | Architecture reviewer | [Architecture](ARCHITECTURE.md), [Design Notes](DESIGN.md), [ADRs](adr/README.md) |
+| Agentic orchestration reviewer | [Helpdesk Agent overview](helpdesk/index.md), [Conversation Flow](roadmap/CONVERSATION_FLOW.md), [Engineering Spec](roadmap/HELPDESK_AGENT.md), [ADR-005](adr/ADR-005-bounded-helpdesk-agent.md) |
 | Evaluation reviewer | [Evaluation Approach](EVALUATION.md), [Evaluation Baseline](eval_baseline_2026-05-19.md) |
 | Operations reviewer | [Operations](OPERATIONS.md), [CI/CD](CI.md), [Release](RELEASE.md), [Security](SECURITY.md) |
 | Product demo reviewer | [Screenshots and demo script](assets/README.md) |

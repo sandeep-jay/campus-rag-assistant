@@ -27,7 +27,7 @@ Campus RAG Assistant demonstrates multicloud RAG platform engineering plus bound
 | Product and architecture narrative | [docs/PORTFOLIO_CASE_STUDY.md](docs/PORTFOLIO_CASE_STUDY.md) |
 | System design | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) + [docs/DESIGN.md](docs/DESIGN.md) |
 | RAG quality | [docs/EVALUATION.md](docs/EVALUATION.md) + [docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md) |
-| Agentic orchestration | [docs/roadmap/HELPDESK_AGENT.md](docs/roadmap/HELPDESK_AGENT.md) + [docs/roadmap/CONVERSATION_FLOW.md](docs/roadmap/CONVERSATION_FLOW.md) |
+| Agentic orchestration | [docs/helpdesk/index.md](docs/helpdesk/index.md) (overview) -> [docs/roadmap/CONVERSATION_FLOW.md](docs/roadmap/CONVERSATION_FLOW.md) (product spec) + [docs/roadmap/HELPDESK_AGENT.md](docs/roadmap/HELPDESK_AGENT.md) (engineering spec) + [ADR-005](docs/adr/ADR-005-bounded-helpdesk-agent.md) |
 | Operations and security | [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/CI.md](docs/CI.md), [docs/SECURITY.md](docs/SECURITY.md) |
 
 ## Why this project matters
@@ -41,10 +41,12 @@ Campus RAG Assistant demonstrates multicloud RAG platform engineering plus bound
 
 This project is designed to demonstrate strengths relevant to:
 
-- Lead AI Engineer
+- Higher Education / EdTech AI Strategist
 - Lead Data & AI Platform Architect
-- Senior / Staff Applied AI Engineer
+- Lead / Senior / Staff AI Engineer
 - GenAI Platform Engineer
+- Applied ML / LLMOps Engineer
+- Full Stack Engineer
 
 ## What this shows
 
