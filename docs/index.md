@@ -12,7 +12,14 @@
 
 Campus RAG Assistant demonstrates how institutional knowledge can be served through a measurable, observable, citation-first RAG platform plus bounded **agentic orchestration** (a multi-turn helpdesk agent with HITL ticket filing). It combines a Vue product UI, FastAPI backend, AWS / Azure / mock provider boundaries, LangGraph orchestration, RAGAS evaluation, LangSmith traces, CI/CD, load testing, and operational hardening docs.
 
-**Portfolio focus:** Lead AI Engineering and AI Platform Architecture.
+**Portfolio focus:** Lead AI Engineering and AI Platform Architecture. The full surface area is designed to demonstrate strengths relevant to:
+
+- Lead AI Engineer
+- Lead Data & AI Platform Architect
+- Senior / Staff Applied AI Engineer
+- GenAI Platform Engineer
+- Applied ML / LLMOps Engineer
+- Full Stack Engineer
 
 !!! note "Review model"
     This project is evaluated through source code, architecture docs, screenshots, evaluation results, and operational artifacts. It is not presented as a hosted public product.
