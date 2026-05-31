@@ -1,37 +1,3 @@
----
-name: agentic-helpdesk-rebuild
-overview: Turn the helpdesk "agent" from a hand-coded state machine into a real LangGraph StateGraph with an LLM supervisor, conditional clarification, bounded autonomy, real-event SSE, a trajectory eval, and a live campus router seam — shipped as 8 small, flag-gated, revertible PRs.
-todos:
-  - id: phase_minus_1
-    content: "Phase -1 (PR 0): Add docker-compose.yml at repo root with postgres:14 (matches Homebrew 14.17 and prod), named volume pgdata, healthcheck, and POSTGRES_USER=chatbot / POSTGRES_PASSWORD=chatbot / POSTGRES_DB=chatbot_dev env so existing .env DATABASE_URL works unchanged; scripts/run-backend-venv.sh starts the db service if not running; pg_dump existing chatbot_dev before cutover; stop Homebrew postgresql@14 to free port 5432; alembic upgrade head against fresh container; update README Quick Start and docs/OPERATIONS.md to make docker compose up the default dev path; keep Homebrew path documented as a fallback for one release."
-    status: pending
-  - id: phase0
-    content: "Phase 0 (PR 1): Budgets in config + enforcement at all 3 turns_taken sites + start/resume guards; redact_text on tool inputs (retry_kb / web_search / search_existing_issues) with injection test; add ADR-006 superseding ADR-005's unbuilt claims; move overclaims in README and HELPDESK_AGENT.md under 'Target state (in progress)'."
-    status: pending
-  - id: phase1a
-    content: "Phase 1a (PR 2): Compile helpdesk_graph/graph.py StateGraph mirroring graph/graph.py; supervisor node delegates to existing supervisor_next_action (extended to full enum); specialist nodes wrap existing helpers; runner.py invokes graph.ainvoke; keep custom checkpoint.py and awaiting_user; preserve AgentTurn and /agent/* signatures."
-    status: pending
-  - id: phase1b
-    content: "Phase 1b (PR 3): Add langgraph-checkpoint-postgres==2.0.9 + langgraph-checkpoint-sqlite + psycopg[binary,pool]>=3.2 to requirements.txt; introduce HELPDESK_AGENT_CHECKPOINT_BACKEND=postgres|sqlite|memory (default postgres) saver factory in checkpoint.py reusing DATABASE_URL for postgres and HELPDESK_AGENT_CHECKPOINT_PATH for sqlite; write Alembic migration creating LangGraph checkpoints / checkpoint_blobs / checkpoint_writes tables (do NOT call AsyncPostgresSaver.setup() at startup) plus a background TTL prune; thread_id = chat_session_id or session_id; replace awaiting_user dance with interrupt() in await_user/await_confirm; /agent/resume + /agent/confirm feed Command(resume=...); gate behind HELPDESK_AGENT_USE_LANGGRAPH_CHECKPOINT for one-release rollback; pytest defaults to MemorySaver via monkeypatched HELPDESK_AGENT_CHECKPOINT_BACKEND=memory."
-    status: pending
-  - id: phase2_supervisor
-    content: "Phase 2.1-2.2 (PR 4): Wrap retry_kb / web_search / search_existing_issues / file_ticket as @tool with Pydantic schemas (respect HELPDESK_AGENT_TOOL_* flags); define SupervisorDecision Pydantic; new helpdesk_graph/llm.py adapter for supervisor_decide + classify hiding provider differences; with_structured_output + enum allow-list + one repair retry + deterministic fallback; gated by HELPDESK_AGENT_LLM_SUPERVISOR (default false); mock provider returns scripted decisions."
-    status: pending
-  - id: phase2_specialists
-    content: "Phase 2.3-2.6 (PR 5): Hard help-first rule (ask_user removed from allow-list when turns_taken==0 and no solution attempted) + matching prompt clause; LLM classifier specialist with keyword fallback for mock/low-confidence; conditional clarifier (confidence floor + decision-relevance + batch gaps + MAX_QUESTIONS); writer specialist as graph node with pre-call redaction; honor Idempotency-Key on /agent/confirm; mock parity for classifier/clarifier/writer."
-    status: pending
-  - id: phase3_sse
-    content: "Phase 3 (PR 6): Rewrite /agent/start/stream and /agent/resume/stream to stream from graph.astream_events(version='v2') filtered to supervisor/clarifier/classifier/writer/solution chain events + 4 tool events; emit step SSE {node, action, status, latency_ms, summary}; delete canned status strings; Vue trace timeline component; LangSmith tags session/agent/decision; Prometheus latency/tokens/decision/turns_taken; structured logs at node boundaries."
-    status: pending
-  - id: phase4_eval
-    content: "Phase 4 (PR 7): backend/tests/eval/helpdesk_agent_scenarios.json (7 scenarios incl. injection + budget); test_helpdesk_agent_scenarios.py asserting tool-recall / over-ask / false-escalation / unnecessary-loop / resolve-no-ticket / HITL / injection-resistance; tox -e agent-eval mock-mode PR gate; tox -e agent-eval-live nightly with comparison table (LLM supervisor vs. deterministic baseline) gated by AWS+LangSmith keys; keep RAGAS unchanged."
-    status: pending
-  - id: phase5_router
-    content: "Phase 5 (PR 8): backend/app/services/agents/registry.py with helpdesk-only AgentSpec; live classify_domain LLM node with RouterDecision structured output behind CAMPUS_ROUTER_ENABLED=false; combine router output with kb_resolved to gate the escalation chip (ROUTER_HELPDESK_FLOOR); mock router returns helpdesk for sentinel queries; ADR-007 + docs/roadmap/AGENT_REGISTRY.md contract for future agents; test that registering a no-op echo agent doesn't touch the router."
-    status: pending
-isProject: false
----
-
 # Campus AI Assistant — Agentic Rebuild (refined)
 
 Refinement of the user's draft plan after a full current-state audit. Phasing stays close to the original; the substantive changes are: Phase 1 splits into 1a/1b to reduce mechanical risk, Phase 0 supersedes ADR-005 instead of editing it, Phase 4 ships two eval envs (mock-CI + live-nightly), and Phase 5 ships a live LLM router (per AskQuestion answer).

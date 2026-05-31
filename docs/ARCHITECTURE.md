@@ -8,38 +8,75 @@ Evolution from upstream [ets-berkeley-edu/chabot](https://github.com/ets-berkele
 
 ## System architecture
 
-Diagrams live in [`docs/assets/`](./assets/). The **v2 overview** is in the root [README](../README.md#architecture). Below: **detailed v2**, then **v1** (upstream [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot)) for comparison.
+Diagrams live in [`docs/assets/`](./assets/) under versioned folders (`architecture/v1`, `v2`, `v3`). The **v3 overview** is in the root [README](../README.md#architecture).
 
-### Detailed (v2)
+### What changed in v3
 
-![Campus RAG Assistant — detailed architecture](./assets/architecture_detailed_v2.png)
+v3 adds the **bounded helpdesk agent** on top of the v2 RAG platform: a LangGraph supervisor with specialist nodes (clarifier, classifier, writer, solution), agent tools (KB retry, web search, GitHub-issue search, file-ticket), SQLite checkpointing, and a HITL gate before filing GitHub Issues. The Vue UI exposes **Ask** vs **Agent** mode, an activity timeline, and a ticket review modal.
 
-### Upstream reference (v1)
+The current supervisor routing is **deterministic** (hand-coded `if/elif`), not yet LLM-driven. The [Agentic Helpdesk Rebuild](./roadmap/AGENTIC_HELPDESK_REBUILD.md) roadmap describes the phased migration to a true LLM supervisor with Postgres checkpointing, real-event SSE, and a trajectory eval.
 
-Original upstream chabot architecture (Streamlit-only UI, LangChain → OpenSearch + Bedrock directly):
+### Overview (v3)
 
-![Upstream chabot architecture (v1)](./assets/architecture_v1.png)
+![Campus RAG Assistant — v3 overview](./assets/architecture/v3/overview.png)
 
-### Diagram notes
+### Detailed (v3)
 
-| Area | Upstream chabot (v1) | Campus RAG Assistant (v2) |
-|------|----------------------|---------------------------|
-| **UI** | Streamlit only | **Vue 3 SPA** (primary); Streamlit optional, same API |
-| **API** | Chat endpoints | **SSE** `POST /api/chat/stream`, sessions CRUD, feedback, sources |
-| **Auth** | — | **JWT** in HTTP-only cookies (`/api/auth/*`) |
-| **Retrieval (AWS)** | LangChain → **OpenSearch** directly | **Bedrock Knowledge Base** API (`AmazonKnowledgeBasesRetriever`); **vector store:** **OpenSearch Serverless** (vector/keyword/hybrid index) behind the KB |
-| **Retrieval (Azure)** | — | **Azure AI Search** vector + keyword/hybrid index; Azure OpenAI embeddings |
-| **LLM** | Bedrock only | **Bedrock** or **Azure OpenAI** or **mock** via `LLM_PROVIDER` |
-| **DB** | PostgreSQL | PostgreSQL + **Alembic** (no `create_all` in production) |
-| **Ops** | LangSmith | LangSmith + **Prometheus** (`/api/metrics`, pool snapshot, first-token histogram); chat history capped via `CHAT_HISTORY_MAX_MESSAGES` — [PERFORMANCE.md](./PERFORMANCE.md) |
-| **Quality** | — | **RAGAS** harness (`backend/tests/eval/`), k6 load tests |
-| **Deploy** | EB + Nginx + Terraform | Same pattern; `run_services.sh` starts API (+ Streamlit on EB); Vue often hosted separately (CDN/static) with `FRONTEND_URL` / CORS |
+![Campus RAG Assistant — v3 detailed architecture](./assets/architecture/v3/detailed.png)
+
+### Full topology (v3)
+
+RAG pipeline subgraph (`condense` → `multi_query` → `retrieve` → `rerank` → `generate` → `format`) plus helpdesk agent subgraph (supervisor → specialists → tools → HITL gate):
+
+![Campus RAG Assistant — v3 topology](./assets/architecture/v3/topology.png)
+
+### Diagram notes (v3 vs v2)
+
+| Area | v2 (RAG platform) | v3 (+ helpdesk agent) |
+|------|-------------------|------------------------|
+| **UI** | Vue 3 SPA with KB chat, sources, web toggle | **Ask / Agent mode** switch, agent activity timeline, ticket review modal |
+| **API** | `/api/chat/*`, `/api/helpdesk/{summarize,draft-ticket,create-issue}` | **`/api/helpdesk/agent/*`** — start, resume, confirm, abort + SSE streams |
+| **Orchestration** | LangGraph RAG only | RAG + **helpdesk LangGraph** (supervisor, specialists, tools) |
+| **Checkpointing** | — | SQLite checkpointer (Postgres planned — [AGENTIC_HELPDESK_REBUILD](./roadmap/AGENTIC_HELPDESK_REBUILD.md)) |
+| **External actions** | — | **GitHub Issues** (HITL-gated), Tavily web search |
+| **Observability** | LangSmith + Prometheus | + `chatbot_helpdesk_agent_*` metrics, agent funnel counters |
 
 | Asset | Description |
 |-------|-------------|
-| [`architecture_v2.png`](./assets/architecture_v2.png) | High-level overview — shown in [README](../README.md#architecture) |
-| [`architecture_detailed_v2.png`](./assets/architecture_detailed_v2.png) | Current architecture with component detail |
-| [`architecture_v1.png`](./assets/architecture_v1.png) | Upstream chabot (historical reference) |
+| [`architecture/v3/overview.png`](./assets/architecture/v3/overview.png) | High-level v3 — shown in [README](../README.md#architecture) |
+| [`architecture/v3/detailed.png`](./assets/architecture/v3/detailed.png) | v3 component detail |
+| [`architecture/v3/topology.png`](./assets/architecture/v3/topology.png) | Full RAG + agent topology |
+
+??? info "Evolution from v2 (RAG platform)"
+    v2 introduced the Vue SPA, provider registry, LangGraph RAG pipeline, RAGAS eval, and GitHub Actions CI/CD.
+
+    ![v2 overview](./assets/architecture/v2/overview.png)
+
+    ### Detailed (v2)
+
+    ![v2 detailed architecture](./assets/architecture/v2/detailed.png)
+
+    | Asset | Description |
+    |-------|-------------|
+    | [`architecture/v2/overview.png`](./assets/architecture/v2/overview.png) | v2 high-level overview |
+    | [`architecture/v2/detailed.png`](./assets/architecture/v2/detailed.png) | v2 component detail |
+
+??? info "Upstream baseline (v1)"
+    Original upstream [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot) architecture (Streamlit-only UI, LangChain → OpenSearch + Bedrock directly):
+
+    ![Upstream chabot architecture (v1)](./assets/architecture/v1/architecture.png)
+
+    | Area | Upstream chabot (v1) | Campus RAG Assistant (v2+) |
+    |------|----------------------|------------------------------|
+    | **UI** | Streamlit only | **Vue 3 SPA** (primary); Streamlit optional, same API |
+    | **API** | Chat endpoints | **SSE** `POST /api/chat/stream`, sessions CRUD, feedback, sources |
+    | **Auth** | — | **JWT** in HTTP-only cookies (`/api/auth/*`) |
+    | **Retrieval (AWS)** | LangChain → **OpenSearch** directly | **Bedrock Knowledge Base** API; **OpenSearch Serverless** behind the KB |
+    | **Retrieval (Azure)** | — | **Azure AI Search** vector + keyword/hybrid index |
+    | **LLM** | Bedrock only | **Bedrock** or **Azure OpenAI** or **mock** via `LLM_PROVIDER` |
+    | **DB** | PostgreSQL | PostgreSQL + **Alembic** |
+    | **Ops** | LangSmith | LangSmith + **Prometheus** — [PERFORMANCE.md](./PERFORMANCE.md) |
+    | **Quality** | — | **RAGAS** harness, k6 load tests |
 
 ### AWS retrieval: Bedrock Knowledge Base and OpenSearch
 

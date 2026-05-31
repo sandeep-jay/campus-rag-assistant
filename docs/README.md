@@ -50,9 +50,9 @@ See the root [README](../README.md) for setup, features, screenshots, and stack 
 
 | File | Where it appears |
 |------|------------------|
-| [architecture_v2.png](./assets/architecture_v2.png) | **Overview** — [README](../README.md#architecture) |
-| [architecture_detailed_v2.png](./assets/architecture_detailed_v2.png) | **Detailed** — [ARCHITECTURE.md](./ARCHITECTURE.md#detailed-v2) |
-| [architecture_v1.png](./assets/architecture_v1.png) | Upstream reference — [ARCHITECTURE.md](./ARCHITECTURE.md#upstream-reference-v1) |
+| [architecture/v3/overview.png](./assets/architecture/v3/overview.png) | **Overview (v3)** — [README](../README.md#architecture) |
+| [architecture/v3/detailed.png](./assets/architecture/v3/detailed.png) | **Detailed (v3)** — [ARCHITECTURE.md](./ARCHITECTURE.md#detailed-v3) |
+| [architecture/v1/architecture.png](./assets/architecture/v1/architecture.png) | Upstream reference — [ARCHITECTURE.md](./ARCHITECTURE.md#upstream-reference-v1) |
 
 ## Quality and delivery
 

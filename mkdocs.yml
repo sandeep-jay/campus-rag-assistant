@@ -102,8 +102,13 @@ nav:
       - ADR-005 — Bounded helpdesk agent: adr/ADR-005-bounded-helpdesk-agent.md
   - Roadmap:
       - Product Roadmap: roadmap/PRODUCT_ROADMAP.md
+      - Agentic Helpdesk Rebuild: roadmap/AGENTIC_HELPDESK_REBUILD.md
       - LangGraph: roadmap/LANGGRAPH.md
       - Web Research: roadmap/WEB_RESEARCH.md
+  - Release Notes:
+      - v3.0.0: release-notes/v3.0.0.md
+      - v2.0: release-notes/v2.0.md
+      - v0.1: release-notes/v0.1.md
   - Changelog: changelog.md
   - Notice: notice.md
   - License: license.md

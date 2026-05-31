@@ -16,7 +16,7 @@ The project builds from the public [`ets-berkeley-edu/chabot`](https://github.co
 
 ## Architecture
 
-![High-level architecture](assets/architecture_v2.png)
+![High-level architecture](assets/architecture/v3/overview.png)
 
 | Layer | Components |
 |-------|------------|

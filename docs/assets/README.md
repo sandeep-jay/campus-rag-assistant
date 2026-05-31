@@ -1,34 +1,62 @@
 # Doc assets
 
-Screenshots for the root README and live demos. Product UI and LangSmith traces live in subfolders; architecture PNGs stay at this level.
+Screenshots and architecture diagrams for the root README and live demos. Assets are organized by **version** (`v1` upstream baseline, `v2` RAG platform, `v3` helpdesk agent).
 
-## Architecture
+## Architecture diagrams
+
+### v3 (current)
 
 | File | Use |
 |------|-----|
-| [architecture_v2.png](architecture_v2.png) | README Overview + [ARCHITECTURE.md](../ARCHITECTURE.md) (primary) |
-| [architecture_detailed_v2.png](architecture_detailed_v2.png) | README Overview + ARCHITECTURE.md detail |
-| [architecture_v1.png](architecture_v1.png) | Upstream reference / comparison |
+| [architecture/v3/overview.png](architecture/v3/overview.png) | README Overview + [ARCHITECTURE.md](../ARCHITECTURE.md) (primary) |
+| [architecture/v3/detailed.png](architecture/v3/detailed.png) | README Overview + ARCHITECTURE.md detail |
+| [architecture/v3/topology.png](architecture/v3/topology.png) | Full RAG + agent subgraph topology |
 
-## Product UI (`product/`)
+### v2 (RAG platform)
+
+| File | Use |
+|------|-----|
+| [architecture/v2/overview.png](architecture/v2/overview.png) | v2 high-level overview (historical) |
+| [architecture/v2/detailed.png](architecture/v2/detailed.png) | v2 component detail (historical) |
+
+### v1 (upstream baseline)
+
+| File | Use |
+|------|-----|
+| [architecture/v1/architecture.png](architecture/v1/architecture.png) | Upstream [chabot](https://github.com/ets-berkeley-edu/chabot) reference |
+
+## Product UI — v3 (helpdesk agent)
 
 | File | Description |
 |------|-------------|
-| [chat-empty-state.png](product/chat-empty-state.png) | Welcome screen + suggested prompts |
-| [chat-assistant-response.png](product/chat-assistant-response.png) | Full chat with structured KB answer |
-| [chat-sources-kb.png](product/chat-sources-kb.png) | KB source citations (Sources tab) |
-| [chat-sources-content-kb.png](product/chat-sources-content-kb.png) | Retrieved chunk excerpts (Content tab) |
-| [chat-web-research-answer.png](product/chat-web-research-answer.png) | Web mode answer + disclaimer |
-| [chat-sources-web.png](product/chat-sources-web.png) | Web search source list |
+| [product/v3/chat-overview.png](product/v3/chat-overview.png) | Full chat UI: sidebar, Ask/Agent toggle, KB answer |
+| [product/v3/chat-sources-kb.png](product/v3/chat-sources-kb.png) | KB source citations (Sources tab) — README pick |
+| [product/v3/chat-sources-kb-context.png](product/v3/chat-sources-kb-context.png) | Sources panel with chat context above |
+| [product/v3/chat-sources-content-kb.png](product/v3/chat-sources-content-kb.png) | Retrieved chunk excerpts (Content tab) |
+| [product/v3/agent-no-kb-match-options.png](product/v3/agent-no-kb-match-options.png) | No KB match + Summarize / Get help / Create ticket chips |
+| [product/v3/agent-hitl-impact-question.png](product/v3/agent-hitl-impact-question.png) | HITL clarifying question (impact radio) |
+| [product/v3/agent-proposed-solution.png](product/v3/agent-proposed-solution.png) | Multi-step trace + outcome chips |
+| [product/v3/agent-ticket-draft.png](product/v3/agent-ticket-draft.png) | Review support ticket modal |
+| [product/v3/github-issues-created.png](product/v3/github-issues-created.png) | GitHub Issues list (filed tickets) |
 
-Embedded in the root [README → Overview → Screenshots](../../README.md#overview).
-
-## Auth (`auth/`)
+## Product UI — v2 (RAG chat)
 
 | File | Description |
 |------|-------------|
-| [sign-in.png](auth/sign-in.png) | Login + GitHub OAuth |
-| [register.png](auth/register.png) | Registration form |
+| [product/v2/chat-empty-state.png](product/v2/chat-empty-state.png) | Welcome screen + suggested prompts |
+| [product/v2/chat-assistant-response.png](product/v2/chat-assistant-response.png) | Full chat with structured KB answer |
+| [product/v2/chat-sources-kb.png](product/v2/chat-sources-kb.png) | KB source citations (v2 UI) |
+| [product/v2/chat-sources-content-kb.png](product/v2/chat-sources-content-kb.png) | Retrieved chunk excerpts (v2 UI) |
+| [product/v2/chat-web-research-answer.png](product/v2/chat-web-research-answer.png) | Web mode answer + disclaimer |
+| [product/v2/chat-sources-web.png](product/v2/chat-sources-web.png) | Web search source list |
+
+## Auth
+
+| File | Description |
+|------|-------------|
+| [auth/v3/sign-in.png](auth/v3/sign-in.png) | Sign-in page (v3 branding) — README pick |
+| [auth/v1/sign-in.png](auth/v1/sign-in.png) | Sign-in page (v2 branding) |
+| [auth/v1/register.png](auth/v1/register.png) | Registration form |
 
 ## Observability (`observability/`)
 
@@ -40,33 +68,36 @@ Embedded in the root [README → Overview → Screenshots](../../README.md#overv
 | [langsmith-trace-web-tree.png](observability/langsmith-trace-web-tree.png) | Web research tree |
 | [langsmith-runs-table.png](observability/langsmith-runs-table.png) | Project runs table (ops appendix) |
 
-KB waterfall is in [README — Quality](../../README.md#quality-and-observability).
-
-## Product demo script (~2–3 min)
+## Product demo script (~3–4 min, v3)
 
 | Step | Asset | Talking point |
 |------|-------|----------------|
-| 1 | [sign-in.png](auth/sign-in.png) | GitHub OAuth or local account; dev OAuth on API port 8000 |
-| 2 | [chat-empty-state.png](product/chat-empty-state.png) | Scoped to teaching & learning KB; suggested prompts |
-| 3 | [chat-assistant-response.png](product/chat-assistant-response.png) | Structured answer from Canvas LMS / ServiceNow KB |
-| 4 | [chat-sources-kb.png](product/chat-sources-kb.png) | Transparent citations (ServiceNow KB article links) |
-| 5 | [chat-web-research-answer.png](product/chat-web-research-answer.png) | Opt-in **Search the web** + disclaimer |
-| 6 | [chat-sources-web.png](product/chat-sources-web.png) | Web sources labeled WEB |
-| 7 *(optional)* | [langsmith-trace-kb-waterfall.png](observability/langsmith-trace-kb-waterfall.png) | LangGraph spans (technical audience) |
+| 1 | [auth/v3/sign-in.png](auth/v3/sign-in.png) | GitHub OAuth or local account |
+| 2 | [product/v3/chat-overview.png](product/v3/chat-overview.png) | Ask vs Agent mode; KB answer with sidebar |
+| 3 | [product/v3/chat-sources-kb.png](product/v3/chat-sources-kb.png) | Transparent citations (ServiceNow KB links) |
+| 4 | [product/v3/agent-no-kb-match-options.png](product/v3/agent-no-kb-match-options.png) | Switch to Agent; unresolved query → action chips |
+| 5 | [product/v3/agent-hitl-impact-question.png](product/v3/agent-hitl-impact-question.png) | Agent asks one targeted clarifying question |
+| 6 | [product/v3/agent-proposed-solution.png](product/v3/agent-proposed-solution.png) | Multi-step trace; user picks outcome |
+| 7 | [product/v3/agent-ticket-draft.png](product/v3/agent-ticket-draft.png) | HITL ticket review with redaction warning |
+| 8 | [product/v3/github-issues-created.png](product/v3/github-issues-created.png) | Filed issue in demo GitHub repo |
+| 9 *(optional)* | [langsmith-trace-kb-waterfall.png](observability/langsmith-trace-kb-waterfall.png) | LangGraph spans (technical audience) |
 
 ### README picks (static gallery)
 
 | Placement | File |
 |-----------|------|
-| Hero / first impression | `product/chat-empty-state.png` |
-| Core RAG value | `product/chat-assistant-response.png` |
-| Sources | `product/chat-sources-kb.png` |
-| Phase 6b web | `product/chat-web-research-answer.png` |
+| Hero / first impression | `product/v3/chat-overview.png` |
+| Architecture overview | `architecture/v3/overview.png` |
+| Architecture detail | `architecture/v3/detailed.png` |
+| Sources | `product/v3/chat-sources-kb.png` |
+| Helpdesk agent | `product/v3/agent-ticket-draft.png` |
+| Phase 6b web (v2 UI) | `product/v2/chat-web-research-answer.png` |
 | Quality / observability | `observability/langsmith-trace-kb-waterfall.png` |
 
 ### Demo-only (not in README)
 
-- `product/chat-sources-content-kb.png` — Content tab depth
+- `product/v3/chat-sources-content-kb.png` — Content tab depth
+- `product/v2/chat-sources-content-kb.png` — v2 Content tab
 - `observability/langsmith-trace-kb-tree.png` — redundant with waterfall
 - `observability/langsmith-runs-table.png` — ops monitoring
-- `auth/register.png` — same flow as sign-in
+- `auth/v1/register.png` — same flow as sign-in
