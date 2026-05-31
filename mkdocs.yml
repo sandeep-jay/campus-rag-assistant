@@ -108,7 +108,7 @@ nav:
   - Release Notes:
       - v3.0.0: release-notes/v3.0.0.md
       - v2.0: release-notes/v2.0.md
-      - v0.1: release-notes/v0.1.md
+      - v1.0: release-notes/v1.0.md
   - Changelog: changelog.md
   - Notice: notice.md
   - License: license.md
