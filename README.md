@@ -187,7 +187,8 @@ Local demos: `RAG_FORCE_MOCK=true` with no cloud credentials. Design detail: [DE
 ## Prerequisites
 
 - Python 3.11+
-- PostgreSQL 13+
+- Docker Desktop (local PostgreSQL runs via Docker Compose)
+- Optional fallback: PostgreSQL 13+ outside Docker
 - Node.js 20+ (Vue; see `frontend-vue/.nvmrc`)
 - Optional: AWS (Bedrock Knowledge Base with OpenSearch-backed index) or Azure OpenAI + AI Search
 
@@ -200,7 +201,7 @@ pip install -r requirements.txt
 cp .env.example .env
 # RAG_FORCE_MOCK=true, LLM_PROVIDER=mock, RETRIEVER_PROVIDER=mock
 
-createdb chatbot_dev   # or name from POSTGRES_DB in .env
+docker compose --env-file /dev/null up -d db
 alembic upgrade head
 
 PIP_SYNC=0 ./scripts/run-backend-venv.sh          # terminal 1 — http://127.0.0.1:8000
@@ -210,7 +211,7 @@ cp frontend-vue/.env.example frontend-vue/.env.local
 ./scripts/run-frontend-vue.sh          # terminal 2 — http://127.0.0.1:5173
 ```
 
-Register a user and start a chat. Responses use the mock provider.
+Register a user and start a chat. Responses use the mock provider. The backend runner starts and health-checks the Compose `db` service by default; set `SKIP_DOCKER_DB=1` only when using an existing Homebrew/Postgres service. If another Postgres already owns port 5432, stop it before using the Compose database.
 
 **Streamlit (optional):**
 

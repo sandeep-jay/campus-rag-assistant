@@ -21,7 +21,13 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Added
 
+- **Local Postgres via Docker Compose** — added a repo-root `docker-compose.yml` with a `postgres:14` `db` service, first-run database bootstrap SQL, and backend runner startup/health-check wiring so local development no longer depends on Homebrew Postgres by default.
+- **Database listener guard** — the backend runner now detects non-Docker listeners on port 5432 and asks developers to stop them or opt into `SKIP_DOCKER_DB=1`, preventing accidental connections to an old local Postgres.
+
 ### Changed
+
+- **Quick start database setup** — README and operations docs now lead with `docker compose --env-file /dev/null up -d db`, document `SKIP_DOCKER_DB=1` for existing Postgres services, and preserve a one-release Homebrew fallback path.
+- **Development database URL** — local development defaults now use `127.0.0.1` instead of `localhost` so macOS does not accidentally route `localhost` to an existing Homebrew Postgres listener while Docker publishes IPv4.
 
 ### Fixed
 

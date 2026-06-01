@@ -12,6 +12,38 @@ Example API startup:
 API_WORKERS=4 API_TIMEOUT=60 API_GRACEFUL_TIMEOUT=30 USE_GUNICORN=1 ./run_services.sh
 ```
 
+## Local development database
+
+Local development uses Docker Compose Postgres by default. The repo-root `docker-compose.yml` starts a `postgres:14` service named `db`, creates `chatbot_dev`, and runs `scripts/init-db.sql` on first volume initialization.
+
+Fresh setup:
+
+```bash
+docker compose --env-file /dev/null up -d db
+alembic upgrade head
+PIP_SYNC=0 ./scripts/run-backend-venv.sh
+```
+
+`scripts/run-backend-venv.sh` also starts and health-checks `db` before launching Uvicorn. If a non-Docker Postgres still owns port 5432, the runner exits instead of silently connecting to the wrong database. To use an existing Homebrew/Postgres service instead, set `SKIP_DOCKER_DB=1` and ensure `DATABASE_URL` points at that database.
+
+Homebrew-to-Docker cutover:
+
+```bash
+# Optional: preserve local history before switching services.
+pg_dump chatbot_dev > /tmp/chatbot_dev_pre_docker.sql
+
+# Free port 5432 if Homebrew Postgres is running there.
+brew services stop postgresql@14
+
+docker compose --env-file /dev/null up -d db
+alembic upgrade head
+
+# Optional: restore history into the Compose database.
+psql -h localhost -U chatbot -d chatbot_dev -f /tmp/chatbot_dev_pre_docker.sql
+```
+
+`docker compose --env-file /dev/null down` stops the database while preserving the named `pgdata` volume. Use `docker compose --env-file /dev/null down -v` only when you intentionally want to delete local database state. The explicit empty env file keeps Docker Compose from parsing the app `.env`; the backend still reads `.env` normally.
+
 ## Database migration workflow (Alembic)
 
 Alembic scaffolding is included (`alembic.ini`, `backend/alembic/`).
