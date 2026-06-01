@@ -17,7 +17,7 @@ Campus RAG Assistant demonstrates multicloud RAG platform engineering plus bound
 
 > Review model: this project is evaluated through source code, architecture docs, screenshots, evaluation results, and operational artifacts. It is not presented as a hosted public product.
 
-![Structured KB answer with session history](docs/assets/product/chat-assistant-response.png)
+![Structured KB answer with session history](docs/assets/product/v3/chat-overview.png)
 
 ## Review this project
 
@@ -92,6 +92,7 @@ Extended from the public upstream [ets-berkeley-edu/chabot](https://github.com/e
 - **RAGAS + LangSmith** — golden-set regression evals and per-node traces
 - **Production ops** — Prometheus, request IDs, rate limits, k6, Alembic, GitHub Actions CI/CD
 - **Helpdesk agent** — LangGraph multi-turn agent with KB retry, web search, GitHub-issue search, HITL ticket filing, and SQLite checkpointer
+- **v3 architecture + agent UI** — versioned diagrams and screenshots under `docs/assets/`; [agentic rebuild roadmap](docs/roadmap/AGENTIC_HELPDESK_REBUILD.md) for LLM-driven supervisor (current agent is deterministic — see ADR-005 target state)
 
 ## Quality baseline
 
@@ -128,9 +129,9 @@ Architecture, design rationale, product UI, and observability traces.
 
 ### Architecture
 
-| Overview | Detailed (v2) |
+| Overview (v3) | Detailed (v3) |
 |----------|----------------|
-| ![High-level architecture](docs/assets/architecture_v2.png) | ![Detailed component diagram](docs/assets/architecture_detailed_v2.png) |
+| ![High-level architecture](docs/assets/architecture/v3/overview.png) | ![Detailed component diagram](docs/assets/architecture/v3/detailed.png) |
 
 Upstream v1 comparison and request flows: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
@@ -148,17 +149,34 @@ Full goals, tradeoffs, boundaries, and ADRs: [docs/DESIGN.md](docs/DESIGN.md) ·
 
 | Sign in | Chat (KB answer) |
 |---------|------------------|
-| ![Sign in — GitHub OAuth or local account](docs/assets/auth/sign-in.png) | ![Structured KB answer with session history](docs/assets/product/chat-assistant-response.png) |
+| ![Sign in — GitHub OAuth or local account](docs/assets/auth/v3/sign-in.png) | ![Structured KB answer with session history](docs/assets/product/v3/chat-overview.png) |
 
 | Welcome + suggested prompts | KB sources (citations) |
 |---------------------------|-------------------------|
-| ![Welcome screen with suggested campus prompts](docs/assets/product/chat-empty-state.png) | ![Source transparency — KB articles with scores](docs/assets/product/chat-sources-kb.png) |
+| ![Welcome screen with suggested campus prompts](docs/assets/product/v2/chat-empty-state.png) | ![Source transparency — KB articles with scores](docs/assets/product/v3/chat-sources-kb.png) |
 
 | Web research (opt-in) | Web sources |
 |---------------------|-------------|
-| ![Web mode answer with disclaimer banner](docs/assets/product/chat-web-research-answer.png) | ![Web search sources labeled WEB](docs/assets/product/chat-sources-web.png) |
+| ![Web mode answer with disclaimer banner](docs/assets/product/v2/chat-web-research-answer.png) | ![Web search sources labeled WEB](docs/assets/product/v2/chat-sources-web.png) |
 
 More assets (content tab, register): [docs/assets/README.md](docs/assets/README.md)
+
+### Helpdesk agent (v3)
+
+| Agent mode overview | No KB match — action chips |
+|---------------------|----------------------------|
+| ![Chat overview — Ask/Agent toggle](docs/assets/product/v3/chat-overview.png) | ![No KB match with Summarize / Get help / Create ticket](docs/assets/product/v3/agent-no-kb-match-options.png) |
+
+| HITL clarifying question | Proposed solution + outcome chips |
+|--------------------------|-----------------------------------|
+| ![Impact clarifying question](docs/assets/product/v3/agent-hitl-impact-question.png) | ![Multi-step trace with outcome chips](docs/assets/product/v3/agent-proposed-solution.png) |
+
+| Ticket review modal | GitHub Issues (filed) |
+|---------------------|----------------------|
+| ![Review support ticket modal](docs/assets/product/v3/agent-ticket-draft.png) | ![GitHub Issues list](docs/assets/product/v3/github-issues-created.png) |
+
+Agent specs: [docs/helpdesk/index.md](docs/helpdesk/index.md) · Next: [AGENTIC_HELPDESK_REBUILD.md](docs/roadmap/AGENTIC_HELPDESK_REBUILD.md)
+
 
 ### LangSmith traces
 

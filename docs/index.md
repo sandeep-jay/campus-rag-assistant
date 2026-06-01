@@ -26,7 +26,7 @@ Campus RAG Assistant demonstrates how institutional knowledge can be served thro
 
 **[View source on GitHub ->](https://github.com/sandeep-jay/campus-rag-assistant)**
 
-![Structured KB answer with session history](assets/product/chat-assistant-response.png)
+![Structured KB answer with session history](assets/product/v3/chat-overview.png)
 
 ## Start here
 
@@ -76,12 +76,16 @@ Read more: [Evaluation approach](EVALUATION.md) and [baseline scores](eval_basel
 flowchart LR
   VueSPA["Vue 3 SPA"] --> FastAPI["FastAPI"]
   FastAPI --> LangGraph["LangGraph RAG"]
+  FastAPI --> HelpdeskAgent["Helpdesk Agent"]
+  HelpdeskAgent --> AgentTools["KB retry / web / GitHub"]
+  HelpdeskAgent --> GHIssues["GitHub Issues HITL"]
   LangGraph --> Providers["Provider Registry"]
   Providers --> BedrockKB["AWS Bedrock KB"]
   Providers --> AzureAI["Azure AI Search"]
   FastAPI --> Postgres[("Postgres")]
   FastAPI --> Prometheus["Prometheus"]
   LangGraph --> LangSmith["LangSmith"]
+  HelpdeskAgent --> LangSmith
   LangGraph --> RAGAS["RAGAS eval"]
 ```
 
@@ -104,19 +108,26 @@ Design detail: [Architecture](ARCHITECTURE.md) and [Design Notes](DESIGN.md).
 
 ### Knowledge-base answer
 
-![Structured KB answer with session history](assets/product/chat-assistant-response.png)
+![Structured KB answer with session history](assets/product/v3/chat-overview.png)
 
 ### Source transparency
 
-![Source transparency — KB articles with scores](assets/product/chat-sources-kb.png)
+![Source transparency — KB articles with scores](assets/product/v3/chat-sources-kb.png)
 
 ### Opt-in web research
 
-![Web mode answer with disclaimer banner](assets/product/chat-web-research-answer.png)
+![Web mode answer with disclaimer banner](assets/product/v2/chat-web-research-answer.png)
 
 ### LangSmith trace
 
 ![LangSmith trace — KB path](assets/observability/langsmith-trace-kb-waterfall.png)
+
+
+### Helpdesk agent (v3)
+
+![Agent mode — chat overview](assets/product/v3/chat-overview.png)
+
+![HITL ticket review modal](assets/product/v3/agent-ticket-draft.png)
 
 More assets: [screenshots catalog](assets/README.md).
 

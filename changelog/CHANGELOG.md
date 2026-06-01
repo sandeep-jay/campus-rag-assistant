@@ -21,6 +21,17 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Security
+
+## [v3.0.0] — 2026-05-31
+
+
+### Added
+
 - Helpdesk agent frontend wiring: Vue now starts the helpdesk agent from unresolved KB answers or AGENT-mode chat input, renders each agent journey as one assistant bubble with an activity timeline, resumes sessions from in-chat actions, streams start/resume progress over SSE with fallback to non-streaming calls, and hands `draft_ready` turns to the existing ticket review modal.
 - Helpdesk agent UX controls: added the ASK/AGENT mode switch, agent outcome badge, accessible radio/pill action rendering, cancel-on-mode-exit behavior, and sanitized telemetry for mode changes, start/resume, stream fallback, draft review, confirmation, and abort flows.
 
@@ -40,6 +51,8 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 - Mock-mode demo sentinel query: `Oracle Financials 403 error on budget reports`.
 
 ### Documentation
+
+- **v3 documentation refresh** — versioned asset layout under `docs/assets/{architecture,product,auth}/{v1,v2,v3}/`; v3 architecture diagrams (overview, detailed, topology) and helpdesk agent screenshots; updated README, ARCHITECTURE.md, mkdocs nav; high-level release notes for v0.1, v2.0, and v3.0.0 under `docs/release-notes/`; [AGENTIC_HELPDESK_REBUILD.md](../docs/roadmap/AGENTIC_HELPDESK_REBUILD.md) roadmap added to nav.
 
 - **Helpdesk agent surfacing** — added top-level **Helpdesk Agent** section to MkDocs nav with a new overview page (`docs/helpdesk/index.md`), pulled the existing product spec (`CONVERSATION_FLOW.md`) and engineering spec (`HELPDESK_AGENT.md`) out of the orphaned roadmap subtree into nav, replaced the ASCII topology in the engineering spec with a Mermaid diagram, expanded the helpdesk evaluation section, and cross-linked the new hub from README, docs landing, REVIEWER_GUIDE, PORTFOLIO_CASE_STUDY, DESIGN, and docs/README. Also surfaced previously-orphaned `TENANT_CONFIG.md` and `PERFORMANCE.md` in nav and broke the four ADR files out as individual nav entries (previously only `adr/README.md` was reachable).
 - **ADR-005 — Bounded helpdesk agent** — recorded the decision to ship a single-supervisor LangGraph with hard tool budgets and a HITL gate on `file_ticket` rather than open multi-agent autonomy; added to the ADR index and case-study decision table.
