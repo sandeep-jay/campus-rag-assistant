@@ -163,7 +163,7 @@ GitHub OAuth callback runs on the **API origin** (`OAUTH_REDIRECT_BASE_URL`, typ
 
 ### Helpdesk agent (post-RAG escalation)
 
-> **At-a-glance overview:** [docs/helpdesk/index.md](./helpdesk/index.md). Full UX contract: [Conversation Flow](./roadmap/CONVERSATION_FLOW.md). Engineering detail: [Helpdesk Agent](./roadmap/HELPDESK_AGENT.md). Decision rationale: [ADR-005](./adr/ADR-005-bounded-helpdesk-agent.md).
+> **At-a-glance overview:** [docs/helpdesk/index.md](./helpdesk/index.md). Full UX contract: [Conversation Flow](./roadmap/CONVERSATION_FLOW.md). Engineering detail: [Helpdesk Agent](./roadmap/HELPDESK_AGENT.md). Decision rationale: [ADR-005](./adr/ADR-005-bounded-helpdesk-agent.md) (shipped slice) and [ADR-006](./adr/ADR-006-live-llm-supervisor-migration.md) (LLM supervisor migration plan — see [Agentic Rebuild](./roadmap/AGENTIC_HELPDESK_REBUILD.md)).
 
 When KB retrieval cannot resolve a question (`metadata.kb_resolved=false`), the product offers escalation paths:
 

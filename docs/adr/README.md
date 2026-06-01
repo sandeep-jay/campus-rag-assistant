@@ -10,7 +10,8 @@ Compact records of significant design choices. Full rationale lives in [DESIGN.m
 | [ADR-002](./ADR-002-langgraph-vs-chain.md) | Dual RAG engines: `chain` vs `langgraph` | Accepted |
 | [ADR-003](./ADR-003-opt-in-web-research.md) | Opt-in web research | Accepted |
 | [ADR-004](./ADR-004-eval-gating-policy.md) | RAGAS eval gating policy | Accepted |
-| [ADR-005](./ADR-005-bounded-helpdesk-agent.md) | Bounded helpdesk agent (LangGraph) | Accepted |
+| [ADR-005](./ADR-005-bounded-helpdesk-agent.md) | Bounded helpdesk agent (LangGraph) | Accepted (mixed implementation — see ADR-006) |
+| [ADR-006](./ADR-006-live-llm-supervisor-migration.md) | Live LLM supervisor migration (supersedes unbuilt portions of ADR-005) | Proposed |
 
 ## Template
 

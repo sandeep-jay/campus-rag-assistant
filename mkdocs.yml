@@ -98,6 +98,7 @@ nav:
       - ADR-003 — Opt-in web research: adr/ADR-003-opt-in-web-research.md
       - ADR-004 — Eval gating policy: adr/ADR-004-eval-gating-policy.md
       - ADR-005 — Bounded helpdesk agent: adr/ADR-005-bounded-helpdesk-agent.md
+      - ADR-006 — Live LLM supervisor migration: adr/ADR-006-live-llm-supervisor-migration.md
   - Roadmap:
       - Product Roadmap: roadmap/PRODUCT_ROADMAP.md
       - Agentic Helpdesk Rebuild: roadmap/AGENTIC_HELPDESK_REBUILD.md
