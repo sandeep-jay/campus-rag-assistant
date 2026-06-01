@@ -1,6 +1,6 @@
 # Production hardening backlog
 
-**Last updated:** 2026-05-19
+**Last updated:** 2026-05-31
 
 Optional work to move from source-reviewable reference architecture to campus-scale production. Shipped product phases: [roadmap/PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md). Campus-scale detail: [roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md).
 
@@ -14,7 +14,7 @@ Priority: **P1** (before multi-tenant production) · **P2** (scale / cost) · **
 |------|----------|----------------|------------|--------|
 | **Managed Redis HA** + distributed rate limits | P1 | Single-node rate limits; no shared session/cache at scale | Deploy ElastiCache / Azure Cache; wire `REDIS_URL`; extend rate-limit middleware | Planned — [PHASED_IMPROVEMENT_ROADMAP](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md) |
 | **Secrets management** (SSM / Key Vault vs `.env` on EB) | P1 | Credential leakage, rotation pain | Move secrets to parameter store; document rotation runbook | Partial — `.env` + EB today |
-| **Tenant isolation guarantees** | P1 | Cross-tenant data bleed in shared DB | Enforce `tenant_id` on all queries; audit routes; optional schema-per-tenant | Logical isolation today — [TENANT_CONFIG.md](./TENANT_CONFIG.md) |
+| **Tenant isolation guarantees** | P1 | Cross-tenant data bleed in shared DB | Enforce `tenant_id` on all queries; audit routes; optional schema-per-tenant | Logical isolation today — [DESIGN.md — Tenant-hydrated prompts](./DESIGN.md#tenant-hydrated-prompts) |
 | **Threat model + abuse controls** | P1 | Auth brute-force, chat spam, cost blowout | Document threat model in [SECURITY.md](./SECURITY.md); per-user quotas beyond IP rate limit | Partial — rate limits, HTTP-only cookies |
 | **PII policy + log redaction audit** | P1 | Compliance exposure in logs/traces | Formal PII classification; verify redaction on chat/JWT fields; LangSmith data retention policy | Partial — redaction shipped in logging pass |
 | **Observability dashboards + alerts** | P2 | Slow incident response | Grafana from Prometheus; alert on p95 latency, 5xx, pool exhaustion | Metrics endpoint shipped; dashboards optional |
@@ -63,10 +63,25 @@ Tracked here so hiring readers see intentional scope boundaries:
 
 ---
 
+
+---
+
+## Campus production-scale track (unbuilt)
+
+These items were tracked in the former `PERFORMANCE.md` backlog. **Phase 0** (history cap, DB pool, first-token metric, multi-worker) is **shipped** — see [OPERATIONS.md — Shipped performance guardrails](./OPERATIONS.md#shipped-performance-guardrails-campus-phase-0). Phases 1–3 below are **not implemented**.
+
+| Phase | Goal | Key env flags (when built) | Docs to update |
+|-------|------|---------------------------|----------------|
+| **1** | Exact Redis response cache + deeper observability | `RESPONSE_CACHE_ENABLED`, `RESPONSE_CACHE_TTL_SECONDS`, `CACHE_BYPASS_HEADER` | `.env.example`, [OPERATIONS.md](./OPERATIONS.md), [LOAD_TESTING.md](./LOAD_TESTING.md) |
+| **2** | Retrieval quality at scale (semantic cache, ingestion pipeline) | TBD per slice | [EVALUATION.md](./EVALUATION.md), [archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md) |
+| **3** | Multi-instance reliability, idempotency, cost governance | Production `REDIS_URL`, idempotency TTL, budget caps | [OPERATIONS.md](./OPERATIONS.md), [RELEASE.md](./RELEASE.md) |
+
+Detail: [archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md).
+
 ## Related
 
-- [OPERATIONS.md](./OPERATIONS.md) — runbooks, metrics, migrations
+- [OPERATIONS.md](./OPERATIONS.md) — runbooks, metrics, migrations, shipped Phase 0 guardrails
 - [SECURITY.md](./SECURITY.md) — dependency audit, production notes
-- [PERFORMANCE.md](./PERFORMANCE.md) — history caps, latency metrics
 - [LOAD_TESTING.md](./LOAD_TESTING.md) — k6 profiles
 - [PORTFOLIO_CASE_STUDY.md](./PORTFOLIO_CASE_STUDY.md) — what ships today vs backlog
+- [release-notes/](./release-notes/index.md) — what shipped in v1.0 / v2.0 / v3.0.0

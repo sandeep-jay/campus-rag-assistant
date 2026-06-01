@@ -72,7 +72,7 @@ Campus production (Redis HA, tenant budgets, Elastic Beanstalk): [archive/PHASED
 - **Platform:** request context, Prometheus, rate limits, Alembic, Vue 3 + Streamlit, k6.
 - **RAG:** provider registry; `RAG_ENGINE=langgraph` with condense → multi_query → retrieve → rerank → generate (KB); web branch with disclaimer.
 - **Eval:** 10-row golden set, [eval_baseline_2026-05-19.md](../eval_baseline_2026-05-19.md), `tox -e eval`, LangSmith trace PNGs in README.
-- **OAuth (local):** API-port OAuth + handoff to Vue — [PRODUCTION_TLS.md](../PRODUCTION_TLS.md).
+- **OAuth (local):** API-port OAuth + handoff to Vue — [OPERATIONS.md — OAuth and authentication](../OPERATIONS.md#oauth-and-authentication).
 
 ---
 
@@ -147,5 +147,5 @@ Opt-in `research_mode=web`, Tavily optional, disclaimer UI. [DESIGN.md — Opt-i
 ## Related docs
 
 - [README.md](../../README.md) — quick start
-- [PERFORMANCE.md](../PERFORMANCE.md) — campus perf track (Phase 0 shipped)
+- [OPERATIONS.md — Shipped performance guardrails](../OPERATIONS.md#shipped-performance-guardrails-campus-phase-0) — campus Phase 0 shipped
 - [changelog/CHANGELOG.md](../../changelog/CHANGELOG.md)

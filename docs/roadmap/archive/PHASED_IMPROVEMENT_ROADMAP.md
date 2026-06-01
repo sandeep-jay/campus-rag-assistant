@@ -40,7 +40,7 @@ flowchart LR
 
 ## Phase 0 — Baseline (maintain, do not regress)
 
-**Performance Phase 0 (shipped):** history cap, DB pool envs, SSE first-token metric, optional stream delay, multi-worker `run_services.sh` — see [PERFORMANCE.md](../../PERFORMANCE.md).
+**Performance Phase 0 (shipped):** history cap, DB pool envs, SSE first-token metric, optional stream delay, multi-worker `run_services.sh` — see [OPERATIONS.md — Shipped performance guardrails](../../OPERATIONS.md#shipped-performance-guardrails-campus-phase-0).
 
 **Goal:** Keep what shipped stable while layering on Phase 1.
 
@@ -162,4 +162,4 @@ flowchart LR
 - [ARCHITECTURE.md](../../ARCHITECTURE.md)
 - [OPERATIONS.md](../../OPERATIONS.md)
 - [LOAD_TESTING.md](../../LOAD_TESTING.md)
-- [E2E.md](../../E2E.md)
+- [OPERATIONS.md — Playwright E2E](../../OPERATIONS.md#playwright-e2e-frontend-vue)

@@ -31,7 +31,7 @@ sudo apt-get install gitleaks # Debian / Ubuntu
 | `SECRET_KEY` | sentinel `change-me-in-production` (SecretStr) | Strong random secret via env or `secrets_dir` |
 | `BACKEND_CORS_ORIGINS` | `['*']` | Explicit frontend origin(s) only |
 | `.env` | Local secrets (gitignored) | Use secrets manager / EB env / mounted file |
-| OAuth | `127.0.0.1` alignment | HTTPS + registered callbacks — [PRODUCTION_TLS.md](./PRODUCTION_TLS.md) |
+| OAuth | `127.0.0.1` alignment | HTTPS + registered callbacks — [OPERATIONS.md — Production HTTPS](./OPERATIONS.md#production-https-and-http2) |
 | `WEB_RESEARCH_ENABLED` | `false` | Enable only with Tavily key and policy review |
 
 ## Secret-leak defense in depth
