@@ -31,11 +31,14 @@ langchain-openai>=0.2
 langchain==0.3.30
 langgraph==0.2.76
 langgraph-checkpoint==2.0.26
+langgraph-checkpoint-postgres==2.0.9
+langgraph-checkpoint-sqlite==2.0.11
 langsmith>=0.0.77
 packaging==23.2
 passlib[bcrypt]==1.7.4
 pgvector==0.2.5
 prometheus-client>=0.20.0
+psycopg[binary,pool]>=3.2,<4
 psycopg2-binary==2.9.9
 pydantic-settings>=2.4.0,<3.0.0
 pydantic>=2.7.4,<3.0.0

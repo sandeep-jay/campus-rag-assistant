@@ -23,7 +23,7 @@ SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED
 ENHANCEMENTS, OR MODIFICATIONS.
 """
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -198,6 +198,8 @@ class DefaultSettings(BaseSettings):
     HELPDESK_AGENT_TOOL_GITHUB_SEARCH: bool = True
     HELPDESK_AGENT_TOOL_KB_RETRY: bool = True
     HELPDESK_AGENT_TOOL_WEB_SEARCH: bool = True
+    HELPDESK_AGENT_USE_LANGGRAPH_CHECKPOINT: bool = True
+    HELPDESK_AGENT_CHECKPOINT_BACKEND: Literal['postgres', 'sqlite', 'memory'] = 'postgres'
     HELPDESK_AGENT_CHECKPOINT_PATH: str = '.helpdesk_agent_checkpoints.sqlite'
     HELPDESK_AGENT_CHECKPOINT_TTL_SECONDS: int = 86400
     HELPDESK_AGENT_TOOL_OUTPUT_MAX_CHARS: int = 4000

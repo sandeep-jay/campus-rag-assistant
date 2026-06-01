@@ -9,6 +9,7 @@ import uuid
 from typing import TYPE_CHECKING, Any
 
 from fastapi import HTTPException, status
+from langgraph.types import Command
 
 from backend.app.core.config_manager import settings
 from backend.app.core.metrics import (
@@ -23,8 +24,13 @@ from backend.app.services.helpdesk.agent import draft_ticket
 from backend.app.services.helpdesk.github import create_github_issue
 from backend.app.services.helpdesk.persist import TERMINAL_KINDS, upsert_agent_summary
 from backend.app.services.helpdesk_graph import tools
-from backend.app.services.helpdesk_graph.checkpoint import load_checkpoint, save_checkpoint
-from backend.app.services.helpdesk_graph.graph import HELPDESK_GRAPH
+from backend.app.services.helpdesk_graph.checkpoint import (
+    load_checkpoint,
+    maybe_gc_langgraph_checkpoints,
+    save_checkpoint,
+    use_langgraph_checkpoint,
+)
+from backend.app.services.helpdesk_graph.graph import HELPDESK_GRAPH, helpdesk_graph_for_request
 from backend.app.services.helpdesk_graph.nodes import classify_ticket_facts
 from backend.app.services.helpdesk_graph.prompts import SOLUTION_PROMPT
 from backend.app.services.helpdesk_graph.state import AwaitingUserPayload, GitHubIssue, HelpdeskState, ProposedSolution
@@ -33,6 +39,8 @@ from backend.app.services.providers import get_llm_provider
 
 if TYPE_CHECKING:
     from langchain.schema import Document
+    from langchain_core.runnables import RunnableConfig
+    from langgraph.graph.state import CompiledStateGraph
     from sqlalchemy.orm import Session
 
 STATE_VERSION = 1
@@ -658,7 +666,38 @@ async def graph_aborted_step(state: HelpdeskState) -> dict[str, Any]:
     return state
 
 
-async def _run_graph(state: HelpdeskState, *, operation: str) -> tuple[AgentTurn, HelpdeskState]:
+def _graph_config(session_id: str) -> RunnableConfig:
+    return {'configurable': {'thread_id': session_id}}
+
+
+def _state_not_found_exc(operation: str) -> HTTPException:
+    exc = HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Helpdesk agent session was not found.')
+    _record_agent_error(operation, exc)
+    return exc
+
+
+async def _load_langgraph_state(
+    graph: CompiledStateGraph,
+    session_id: str,
+    *,
+    user_id: int | str,
+    operation: str,
+) -> HelpdeskState:
+    snapshot = await graph.aget_state(_graph_config(session_id))
+    snapshot_values = getattr(snapshot, 'values', None) or {}
+    state = dict(snapshot_values)
+    if not state or str(state.get('user_id')) != str(user_id):
+        raise _state_not_found_exc(operation)
+    return state
+
+
+async def _run_graph(
+    state_or_command: HelpdeskState | Command,
+    *,
+    operation: str,
+    graph: CompiledStateGraph | None = None,
+    config: RunnableConfig | None = None,
+) -> tuple[AgentTurn, HelpdeskState]:
     """Invoke the compiled helpdesk graph and unpack the final turn.
 
     Returns ``(turn, final_state)`` so the entry point can hand the
@@ -668,7 +707,8 @@ async def _run_graph(state: HelpdeskState, *, operation: str) -> tuple[AgentTurn
     the API contract intact if a future refactor adds a node without
     setting the turn.
     """
-    result = await HELPDESK_GRAPH.ainvoke(state)
+    active_graph = graph or HELPDESK_GRAPH
+    result = await active_graph.ainvoke(state_or_command, config=config)
     turn = result.get('_graph_turn')
     if turn is None:
         logger.warning('helpdesk graph completed without _graph_turn for operation=%s', operation)
@@ -694,6 +734,7 @@ async def start_session(
     decision now flows through the supervisor → specialist tree.
     """
     _require_agent_enabled()
+    await maybe_gc_langgraph_checkpoints()
     HELPDESK_AGENT_STARTED_TOTAL.labels(trigger=trigger).inc()
     _record_funnel('started', trigger)
 
@@ -710,7 +751,16 @@ async def start_session(
         )
 
     state['entry'] = 'start'
-    turn, final_state = await _run_graph(state, operation='start')
+    if use_langgraph_checkpoint():
+        async with helpdesk_graph_for_request() as graph:
+            turn, final_state = await _run_graph(
+                state,
+                operation='start',
+                graph=graph,
+                config=_graph_config(session_id),
+            )
+    else:
+        turn, final_state = await _run_graph(state, operation='start')
     return _persist_and_stamp(
         turn,
         db=db,
@@ -721,7 +771,7 @@ async def start_session(
 
 
 @trace_agent_run('resume')
-async def resume_session(
+async def resume_session(  # noqa: C901 - mirrors legacy and LangGraph checkpoint resume paths during rollback window
     session_id: str,
     *,
     user_id: int | str,
@@ -733,11 +783,63 @@ async def resume_session(
 ) -> AgentTurn:
     """Resume a paused helpdesk-agent session after a clarifying answer."""
     _require_agent_enabled()
+    if use_langgraph_checkpoint():
+        async with helpdesk_graph_for_request() as graph:
+            state = await _load_langgraph_state(graph, session_id, user_id=user_id, operation='resume')
+            if _budget_exhausted(state):
+                return _persist_and_stamp(
+                    await _budget_exhausted_turn(state),
+                    db=db,
+                    chat_session_id=chat_session_id,
+                    user_id=user_id,
+                    state=state,
+                )
+
+            awaiting = state.get('awaiting_user')
+            if awaiting is None:
+                exc = HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Helpdesk agent is not waiting for user input.')
+                _record_agent_error('resume', exc)
+                raise exc
+            if pending_question_id and pending_question_id != awaiting.question_id:
+                exc = HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Helpdesk agent question is stale.')
+                _record_agent_error('resume', exc)
+                raise exc
+
+            answer = (choice or reply or '').strip()
+            if not answer:
+                exc = HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail='A reply or choice is required.')
+                _record_agent_error('resume', exc)
+                raise exc
+
+            state['turns_taken'] = int(state.get('turns_taken', 0)) + 1
+            if _budget_exhausted(state):
+                _append_user_reply(state, answer, label='Budget-stop reply')
+                draft_turn = await _budget_exhausted_turn(state, [_trace('resume', 'append_user_reply', 'success', awaiting.question_id)])
+                return _persist_and_stamp(
+                    draft_turn,
+                    db=db,
+                    chat_session_id=chat_session_id,
+                    user_id=user_id,
+                    state=state,
+                )
+
+            turn, final_state = await _run_graph(
+                Command(resume=answer, update={'entry': 'resume', 'turns_taken': state['turns_taken']}),
+                operation='resume',
+                graph=graph,
+                config=_graph_config(session_id),
+            )
+            return _persist_and_stamp(
+                turn,
+                db=db,
+                chat_session_id=chat_session_id,
+                user_id=user_id,
+                state=final_state,
+            )
+
     state = load_checkpoint(session_id, user_id=user_id)
     if state is None:
-        exc = HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Helpdesk agent session was not found.')
-        _record_agent_error('resume', exc)
-        raise exc
+        raise _state_not_found_exc('resume')
     if _budget_exhausted(state):
         return _persist_and_stamp(
             await _budget_exhausted_turn(state),
@@ -798,11 +900,31 @@ async def confirm_session(
 ) -> AgentTurn:
     """File a reviewed agent ticket draft after explicit user confirmation."""
     _require_agent_enabled()
+    if use_langgraph_checkpoint():
+        async with helpdesk_graph_for_request() as graph:
+            state = await _load_langgraph_state(graph, session_id, user_id=user_id, operation='confirm')
+            if state.get('next_action') != 'await_user_confirm' or state.get('draft') is None:
+                exc = HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Helpdesk agent is not waiting for ticket confirmation.')
+                _record_agent_error('confirm', exc)
+                raise exc
+
+            turn, final_state = await _run_graph(
+                Command(resume=draft.model_dump(), update={'entry': 'confirm'}),
+                operation='confirm',
+                graph=graph,
+                config=_graph_config(session_id),
+            )
+            return _persist_and_stamp(
+                turn,
+                db=db,
+                chat_session_id=chat_session_id,
+                user_id=user_id,
+                state=final_state,
+            )
+
     state = load_checkpoint(session_id, user_id=user_id)
     if state is None:
-        exc = HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Helpdesk agent session was not found.')
-        _record_agent_error('confirm', exc)
-        raise exc
+        raise _state_not_found_exc('confirm')
     if state.get('next_action') != 'await_user_confirm' or state.get('draft') is None:
         exc = HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Helpdesk agent is not waiting for ticket confirmation.')
         _record_agent_error('confirm', exc)
@@ -830,11 +952,26 @@ async def abort_session(
 ) -> AgentTurn:
     """Abort a helpdesk-agent session without filing a ticket."""
     _require_agent_enabled()
+    if use_langgraph_checkpoint():
+        async with helpdesk_graph_for_request() as graph:
+            await _load_langgraph_state(graph, session_id, user_id=user_id, operation='abort')
+            turn, final_state = await _run_graph(
+                Command(resume={'action': 'abort'}, update={'entry': 'abort'}),
+                operation='abort',
+                graph=graph,
+                config=_graph_config(session_id),
+            )
+            return _persist_and_stamp(
+                turn,
+                db=db,
+                chat_session_id=chat_session_id,
+                user_id=user_id,
+                state=final_state,
+            )
+
     state = load_checkpoint(session_id, user_id=user_id)
     if state is None:
-        exc = HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Helpdesk agent session was not found.')
-        _record_agent_error('abort', exc)
-        raise exc
+        raise _state_not_found_exc('abort')
 
     state['entry'] = 'abort'
     turn, final_state = await _run_graph(state, operation='abort')
