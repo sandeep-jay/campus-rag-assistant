@@ -10,6 +10,8 @@ from langchain.schema import Document
 
 from backend.app.services.graph.nodes import _compute_kb_resolved
 from backend.app.services.helpdesk.redaction import redact_text
+from backend.app.services.helpdesk_graph import graph as helpdesk_graph
+from backend.app.services.helpdesk_graph import llm as helpdesk_llm
 from backend.app.services.helpdesk_graph import tools
 from backend.app.services.helpdesk_graph.nodes import classify_ticket_facts
 
@@ -215,3 +217,85 @@ def test_classify_ticket_facts_infers_network_outage():
     facts = classify_ticket_facts(state)
 
     assert facts == {'severity': 'critical', 'category': 'network', 'impact': 'Campus-wide'}
+
+
+def test_bindable_helpdesk_tools_respect_feature_flags(monkeypatch):
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_TOOL_KB_RETRY', True)
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_TOOL_WEB_SEARCH', False)
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_TOOL_GITHUB_SEARCH', True)
+
+    bound = tools.bindable_helpdesk_tools(state={'session_id': 's1', 'user_id': 'u1'})
+
+    assert {tool.name for tool in bound} == {'retry_kb', 'search_existing_issues'}
+
+
+def test_bindable_helpdesk_tools_keep_file_ticket_hitl_only(monkeypatch):
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_TOOL_KB_RETRY', False)
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_TOOL_WEB_SEARCH', False)
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_TOOL_GITHUB_SEARCH', False)
+
+    assert tools.bindable_helpdesk_tools(state={'session_id': 's1', 'user_id': 'u1'}) == []
+    bound = tools.bindable_helpdesk_tools(
+        state={'session_id': 's1', 'user_id': 'u1'},
+        user_id='u1',
+        include_file_ticket=True,
+    )
+
+    assert [tool.name for tool in bound] == ['file_ticket']
+
+
+@pytest.mark.asyncio()
+async def test_mock_supervisor_decision_uses_deterministic_sequence(monkeypatch):
+    monkeypatch.setattr(tools.settings, 'RAG_FORCE_MOCK', True)
+    monkeypatch.setattr(tools.settings, 'LLM_PROVIDER', 'mock')
+    state = {
+        'session_id': 's1',
+        'user_id': 'u1',
+        'entry': 'start',
+        'original_question': 'known duplicate Oracle issue',
+    }
+
+    decision = await helpdesk_llm.supervisor_decide(state)
+
+    assert decision.next_action == 'search_duplicates'
+
+
+@pytest.mark.asyncio()
+async def test_llm_supervisor_blocks_disallowed_file_ticket(monkeypatch):
+    monkeypatch.setattr(helpdesk_graph.settings, 'HELPDESK_AGENT_LLM_SUPERVISOR', True)
+
+    async def _bad_decision(_state):
+        return helpdesk_llm.SupervisorDecision(next_action='file_new', reason='unsafe')
+
+    monkeypatch.setattr(helpdesk_llm, 'supervisor_decide', _bad_decision)
+    state = {
+        'session_id': 's1',
+        'user_id': 'u1',
+        'entry': 'start',
+        'original_question': 'Canvas is down',
+    }
+
+    result = await helpdesk_graph._supervisor_node(state)
+
+    assert result == {'_next': 'write_draft'}
+
+
+@pytest.mark.asyncio()
+async def test_mock_classifier_returns_keyword_facts_with_confidence(monkeypatch):
+    monkeypatch.setattr(tools.settings, 'RAG_FORCE_MOCK', True)
+    state = {
+        'session_id': 's1',
+        'user_id': 'u1',
+        'original_question': 'Campus-wide wifi outage for everyone',
+        'conversation': [],
+        'facts': {},
+    }
+
+    classification = await helpdesk_llm.classify(state)
+
+    assert classification.model_dump() == {
+        'severity': 'critical',
+        'category': 'network',
+        'impact': 'Campus-wide',
+        'confidence': 1.0,
+    }

@@ -181,6 +181,7 @@ Load validation: [LOAD_TESTING.md](./load-testing.md). Release promotion: [RELEA
 | `HELPDESK_KB_RESOLVED_MIN_SCORE` | Optional rerank-score floor for `kb_resolved` heuristic |
 | `HELPDESK_DEDUP_WINDOW_SECONDS` | Suppress duplicate filings inside this window |
 | `HELPDESK_SUMMARIZE_MAX_TURNS` | Number of recent chat turns fed into recap/draft |
+| `HELPDESK_AGENT_LLM_SUPERVISOR` | Default `false`; when enabled, supervisor routing uses the live structured-output LLM adapter with deterministic fallback |
 | `HELPDESK_AGENT_USE_LANGGRAPH_CHECKPOINT` | Default `true`; set `false` for the one-release legacy JSON SQLite rollback path |
 | `HELPDESK_AGENT_CHECKPOINT_BACKEND` | `postgres` (default), `sqlite`, or `memory`; production should use `postgres`. The `sqlite` backend is an opt-in dev fallback that requires installing the unpinned `langgraph-checkpoint-sqlite` package (2.0.x carries GHSA-9rwj-6rc7-p77c, 3.x needs a LangGraph 1.x bump) |
 | `HELPDESK_AGENT_CHECKPOINT_PATH` | SQLite checkpointer path for `sqlite` or legacy fallback (`.helpdesk_agent_checkpoints.sqlite` by default) |

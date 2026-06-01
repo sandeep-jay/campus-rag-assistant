@@ -198,6 +198,7 @@ class DefaultSettings(BaseSettings):
     HELPDESK_AGENT_TOOL_GITHUB_SEARCH: bool = True
     HELPDESK_AGENT_TOOL_KB_RETRY: bool = True
     HELPDESK_AGENT_TOOL_WEB_SEARCH: bool = True
+    HELPDESK_AGENT_LLM_SUPERVISOR: bool = False
     HELPDESK_AGENT_USE_LANGGRAPH_CHECKPOINT: bool = True
     HELPDESK_AGENT_CHECKPOINT_BACKEND: Literal['postgres', 'sqlite', 'memory'] = 'postgres'
     HELPDESK_AGENT_CHECKPOINT_PATH: str = '.helpdesk_agent_checkpoints.sqlite'

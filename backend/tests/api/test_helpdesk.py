@@ -33,6 +33,7 @@ def enable_helpdesk(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_ENABLED', True)
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_KILL_SWITCH', False)
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_TOOL_GITHUB_SEARCH', True)
+    monkeypatch.setattr(settings, 'HELPDESK_AGENT_LLM_SUPERVISOR', False)
     monkeypatch.setattr(settings, 'RAG_FORCE_MOCK', True)
     monkeypatch.setattr(settings, 'LLM_PROVIDER', 'mock')
     monkeypatch.setattr(settings, 'GITHUB_TOKEN', _SecretLike('demo-token'))
