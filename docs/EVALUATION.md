@@ -1,6 +1,6 @@
-# Evaluation strategy (RAGAS + LangSmith)
+# Evaluation strategy (RAGAS + trajectory + LangSmith)
 
-How to judge additions to this project — when changing RAG behavior, LangGraph nodes, or retrieval settings.
+How to judge additions to this project — when changing RAG behavior, LangGraph nodes, retrieval settings, or helpdesk-agent routing.
 
 The baseline below is an **engineering signal**, not a marketing claim. **context_recall** passes the gate under the tuned AWS profile; **faithfulness**, **answer_relevancy**, and **context_precision** are documented baselines with active levers (ingestion/chunking, rerank tuning, golden-set re-bootstrap). Gates are **release controls**, not blockers for local demo or PR CI.
 
@@ -47,7 +47,7 @@ The checked-in golden set was bootstrapped from one **campus knowledge base** de
 
 | Event | `RAGAS_QUALITY_GATE` | Notes |
 |-------|----------------------|--------|
-| PR / `main` CI (`tox (lint, backend, frontends)`) | **0** (default) | Eval not required; keeps PRs fast without AWS |
+| PR / `main` CI (`tox (lint, backend, frontends)`) | **0** (default) | RAGAS not required; mock helpdesk trajectory eval runs via `tox -e agent-eval` |
 | Local / release milestone | **1** | `tox -e eval` or `./scripts/run_eval_phase5.sh`; needs judge + Bedrock |
 | CD `release` workflow | **1** when secrets configured | See [CI.md](operations-manual/ci-cd.md) |
 
@@ -66,13 +66,20 @@ tox -e eval
 
 Requires judge LLM: `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, or `RAGAS_LLM_PROVIDER`.
 
+Helpdesk-agent trajectory eval is separate from RAGAS and is safe for PR CI:
+
+```bash
+tox -e agent-eval       # mock, deterministic PR gate
+tox -e agent-eval-live  # live LLM supervisor comparison; needs provider + LangSmith secrets
+```
+
 ---
 
 ## When to run what
 
 | Event | RAGAS | LangSmith |
 |-------|-------|-----------|
-| Every PR | Optional — unit tests with mocked RAG | Dev only |
+| Every PR | Optional — unit tests with mocked RAG; helpdesk `agent-eval` is required | Dev only |
 | Pre-release / milestone | Full golden set; compare to [baseline](./eval_baseline_v2.md) | Trace screenshots in README |
 | LangGraph parity (Phase 4 (LangGraph)) | chain vs `RAG_ENGINE=langgraph`, ±0.02 | Per-node spans |
 | Retrieval change (Phase 5 (retrieval)) | Primary metric + faithfulness guardrail | Compare runs |
@@ -102,15 +109,15 @@ Requires judge LLM: `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, or `RAGAS_LLM_PROV
 
 ## Helpdesk agent evaluation
 
-**Shipped today (v3.0.0):** Prometheus outcome/tool/funnel metrics on `/api/metrics` and manual mock-mode demo scenarios. **Not yet shipped:** the trajectory scenario rig (`test_helpdesk_agent_scenarios.py`) described in [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md) — it is Phase 4 of the [Agentic Helpdesk Rebuild](./roadmap/AGENTIC_HELPDESK_REBUILD.md) (mock-CI gate + live-nightly comparison). Until Phase 4 lands, agent quality is validated via unit/API tests under `backend/tests/api/test_helpdesk.py` and observability counters, not a golden trajectory dataset.
+**Shipped:** Prometheus outcome/tool/funnel metrics on `/api/metrics`, API/unit coverage under `backend/tests/api/test_helpdesk.py`, and a trajectory scenario rig in `backend/tests/eval/test_helpdesk_agent_scenarios.py`. `tox -e agent-eval` runs the mock dataset in PR CI and gates over-ask, false-escalation, unnecessary-loop, resolve-without-ticket, HITL, and injection-resistance regressions. `tox -e agent-eval-live` runs the same dataset with the live LLM supervisor for nightly/manual comparison; it is intentionally not a PR gate.
 
 | Layer | Status | What it answers | Where |
 |---|---|---|---|
 | **RAGAS golden set** | Shipped | Retrieval + answer quality on KB path | [eval_baseline_v2.md](./eval_baseline_v2.md), `tox -e eval` |
-| **Scenario rig (trajectory)** | Planned — Phase 4 rebuild | Does the supervisor pick the expected `next_action` sequence for known mock conversations? | Design: [HELPDESK_AGENT.md — Eval scenario format](./roadmap/HELPDESK_AGENT.md#eval-scenario-format); target: `backend/tests/eval/test_helpdesk_agent_scenarios.py` |
+| **Scenario rig (trajectory)** | Shipped — PR CI gate | Does the supervisor pick the expected action sequence for known conversations? | `backend/tests/eval/helpdesk_agent_scenarios.json`, `backend/tests/eval/test_helpdesk_agent_scenarios.py`, `tox -e agent-eval` |
 | **Outcome distribution** | Shipped (metrics) | What fraction of agent sessions terminate as `resolved_by_agent` / `linked` / `filed` / `aborted`? | `chatbot_helpdesk_agent_outcome_total{outcome=...}` |
 | **Tool usage** | Shipped (metrics) | How often does the agent reach for `retry_kb` / `web_search` / `search_dups` / `file_ticket`? | `chatbot_helpdesk_agent_tool_total{tool=...}` |
-| **HITL gate** | Shipped (code + tests) | Are tickets ever filed without explicit `/agent/confirm`? (Guard: must be 0.) | `backend/tests/api/test_helpdesk.py`; `chatbot_helpdesk_create_issue_total` |
+| **HITL gate** | Shipped (code + tests + trajectory gate) | Are tickets ever filed without explicit `/agent/confirm`? (Guard: must be 0.) | `backend/tests/api/test_helpdesk.py`; `tox -e agent-eval`; `chatbot_helpdesk_create_issue_total` |
 
 Decision records: [ADR-005](./adr/ADR-005-bounded-helpdesk-agent.md) (original commitment) and [ADR-006](./adr/ADR-006-live-llm-supervisor-migration.md) (rebuild + eval Phase 4).
 

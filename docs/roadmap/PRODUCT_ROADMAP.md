@@ -19,7 +19,7 @@ Delivery phases for Campus RAG Assistant — what is shipped on [`main`](https:/
 ## Quick dev commands
 
 ```bash
-tox -e lint,backend,frontend-vue   # CI-style checks (mock RAG)
+tox -e lint,backend,agent-eval,frontend-vue   # CI-style checks (mock RAG + helpdesk trajectory)
 PIP_SYNC=0 ./scripts/run-backend-venv.sh
 ./scripts/run-frontend-vue.sh
 ```
@@ -150,7 +150,7 @@ Specs: [CONVERSATION_FLOW.md](./CONVERSATION_FLOW.md), [HELPDESK_AGENT.md](./HEL
 
 | Priority | Focus |
 |----------|--------|
-| **Now** | [Agentic Helpdesk Rebuild](./AGENTIC_HELPDESK_REBUILD.md) — Phase −1 (Docker Compose Postgres) through Phase 5 (live campus router); documentation cleanup landed in PRs #50–#54 |
+| **Now** | [Agentic Helpdesk Rebuild](./AGENTIC_HELPDESK_REBUILD.md) — Phase 5 (live campus router); Phase 4 trajectory eval is the current PR-CI gate |
 | **Optional** | Phase 6a LangGraph SSE; grow golden set (10 → 30–50); faithfulness/precision via ingestion/chunking |
 | **Later** | Campus scale track — [PHASED_IMPROVEMENT_ROADMAP.md](./archive/PHASED_IMPROVEMENT_ROADMAP.md) (Redis HA, exact/semantic cache, tenant budgets) |
 
