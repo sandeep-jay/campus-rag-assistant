@@ -26,7 +26,7 @@ Campus RAG Assistant demonstrates multicloud RAG platform engineering plus bound
 | 90-second overview | [docs/REVIEWER_GUIDE.md](docs/REVIEWER_GUIDE.md) |
 | Product and architecture narrative | [docs/PORTFOLIO_CASE_STUDY.md](docs/PORTFOLIO_CASE_STUDY.md) |
 | System design | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) + [docs/DESIGN.md](docs/DESIGN.md) |
-| RAG quality | [docs/EVALUATION.md](docs/EVALUATION.md) + [docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md) |
+| RAG quality | [docs/EVALUATION.md](docs/EVALUATION.md) + [docs/eval_baseline_v2.md](docs/eval_baseline_v2.md) |
 | Agentic orchestration | [docs/helpdesk/index.md](docs/helpdesk/index.md) (overview) -> [docs/roadmap/CONVERSATION_FLOW.md](docs/roadmap/CONVERSATION_FLOW.md) (product spec) + [docs/roadmap/HELPDESK_AGENT.md](docs/roadmap/HELPDESK_AGENT.md) (engineering spec) + [ADR-005](docs/adr/ADR-005-bounded-helpdesk-agent.md) |
 | Operations and security | [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/CI.md](docs/CI.md), [docs/SECURITY.md](docs/SECURITY.md) |
 | Release history | [docs/release-notes/](docs/release-notes/index.md) — v1.0 / v2.0 / v3.0.0 |
@@ -97,7 +97,7 @@ Extended from the public upstream [ets-berkeley-edu/chabot](https://github.com/e
 
 ## Quality baseline
 
-The project includes a **RAGAS golden-set harness** and a documented baseline ([docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md)). Phase 5 retrieval tuning improved AWS **context_recall to 0.80** (passes gate). **Context precision** remains the main improvement target; next work focuses on ingestion/chunking and rerank tuning.
+The project includes a **RAGAS golden-set harness** and a documented baseline ([docs/eval_baseline_v2.md](docs/eval_baseline_v2.md)). Phase 5 retrieval tuning improved AWS **context_recall to 0.80** (passes gate). **Context precision** remains the main improvement target; next work focuses on ingestion/chunking and rerank tuning.
 
 This is intentionally presented as an **engineering baseline**, not a marketing claim. Gates are **release controls** (`RAGAS_QUALITY_GATE=1` on milestones), not blockers for local demo or PR CI. Detail: [docs/EVALUATION.md](docs/EVALUATION.md).
 
@@ -113,7 +113,7 @@ Two-to-three minute walkthrough script for the Vue product UI: [docs/assets/READ
 | AWS Bedrock KB path | Implemented |
 | Azure AI Search / OpenAI path | Implemented |
 | Web research (opt-in) | Implemented (`mock` or `tavily`) |
-| RAGAS baseline | Documented ([docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md)) |
+| RAGAS baseline | Documented ([docs/eval_baseline_v2.md](docs/eval_baseline_v2.md)) |
 | LangSmith traces | Captured in screenshots ([docs/assets/observability/](docs/assets/observability/)) |
 | Public hosted product | Not claimed |
 | Official campus deployment | Not claimed |
@@ -301,7 +301,7 @@ Set `RAG_FORCE_MOCK=false` and configure providers in `.env` (see [docs/OPERATIO
 | `WEB_RESEARCH_ENABLED`, `WEB_SEARCH_PROVIDER` | Opt-in web mode (`mock` \| `tavily`)                                                 |
 | Azure OpenAI / Search vars                    | Per `backend/app/config/` and `.env.example`                                        |
 
-**Tuned eval profile (live AWS):** `./scripts/run_eval_phase5.sh` — see [docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md).
+**Tuned eval profile (live AWS):** `./scripts/run_eval_phase5.sh` — see [docs/eval_baseline_v2.md](docs/eval_baseline_v2.md).
 
 ## Testing
 
@@ -341,7 +341,7 @@ tox -e eval
 RAGAS_QUALITY_GATE=1 tox -e eval   # strict gates (release / local milestone)
 ```
 
-Golden set (**10** rows), thresholds, and baseline scores: [docs/EVALUATION.md](docs/EVALUATION.md) · [docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md). Example traces: [Overview → LangSmith traces](#langsmith-traces).
+Golden set (**10** rows), thresholds, and baseline scores: [docs/EVALUATION.md](docs/EVALUATION.md) · [docs/eval_baseline_v2.md](docs/eval_baseline_v2.md). Example traces: [Overview → LangSmith traces](#langsmith-traces).
 
 | Item                | Where                                                                    |
 | ------------------- | ------------------------------------------------------------------------ |
@@ -360,7 +360,7 @@ Optional follow-ups: **LangGraph-native SSE** (Phase 6a), stricter RAGAS gates a
 | New here | [Live docs](https://sandeep-jay.github.io/campus-rag-assistant/) or this README |
 | Hiring / portfolio reviewer | [docs/PORTFOLIO_CASE_STUDY.md](docs/PORTFOLIO_CASE_STUDY.md) |
 | Architecture reviewer | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/DESIGN.md](docs/DESIGN.md), [docs/adr/](docs/adr/) |
-| Evaluation reviewer | [docs/EVALUATION.md](docs/EVALUATION.md), [docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md) |
+| Evaluation reviewer | [docs/EVALUATION.md](docs/EVALUATION.md), [docs/eval_baseline_v2.md](docs/eval_baseline_v2.md) |
 | Operations reviewer | [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/CI.md](docs/CI.md), [docs/RELEASE.md](docs/RELEASE.md), [docs/SECURITY.md](docs/SECURITY.md) |
 | Product demo reviewer | [docs/assets/README.md](docs/assets/README.md) |
 | Roadmap reviewer | [docs/roadmap/PRODUCT_ROADMAP.md](docs/roadmap/PRODUCT_ROADMAP.md) |

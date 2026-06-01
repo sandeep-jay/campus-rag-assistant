@@ -136,7 +136,7 @@ backend/app/services/tools/
 
 **Streaming.** With `RAG_ENGINE=langgraph` the API emits a `status` SSE event, runs the graph in a worker thread, then streams the buffered answer in paced chunks (not token-level Bedrock streaming). True token streaming (`astream_events` from the chain) is `RAG_ENGINE=chain`. LangGraph-native SSE (Phase 6a) is an optional next step tracked in [PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md).
 
-**Latency (LangSmith on AWS).** Typical run ~4–8s — `generate` dominates; `retrieve` ~0.5s. Tuned profile: `./scripts/run_eval_phase5.sh` (see [eval_baseline_2026-05-19.md](./eval_baseline_2026-05-19.md)).
+**Latency (LangSmith on AWS).** Typical run ~4–8s — `generate` dominates; `retrieve` ~0.5s. Tuned profile: `./scripts/run_eval_phase5.sh` (see [eval_baseline_v2.md](./eval_baseline_v2.md)).
 
 **Rationale:** Recall and precision are tuned in retrieval, not only in the prompt. Each stage is flag-gated so operators can compare profiles. Each node is a LangSmith span, making A/B comparisons traceable.
 

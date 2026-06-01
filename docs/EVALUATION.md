@@ -33,7 +33,7 @@ LangSmith can run evaluators (including RAG-like judges), but **do not treat Lan
 
 The checked-in golden set was bootstrapped from one **campus knowledge base** deployment (Canvas LMS teaching-and-learning and ServiceNow IT articles). Questions and `ground_truth` rows are **corpus-specific**—re-run `scripts/bootstrap_golden_dataset.py` after ingesting your own KB.
 
-**Full score tables, Azure sweep results, tuning profiles, and findings:** [eval_baseline_2026-05-19.md](./eval_baseline_2026-05-19.md).
+**Full score tables, Azure sweep results, tuning profiles, and findings:** [eval_baseline_v2.md](./eval_baseline_v2.md).
 
 | Stack | Best-known highlight | Precision |
 |-------|----------------------|-----------|
@@ -73,7 +73,7 @@ Requires judge LLM: `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, or `RAGAS_LLM_PROV
 | Event | RAGAS | LangSmith |
 |-------|-------|-----------|
 | Every PR | Optional — unit tests with mocked RAG | Dev only |
-| Pre-release / milestone | Full golden set; compare to [baseline](./eval_baseline_2026-05-19.md) | Trace screenshots in README |
+| Pre-release / milestone | Full golden set; compare to [baseline](./eval_baseline_v2.md) | Trace screenshots in README |
 | LangGraph parity (Phase 4 (LangGraph)) | chain vs `RAG_ENGINE=langgraph`, ±0.02 | Per-node spans |
 | Retrieval change (Phase 5 (retrieval)) | Primary metric + faithfulness guardrail | Compare runs |
 | Nightly staging | Full gate with secrets | SLO debugging |
@@ -88,7 +88,7 @@ Requires judge LLM: `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, or `RAGAS_LLM_PROV
 | **Roadmap phase** | Product phase (see [PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md)) |
 | **Primary metric** | context_recall |
 | **Guardrails** | faithfulness ≥ 0.85; p95 latency < X ms |
-| **Baseline** | commit / [eval_baseline_2026-05-19.md](./eval_baseline_2026-05-19.md) |
+| **Baseline** | commit / [eval_baseline_v2.md](./eval_baseline_v2.md) |
 | **Result** | +0.04 recall; faithfulness 0.86 |
 | **Ship** | yes / flag-only / no |
 
@@ -102,23 +102,17 @@ Requires judge LLM: `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, or `RAGAS_LLM_PROV
 
 ## Helpdesk agent evaluation
 
-The helpdesk LangGraph has its own scenario harness (mock-conversation -> expected `next_action`) under `backend/tests/eval/test_helpdesk_agent_scenarios.py`. It runs as part of `tox -e backend` against the mock LLM provider; no AWS credentials are required.
+**Shipped today (v3.0.0):** Prometheus outcome/tool/funnel metrics on `/api/metrics` and manual mock-mode demo scenarios. **Not yet shipped:** the trajectory scenario rig (`test_helpdesk_agent_scenarios.py`) described in [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md) — it is Phase 4 of the [Agentic Helpdesk Rebuild](./roadmap/AGENTIC_HELPDESK_REBUILD.md) (mock-CI gate + live-nightly comparison). Until Phase 4 lands, agent quality is validated via unit/API tests under `backend/tests/api/test_helpdesk.py` and observability counters, not a golden trajectory dataset.
 
-| Layer | What it answers | Where |
-|---|---|---|
-| **Scenario rig** | Does the supervisor pick the expected `next_action` for known mock conversations end-to-end? | `backend/tests/eval/test_helpdesk_agent_scenarios.py` (in `tox -e backend`) |
-| **Outcome distribution** | What fraction of agent sessions terminate as `resolved_by_agent` / `linked` / `filed` / `aborted`? | `chatbot_helpdesk_agent_outcome_total{outcome=...}` |
-| **Tool usage** | How often does the agent reach for `retry_kb` / `web_search` / `search_dups` / `file_ticket`? | `chatbot_helpdesk_agent_tool_total{tool=...}` |
-| **Budget pressure** | Are sessions hitting the supervisor-step or token caps? | `chatbot_helpdesk_agent_budget_*` |
-| **HITL gate** | Are tickets ever filed without explicit `/agent/confirm`? (Guard: must be 0.) | `chatbot_helpdesk_create_issue_total` cross-checked against `/agent/confirm` calls |
+| Layer | Status | What it answers | Where |
+|---|---|---|---|
+| **RAGAS golden set** | Shipped | Retrieval + answer quality on KB path | [eval_baseline_v2.md](./eval_baseline_v2.md), `tox -e eval` |
+| **Scenario rig (trajectory)** | Planned — Phase 4 rebuild | Does the supervisor pick the expected `next_action` sequence for known mock conversations? | Design: [HELPDESK_AGENT.md — Eval scenario format](./roadmap/HELPDESK_AGENT.md#eval-scenario-format); target: `backend/tests/eval/test_helpdesk_agent_scenarios.py` |
+| **Outcome distribution** | Shipped (metrics) | What fraction of agent sessions terminate as `resolved_by_agent` / `linked` / `filed` / `aborted`? | `chatbot_helpdesk_agent_outcome_total{outcome=...}` |
+| **Tool usage** | Shipped (metrics) | How often does the agent reach for `retry_kb` / `web_search` / `search_dups` / `file_ticket`? | `chatbot_helpdesk_agent_tool_total{tool=...}` |
+| **HITL gate** | Shipped (code + tests) | Are tickets ever filed without explicit `/agent/confirm`? (Guard: must be 0.) | `backend/tests/api/test_helpdesk.py`; `chatbot_helpdesk_create_issue_total` |
 
-Run scenario eval locally:
-
-```bash
-tox -e backend  # includes test_helpdesk_agent_scenarios.py
-```
-
-Engineering detail and the eval rig design: [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md). Bounded-agent rationale: [ADR-005](./adr/ADR-005-bounded-helpdesk-agent.md).
+Decision records: [ADR-005](./adr/ADR-005-bounded-helpdesk-agent.md) (original commitment) and [ADR-006](./adr/ADR-006-live-llm-supervisor-migration.md) (rebuild + eval Phase 4).
 
 ---
 

@@ -1,4 +1,8 @@
-# RAGAS eval baseline — 2026-05-19
+# RAGAS eval baseline — v2 retrieval stack
+
+**Captured:** 2026-05-19 · **Scope:** v2 RAG platform (LangGraph KB path, Phase 5 retrieval tuning) — **before** the v3 helpdesk agent shipped.
+
+This document records regression scores for the **v2 retrieval stack** on the 10-row golden set. It is the primary reference when comparing Phase 5 tuning profiles (`./scripts/run_eval_phase5.sh`) and Azure-vs-AWS judge sweeps. For release-by-release context see [release-notes/](./release-notes/index.md); for gate policy see [ADR-004](./adr/ADR-004-eval-gating-policy.md).
 
 Bootstrap of `backend/tests/eval/golden_dataset.json` from live **AWS Bedrock Knowledge Base** (OpenSearch-backed index, `RAG_ENGINE=langgraph`). Golden `ground_truth` and `contexts` reflect **AWS-generation** at bootstrap time.
 
