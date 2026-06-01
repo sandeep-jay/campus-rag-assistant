@@ -4,7 +4,7 @@ Multi-turn, multi-agent helpdesk capability that sits inside the chatbot's
 AGENT mode. Product-level shape (modes, intent routing, UX) lives in
 [CONVERSATION_FLOW.md](./CONVERSATION_FLOW.md).
 
-**Status (2026-05-31):** The shipped surface is bounded, observable, multi-turn, and HITL-gated. The LLM supervisor, structured-output specialists, compiled `StateGraph`, `AsyncPostgresSaver`, enforced budgets, trajectory eval, and campus router below are the [Agentic Helpdesk Rebuild](./AGENTIC_HELPDESK_REBUILD.md) target; the row-by-row shipped/target table lives in [helpdesk/index.md](../helpdesk/index.md#today-vs-target-state).
+**Status (2026-06-01):** The shipped surface is bounded, observable, multi-turn, HITL-gated, and covered by a mock trajectory eval gate. The live LLM supervisor, campus router, and any remaining target-only behavior below are tracked by the [Agentic Helpdesk Rebuild](./AGENTIC_HELPDESK_REBUILD.md); the row-by-row shipped/target table lives in [helpdesk/index.md](../helpdesk/index.md#today-vs-target-state).
 
 > **Reading this doc as a reviewer.** Treat anything below as the target unless it is also listed under "Shipped" in the table above. The `live API surface` at [ARCHITECTURE.md](../ARCHITECTURE.md#helpdesk-capabilities-post-rag) is the source of truth for the current `/api/helpdesk/agent/*` endpoints and `AgentTurn` schema.
 

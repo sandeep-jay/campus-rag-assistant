@@ -36,6 +36,7 @@ import os
 
 # Developer .env may set RAG_ENGINE=langgraph; API tests mock the chain stream path.
 _ragas_eval = os.environ.get('RAGAS_EVAL', '').lower() in ('1', 'true', 'yes')
+_agent_eval = os.environ.get('AGENT_EVAL', '').lower() in ('1', 'true', 'yes')
 if not _ragas_eval:
     os.environ['RAG_ENGINE'] = 'chain'
 elif not os.environ.get('RAG_ENGINE', '').strip():
@@ -45,8 +46,8 @@ elif not os.environ.get('RAG_ENGINE', '').strip():
 # unless a test opts into the Postgres integration path explicitly.
 os.environ.setdefault('HELPDESK_AGENT_CHECKPOINT_BACKEND', 'memory')
 
-# tox -e eval sets RAGAS_EVAL=1 — avoid LangSmith + Bedrock stream teardown noise
-if _ragas_eval:
+# tox eval envs avoid accidental LangSmith + Bedrock stream teardown noise.
+if _ragas_eval or (_agent_eval and os.environ.get('AGENT_EVAL_LIVE', '').lower() not in ('1', 'true', 'yes')):
     os.environ['LANGCHAIN_TRACING_V2'] = 'false'
     os.environ['LANGSMITH_TRACING'] = 'false'
     os.environ['LANGCHAIN_API_KEY'] = ''  # skip LangSmith HTTP during eval

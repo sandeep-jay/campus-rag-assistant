@@ -6,7 +6,7 @@ Automated checks replace Travis CI. **Tox** remains the source of truth for what
 
 | Workflow | File | Triggers |
 |----------|------|----------|
-| **CI** | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | Push to `main`; PRs to `main`, `qa`, `release` |
+| **CI** | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | Push to `main`; PRs to `main`, `qa`, `release`; nightly live helpdesk trajectory eval |
 | **CD** | [`.github/workflows/cd.yml`](../../.github/workflows/cd.yml) | Push to `qa` or `release`; manual `workflow_dispatch` |
 | **Docs** | [`.github/workflows/docs.yml`](../../.github/workflows/docs.yml) | PRs touching docs/site files; push to `main`; manual `workflow_dispatch` |
 | **No tool attribution** | [`.github/workflows/no-tool-attribution.yml`](../../.github/workflows/no-tool-attribution.yml) | Pull requests; required on `main` by the `Protect main` ruleset |
@@ -18,10 +18,13 @@ Automated checks replace Travis CI. **Tox** remains the source of truth for what
 1. **`tox (lint, backend, frontends)`**
    - PostgreSQL 15 service + test DB bootstrap (same as former Travis).
    - Python 3.11 + Node 20 (from `frontend-vue/.nvmrc`).
-   - `tox -e lint,backend,frontend-streamlit,frontend-vue` (sequential — no `-p auto`).
+   - `tox -e lint,backend,agent-eval,frontend-streamlit,frontend-vue` (sequential — no `-p auto`).
    - The backend env runs `backend/tests/core/test_env_template.py`, which
      fails the build if any `Settings` field is missing from `.env.example`
      or any `SecretStr` field carries a real-looking uncommented value.
+   - `agent-eval` runs the mock helpdesk trajectory dataset and gates
+     over-ask, false-escalation, unnecessary-loop, HITL, and injection
+     regressions without live provider credentials.
 
 2. **`gitleaks (history + diff)`**
    - Installs a pinned `gitleaks` binary (8.30.x) and runs
@@ -41,6 +44,12 @@ Automated checks replace Travis CI. **Tox** remains the source of truth for what
      with `.githooks/tool_attribution_guard.py --check`.
    - Fails before squash merge if an AI-tool authorship footer or generated-by
      line appears in metadata that local git hooks cannot sanitize.
+
+5. **`helpdesk trajectory eval (live nightly)`**
+   - Runs only on `schedule` or manual `workflow_dispatch`.
+   - Executes `tox -e agent-eval-live` with `LLM_PROVIDER=aws`,
+     `RETRIEVER_PROVIDER=mock`, and LangSmith tracing enabled. If live LLM
+     credentials are absent, the pytest suite skips rather than gating PRs.
 
 ### Docs site
 
@@ -77,6 +86,8 @@ Without AWS configuration, CD still validates builds; deploy and RAGAS jobs are 
 |--------|---------|
 | `AWS_ACCESS_KEY_ID` | Deploy credentials |
 | `AWS_SECRET_ACCESS_KEY` | Deploy credentials |
+| `AWS_SESSION_TOKEN` | Optional temporary AWS credential for live eval/deploy sessions |
+| `LANGSMITH_API_KEY` | Optional trace upload for `tox -e agent-eval-live` |
 | `EB_APPLICATION_NAME` | Elastic Beanstalk application |
 | `EB_ENVIRONMENT_NAME_QA` | QA environment name |
 | `EB_ENVIRONMENT_NAME_RELEASE` | Production environment name |
@@ -91,10 +102,10 @@ CD uses GitHub **environments** `qa` and `production` on deploy jobs (approval r
 
 ## Local parity
 
-**Fast CI check** (Vue only, no Streamlit): `tox -e lint,backend,frontend-vue` — matches [PRODUCT_ROADMAP.md](../roadmap/PRODUCT_ROADMAP.md). Full CI parity includes `frontend-streamlit` as in `.github/workflows/ci.yml`.
+**Fast CI check** (Vue only, no Streamlit): `tox -e lint,backend,agent-eval,frontend-vue` — matches [PRODUCT_ROADMAP.md](../roadmap/PRODUCT_ROADMAP.md). Full CI parity includes `frontend-streamlit` as in `.github/workflows/ci.yml`.
 
 ```bash
-tox -e lint,backend,frontend-streamlit,frontend-vue,secrets
+tox -e lint,backend,agent-eval,frontend-streamlit,frontend-vue,secrets
 # Optional: tox -e docs  (MkDocs strict build)
 # dependency review (new high/critical CVEs) runs in GitHub only — compares PR dependency diffs
 ```

@@ -128,6 +128,7 @@ Postgres default (per AskQuestion answer), with SQLite + Memory fallbacks. Schem
 
 ### Phase 4 — Trajectory eval split (PR 7)
 
+- **Status:** Implemented in the current Phase 4 slice: mock `tox -e agent-eval` is wired into PR CI, and live `tox -e agent-eval-live` runs on schedule/manual workflow dispatch.
 - **4.1 Dataset.** `backend/tests/eval/helpdesk_agent_scenarios.json`: `{id, conversation, expected_actions[], expect_question, expected_outcome}`. Cover: resolve-without-ticket, infer-don't-ask (campus-wide outage), ask-when-ambiguous, duplicate→linked, budget-exhaustion, injection-in-tool-output, HITL respected.
 - **4.2 Mock-CI gate.** `backend/tests/eval/test_helpdesk_agent_scenarios.py` runs in mock mode and gates on: tool-recall, **over-ask rate**, false-escalation rate, unnecessary-loop count, resolve-without-ticket rate, HITL respected, injection resistance. New env `tox -e agent-eval` runs on every PR. Gate: no regression in over-ask/false-escalation/HITL/injection.
 - **4.3 Live-nightly eval.** New env `tox -e agent-eval-live` requires AWS + LangSmith keys; runs the same dataset against the live LLM supervisor and emits the comparison table (LLM supervisor vs. retained deterministic `supervisor_next_action`). Schedule via GitHub Actions nightly + pre-release; **not** a PR gate (cost/time). The plan's "prove it beats the DAG" claim is honest only because this exists.
