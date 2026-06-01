@@ -1,6 +1,7 @@
 # Campus RAG Assistant
 
 [![CI](https://github.com/sandeep-jay/campus-rag-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/sandeep-jay/campus-rag-assistant/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-github--pages-blue.svg)](https://sandeep-jay.github.io/campus-rag-assistant/)
 [![License](https://img.shields.io/badge/license-UC%20Regents-orange.svg)](license.md)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://github.com/sandeep-jay/campus-rag-assistant/blob/main/pyproject.toml)
 [![Node](https://img.shields.io/badge/node-20%2B-green.svg)](https://github.com/sandeep-jay/campus-rag-assistant/blob/main/frontend-vue/.nvmrc)
@@ -8,12 +9,18 @@
 [![LangGraph](https://img.shields.io/badge/RAG-LangGraph-purple.svg)](DESIGN.md#langgraph-kb-path-multi-query-retrieve-rerank)
 [![RAGAS](https://img.shields.io/badge/eval-RAGAS-yellow.svg)](EVALUATION.md)
 
-**Production-style enterprise RAG platform for governed campus knowledge.**
-
-Campus RAG Assistant shows how an institutional knowledge assistant can be built as a measurable platform, not a one-off chatbot: cited KB answers, source transparency, multicloud provider boundaries, evaluation baselines, observability, and a bounded helpdesk escalation path.
+Campus RAG Assistant is a source-reviewable AI platform for governed campus knowledge. It combines a
+cited-answer RAG path with LangGraph agentic helpdesk orchestration: when the knowledge base cannot
+resolve a question, the agent can retry retrieval, use controlled web research, search GitHub issues
+for duplicates, draft a ticket, and file to GitHub only after human confirmation. The system runs
+behind one FastAPI backend and Vue 3 SPA with AWS / Azure / mock providers, RAGAS evaluation,
+LangSmith and Prometheus observability, CI/security gates, redaction, and HITL guardrails for
+responsible AI.
 
 !!! note "Review model"
-    Review this project through source code, architecture docs, screenshots, evaluation results, and operational artifacts. It is not presented as a hosted public product.
+    Review it as an engineering artifact: source code, architecture, screenshots, evaluation
+    results, observability, CI/CD, security posture, and release hygiene. It is not
+    presented as a hosted public product.
 
 **[View source on GitHub ->](https://github.com/sandeep-jay/campus-rag-assistant)**
 
@@ -21,22 +28,23 @@ Campus RAG Assistant shows how an institutional knowledge assistant can be built
 
 ## Start here
 
-| If you are... | Read |
+| Goal | Start here |
 |---|---|
-| Short on time | [Reviewer Guide](REVIEWER_GUIDE.md) |
-| Evaluating ownership and product judgment | [Case Study](PORTFOLIO_CASE_STUDY.md) |
-| Reviewing architecture | [Architecture](ARCHITECTURE.md) + [Design Notes](DESIGN.md) |
-| Reviewing AI quality | [Evaluation](EVALUATION.md) + [Baseline](eval_baseline_v2.md) |
-| Reviewing agentic orchestration | [Helpdesk overview](helpdesk/index.md) + [ADR-006](adr/ADR-006-live-llm-supervisor-migration.md) |
-| Reviewing production maturity | [Operations Manual](operations-manual/index.md) |
+| 90-second overview | [Reviewer Guide](REVIEWER_GUIDE.md) |
+| Ownership and product judgment | [Case Study](PORTFOLIO_CASE_STUDY.md) |
+| System design | [Architecture](ARCHITECTURE.md) + [Design Notes](DESIGN.md) |
+| RAG quality | [Evaluation](EVALUATION.md) + [Baseline](eval_baseline_v2.md) |
+| Agentic orchestration | [Helpdesk overview](helpdesk/index.md) + [ADR-005](adr/ADR-005-bounded-helpdesk-agent.md) + [ADR-006](adr/ADR-006-live-llm-supervisor-migration.md) |
+| Operations and security | [Operations Manual](operations-manual/index.md) |
 
-## Quality baseline
+## What this shows
 
-The project includes a **RAGAS golden-set harness** and a documented v2 retrieval baseline. Phase 5 retrieval tuning improved AWS **context recall to 0.800**, passing the retrieval coverage gate. **Context precision** remains the main improvement target.
-
-This is an engineering baseline, not a marketing claim. Strict RAGAS gates are release controls, not blockers for local demo or ordinary PR CI.
-
-Read more: [Evaluation approach](EVALUATION.md) and [baseline scores](eval_baseline_v2.md).
+| Capability | What it shows | Evidence |
+|---|---|---|
+| **Cited RAG path** | LangGraph retrieval stages, KB-first answers, multi-query retrieval, rerank hooks, source contracts, and opt-in web research | [DESIGN.md](DESIGN.md) · [EVALUATION.md](EVALUATION.md) · [ADR-001](adr/ADR-001-provider-registry.md) · [ADR-003](adr/ADR-003-opt-in-web-research.md) |
+| **Agentic helpdesk orchestration** | Bounded LangGraph escalation with KB retry, web research, GitHub duplicate search, GitHub ticket drafting/filing, clarifying turns, redaction, HITL confirmation, and four explicit outcomes | [Helpdesk overview](helpdesk/index.md) · [ADR-005](adr/ADR-005-bounded-helpdesk-agent.md) · [ADR-006](adr/ADR-006-live-llm-supervisor-migration.md) |
+| **AI platform architecture** | One FastAPI + Vue product surface over AWS / Azure / mock providers, tenant configuration, feature flags, migrations, and CI-safe local mode | [ARCHITECTURE.md](ARCHITECTURE.md) · [ADR-001](adr/ADR-001-provider-registry.md) |
+| **Evaluation, observability, and responsible AI** | RAGAS baseline, LangSmith traces, Prometheus metrics, k6 load profiles, gitleaks, protected branches, redaction, and human approval before side effects | [eval_baseline_v2.md](eval_baseline_v2.md) · [operations-manual/index.md](operations-manual/index.md) · [ADR-004](adr/ADR-004-eval-gating-policy.md) |
 
 ## Architecture
 
@@ -58,20 +66,6 @@ flowchart LR
 ```
 
 Design detail: [Architecture](ARCHITECTURE.md) and [Design Notes](DESIGN.md).
-
-## Documentation
-
-| Visitor | Best entry point |
-|---------|------------------|
-| New here | This page |
-| Hiring / portfolio reviewer | [Case Study](PORTFOLIO_CASE_STUDY.md) |
-| Architecture reviewer | [Architecture](ARCHITECTURE.md), [Design Notes](DESIGN.md), [ADRs](adr/README.md) |
-| Agentic orchestration reviewer | [Helpdesk Agent overview](helpdesk/index.md), [Conversation Flow](roadmap/CONVERSATION_FLOW.md), [Engineering Spec](roadmap/HELPDESK_AGENT.md), [ADR-005](adr/ADR-005-bounded-helpdesk-agent.md), [ADR-006](adr/ADR-006-live-llm-supervisor-migration.md) |
-| Evaluation reviewer | [Evaluation Approach](EVALUATION.md), [Evaluation Baseline](eval_baseline_v2.md) |
-| Operations reviewer | [Operations](operations-manual/operations.md), [CI/CD](operations-manual/ci-cd.md), [Release](operations-manual/release.md), [Security](operations-manual/security.md) |
-| Product demo reviewer | [Screenshots and demo script](assets/README.md) |
-| Roadmap reviewer | [Product Roadmap](roadmap/PRODUCT_ROADMAP.md) |
-| Release history | [Releases](release-notes/index.md) (v1.0 / v2.0 / v3.0.0) |
 
 ## Screenshots
 
@@ -103,6 +97,14 @@ Design detail: [Architecture](ARCHITECTURE.md) and [Design Notes](DESIGN.md).
 ![Filed GitHub Issue](assets/product/v3/github-issues-created.png)
 
 More assets: [screenshots catalog](assets/README.md).
+
+## Quality baseline
+
+The project includes a **RAGAS golden-set harness** and a documented v2 retrieval baseline. Phase 5 retrieval tuning improved AWS **context recall to 0.800**, passing the retrieval coverage gate. **Context precision** remains the main improvement target.
+
+This is an engineering baseline, not a marketing claim. Strict RAGAS gates are release controls, not blockers for local demo or ordinary PR CI.
+
+Read more: [Evaluation approach](EVALUATION.md) and [baseline scores](eval_baseline_v2.md).
 
 ## Stack
 
@@ -142,20 +144,6 @@ PIP_SYNC=0 ./scripts/run-backend-venv.sh          # http://127.0.0.1:8000
 ```
 
 Register a user and start a chat. Responses use the mock provider unless you configure live AWS/Azure providers.
-
-## Review artifacts
-
-| Artifact | Status |
-|---|---|
-| Source code | Implemented |
-| Vue product UI screenshots | Included |
-| Local mock execution path | Implemented |
-| AWS Bedrock KB path | Implemented |
-| Azure AI Search / OpenAI path | Implemented |
-| RAGAS baseline | Documented |
-| LangSmith traces | Captured in screenshots |
-| Public hosted product | Not claimed |
-| Official campus deployment | Not claimed |
 
 ## Origin and Scope
 

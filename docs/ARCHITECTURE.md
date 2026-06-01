@@ -1,10 +1,16 @@
 # Architecture
 
-**Campus RAG Assistant** is a retrieval-augmented chat product: a **FastAPI** backend, a **Vue 3** SPA (`frontend-vue/`), and an optional **Streamlit** client on the same REST API.
+Campus RAG Assistant is a source-reviewable AI platform for governed campus knowledge. It combines a
+cited-answer RAG path with LangGraph agentic helpdesk orchestration: when the knowledge base cannot
+resolve a question, the agent can retry retrieval, use controlled web research, search GitHub issues
+for duplicates, draft a ticket, and file to GitHub only after human confirmation. The system runs
+behind one FastAPI backend and Vue 3 SPA with AWS / Azure / mock providers, RAGAS evaluation,
+LangSmith and Prometheus observability, CI/security gates, redaction, and HITL guardrails for
+responsible AI.
+
+This page describes the current system architecture first, then keeps earlier versions as collapsed drill-downs so reviewers can understand the evolution without reconstructing the live architecture from release history.
 
 For design goals and decision rationale, see [DESIGN.md](./DESIGN.md). For release-by-release summaries, see [release-notes/](./release-notes/index.md).
-
-This page starts with the **current v3 system**. Earlier versions are preserved as collapsed drill-downs so reviewers can understand the evolution without piecing together the live architecture from a changelog.
 
 ## Current architecture
 
@@ -82,26 +88,6 @@ The topology image is the reviewer map for the whole current architecture: the R
     | **Ops** | LangSmith | LangSmith + **Prometheus** — [OPERATIONS.md — Shipped performance guardrails](operations-manual/operations.md#shipped-performance-guardrails-campus-phase-0) |
     | **Quality** | — | **RAGAS** harness, k6 load tests |
 
-### AWS retrieval: Bedrock Knowledge Base and OpenSearch
-
-On AWS, the application calls the **Bedrock Knowledge Base** retrieve API via LangChain's `AmazonKnowledgeBasesRetriever` — not OpenSearch HTTP endpoints directly. In a typical deployment:
-
-```text
-App (AmazonKnowledgeBasesRetriever)
-  → Bedrock Knowledge Base (retrieve, metadata filters)
-    → OpenSearch Serverless (vector index + chunk storage)
-```
-
-| Component | Role |
-|-----------|------|
-| **Bedrock Knowledge Base** | Managed RAG entry point: sync connectors, chunking, retrieve API, citation metadata |
-| **OpenSearch Serverless** | Vector (and often hybrid) index backing the KB; ingestion and index lifecycle owned by AWS |
-| **ServiceNow / LMS corpus** | Source content ingested into the KB (e.g. knowledge articles synced to the index) |
-
-The application owns one retriever interface in the provider registry — `RETRIEVER_PROVIDER=aws` selects the KB path with optional metadata filters via `build_bedrock_vector_filter` in `backend/app/services/retrieval.py`. Index lifecycle, chunking, and ingestion connectors stay managed by AWS, so the app does not run OpenSearch client code.
-
-The Azure path uses **Azure AI Search** instead of OpenSearch — same provider pattern, different backing service. The original [upstream chabot](https://github.com/ets-berkeley-edu/chabot) (v1) invoked OpenSearch from application code; v2 moved retrieval through the KB API and that contract is unchanged in v3.
-
 ## Chat request flow
 
 ```mermaid
@@ -132,59 +118,6 @@ sequenceDiagram
 - **Buffered fallback:** `POST /api/chat/chat` returns the full assistant message when streaming fails or is disabled.
 - **Sessions:** Messages belong to a `ChatSession` per user; history is passed into the LangChain conversational chain for follow-up questions.
 - **Answer shape:** The model is instructed via `backend/app/templates/prompt_prefix.txt` to use a consistent Markdown template (summary → `##` sections → bold lead-ins → bullets / numbered steps). Backend and frontend apply **light sanitization only** (drop prompt leakage, optional `**Title**` → `## Title`); they do not rewrite structure with topic-specific heuristics.
-
-## Backend
-
-- **Entry**: [`backend/app/main.py`](../backend/app/main.py) builds the FastAPI app; runs SQLAlchemy `create_all` only in dev/test (production uses Alembic); configures CORS, and mounts routers under `/api/auth` and `/api/chat`.
-- **Configuration**: Pydantic settings in [`backend/app/config/default.py`](../backend/app/config/default.py), loaded via [`backend/app/core/config_manager.py`](../backend/app/core/config_manager.py) from layered `.env` files (`APP_ENV`, repo root `.env`, `.env.{APP_ENV}`).
-- **Auth**: JWT plus HTTP-only cookies (`/api/auth/login-json`, register, **OAuth** via `/api/auth/oauth/{provider}/…`; dev uses API-port callback (`OAUTH_REDIRECT_BASE_URL` on `:8000`) and one-time redirect to Vue `/oauth/handoff` — [OPERATIONS.md — OAuth and authentication](operations-manual/operations.md#oauth-and-authentication). Cookie `Secure` and `SameSite` follow `AUTH_COOKIE_*` settings (see `.env.example`, [OPERATIONS.md — Production HTTPS](operations-manual/operations.md#production-https-and-http2)).
-- **RAG**: [`backend/app/services/rag.py`](../backend/app/services/rag.py) — `RAG_ENGINE=chain` (default in tests via conftest) uses a LangChain conversational retrieval chain; `RAG_ENGINE=langgraph` runs [`backend/app/services/graph/`](../backend/app/services/graph/) with KB path **condense → multi_query → retrieve → rerank → generate → format** (web path skips rerank; see [DESIGN.md — LangGraph KB path](./DESIGN.md#langgraph-kb-path-multi-query-retrieve-rerank) and [Opt-in web research](./DESIGN.md#opt-in-web-research)).
-- **LangGraph streaming:** When `RAG_ENGINE=langgraph`, `/api/chat/stream` emits a `status` event, runs the graph in a worker thread, then streams the buffered answer in paced chunks (not token-level Bedrock streaming). Use `RAG_ENGINE=chain` for `astream_events` TTFT.
-- **Research mode:** Optional `research_mode=web` on chat requests when `WEB_RESEARCH_ENABLED=true`; responses include `source_kind` and a web disclaimer when applicable.
-- **Singleton:** `get_rag_service()` returns one shared `RAGService` instance (thread-safe) for all chat handlers.
-- **Providers**: [`backend/app/services/providers/`](../backend/app/services/providers/) registers LLM and retriever implementations (`aws`, `azure`, `mock`) selected by `LLM_PROVIDER`, `RETRIEVER_PROVIDER`, optional `RAG_PROVIDER`, and `RAG_FORCE_MOCK`. When both `LLM_PROVIDER` and `RETRIEVER_PROVIDER` are set, they take precedence over `RAG_PROVIDER`.
-
-### Chat API surface (summary)
-
-| Endpoint | Purpose |
-|----------|---------|
-| `POST /api/chat/stream` | SSE streaming reply |
-| `POST /api/chat/chat` | Buffered reply |
-| `GET/POST/DELETE /api/chat/sessions` | Conversation CRUD |
-| `POST /api/chat/feedback` | Thumbs up/down |
-| `GET /api/auth/oauth/{provider}/start` | OAuth redirect (e.g. `github`) |
-| `GET /api/auth/oauth/{provider}/callback` | OAuth callback on API origin; dev handoff to Vue `/oauth/handoff` |
-| `GET /api/chat/messages/{id}/sources` | Source metadata for a message |
-| `POST /api/helpdesk/summarize` | Narrative conversation recap from the last N chat turns (auth + rate limit) |
-| `POST /api/helpdesk/draft-ticket` | Structured ticket draft from the last N chat turns (auth + rate limit) |
-| `POST /api/helpdesk/create-issue` | File reviewed draft to GitHub (idempotent, demo repo) |
-
-## Frontend (`frontend-vue/`)
-
-- **Data flow**: Axios client (`src/api/`) → Pinia stores (`src/stores/`) → views/components. Cookies sent with `withCredentials`.
-- **Chat UI**: `ChatView` + sidebar session list; `MessageBubble` (Markdown, user/assistant lanes, accessible accent); `SourcesPanel` / `SourcesSummary` below assistant replies; `MessageFeedback`; SSE streaming with typing/status indicator. Dev server: `http://127.0.0.1:5173`.
-- **Routing**: Vue Router guards call `fetchCurrentUser` for protected routes.
-- **Testing**: Vitest + MSW (`src/mocks/`) for unit/integration tests; Playwright under `e2e/` (see [OPERATIONS.md — Playwright E2E](operations-manual/operations.md#playwright-e2e-frontend-vue)).
-
-## Production-oriented behavior
-
-When `APP_ENV` is `production` or `prod` (configurable via `.env`):
-
-- `ENABLE_DEV_API_ROUTES` defaults to **false** (hides `/api/auth/debug-auth`, `/api/chat/test_langsmith`).
-- `ENABLE_OPENAPI_DOCS` defaults to **false** (no Swagger/ReDoc/OpenAPI JSON).
-- `AUTH_COOKIE_SECURE` defaults to **true**.
-
-Override any of these explicitly in `.env` when needed.
-
-## CORS
-
-- If `BACKEND_CORS_ORIGINS` is `*`, the app allows a fixed list of local origins plus `FRONTEND_URL`.
-- For production, set `BACKEND_CORS_ORIGINS` to an explicit comma-separated list of allowed origins (see `.env.example`).
-
-## Testing note
-
-Integration tests mock RAG by patching **`backend.app.api.chat.get_rag_service`** (the name bound in the chat router module), not only `backend.app.services.rag.get_rag_service`, because the router imports that function by reference at load time.
-
 
 ## Helpdesk capabilities (post-RAG)
 
@@ -286,6 +219,95 @@ sequenceDiagram
 - **Secrets:** `GITHUB_TOKEN` + `GITHUB_REPO` (private demo repo); see
   `.env.example` and [SECURITY.md](operations-manual/security.md).
 
+## AWS retrieval: Bedrock Knowledge Base and OpenSearch
+
+On AWS, the application calls the **Bedrock Knowledge Base** retrieve API via LangChain's `AmazonKnowledgeBasesRetriever` — not OpenSearch HTTP endpoints directly. In a typical deployment:
+
+```text
+App (AmazonKnowledgeBasesRetriever)
+  → Bedrock Knowledge Base (retrieve, metadata filters)
+    → OpenSearch Serverless (vector index + chunk storage)
+```
+
+| Component | Role |
+|-----------|------|
+| **Bedrock Knowledge Base** | Managed RAG entry point: sync connectors, chunking, retrieve API, citation metadata |
+| **OpenSearch Serverless** | Vector (and often hybrid) index backing the KB; ingestion and index lifecycle owned by AWS |
+| **ServiceNow / LMS corpus** | Source content ingested into the KB (e.g. knowledge articles synced to the index) |
+
+The application owns one retriever interface in the provider registry — `RETRIEVER_PROVIDER=aws` selects the KB path with optional metadata filters via `build_bedrock_vector_filter` in `backend/app/services/retrieval.py`. Index lifecycle, chunking, and ingestion connectors stay managed by AWS, so the app does not run OpenSearch client code.
+
+## Azure retrieval: Azure AI Search
+
+On Azure, the application owns the retrieval call directly: it computes the query embedding with `AzureOpenAIEmbeddings` and calls Azure AI Search via the `azure-search-documents` `SearchClient`. There is no managed retrieval API like Bedrock Knowledge Base in this path.
+
+```text
+App (AzureHybridRetriever)
+  -> AzureOpenAIEmbeddings (query vector)
+  -> Azure AI Search (hybrid: vector_queries + search_text/BM25)
+```
+
+| Component | Role |
+|-----------|------|
+| **Azure AI Search index** | Vector + keyword index storing chunked content; `text_vector` carries embeddings while textual fields support BM25 matching |
+| **AzureOpenAIEmbeddings** | App calls the Azure OpenAI embedding deployment to vectorize the user query at retrieval time |
+| **AzureHybridRetriever** | App-owned LangChain retriever that issues one hybrid search and yields `Document` objects with `kb_*` citation metadata (`backend/app/services/providers/retriever/azure.py`) |
+| **Azure OpenAI chat deployment** | LLM provider when `LLM_PROVIDER=azure`, configured separately from the embedding deployment |
+
+`RETRIEVER_PROVIDER=azure` selects `AzureHybridRetriever`. Unlike the AWS path, ingestion, chunking, and index lifecycle are not abstracted by a managed retrieval API; the app issues the hybrid search and the index is populated and refreshed outside the app process.
+
+## Backend
+
+- **Entry**: [`backend/app/main.py`](../backend/app/main.py) builds the FastAPI app; runs SQLAlchemy `create_all` only in dev/test (production uses Alembic); configures CORS, and mounts routers under `/api/auth` and `/api/chat`.
+- **Configuration**: Pydantic settings in [`backend/app/config/default.py`](../backend/app/config/default.py), loaded via [`backend/app/core/config_manager.py`](../backend/app/core/config_manager.py) from layered `.env` files (`APP_ENV`, repo root `.env`, `.env.{APP_ENV}`).
+- **Auth**: JWT plus HTTP-only cookies (`/api/auth/login-json`, register, **OAuth** via `/api/auth/oauth/{provider}/…`; dev uses API-port callback (`OAUTH_REDIRECT_BASE_URL` on `:8000`) and one-time redirect to Vue `/oauth/handoff` — [OPERATIONS.md — OAuth and authentication](operations-manual/operations.md#oauth-and-authentication). Cookie `Secure` and `SameSite` follow `AUTH_COOKIE_*` settings (see `.env.example`, [OPERATIONS.md — Production HTTPS](operations-manual/operations.md#production-https-and-http2)).
+- **RAG**: [`backend/app/services/rag.py`](../backend/app/services/rag.py) — `RAG_ENGINE=chain` (default in tests via conftest) uses a LangChain conversational retrieval chain; `RAG_ENGINE=langgraph` runs [`backend/app/services/graph/`](../backend/app/services/graph/) with KB path **condense → multi_query → retrieve → rerank → generate → format** (web path skips rerank; see [DESIGN.md — LangGraph KB path](./DESIGN.md#langgraph-kb-path-multi-query-retrieve-rerank) and [Opt-in web research](./DESIGN.md#opt-in-web-research)).
+- **LangGraph streaming:** When `RAG_ENGINE=langgraph`, `/api/chat/stream` emits a `status` event, runs the graph in a worker thread, then streams the buffered answer in paced chunks (not token-level Bedrock streaming). Use `RAG_ENGINE=chain` for `astream_events` TTFT.
+- **Research mode:** Optional `research_mode=web` on chat requests when `WEB_RESEARCH_ENABLED=true`; responses include `source_kind` and a web disclaimer when applicable.
+- **Singleton:** `get_rag_service()` returns one shared `RAGService` instance (thread-safe) for all chat handlers.
+- **Providers**: [`backend/app/services/providers/`](../backend/app/services/providers/) registers LLM and retriever implementations (`aws`, `azure`, `mock`) selected by `LLM_PROVIDER`, `RETRIEVER_PROVIDER`, optional `RAG_PROVIDER`, and `RAG_FORCE_MOCK`. When both `LLM_PROVIDER` and `RETRIEVER_PROVIDER` are set, they take precedence over `RAG_PROVIDER`.
+
+### Chat API surface (summary)
+
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /api/chat/stream` | SSE streaming reply |
+| `POST /api/chat/chat` | Buffered reply |
+| `GET/POST/DELETE /api/chat/sessions` | Conversation CRUD |
+| `POST /api/chat/feedback` | Thumbs up/down |
+| `GET /api/auth/oauth/{provider}/start` | OAuth redirect (e.g. `github`) |
+| `GET /api/auth/oauth/{provider}/callback` | OAuth callback on API origin; dev handoff to Vue `/oauth/handoff` |
+| `GET /api/chat/messages/{id}/sources` | Source metadata for a message |
+| `POST /api/helpdesk/summarize` | Narrative conversation recap from the last N chat turns (auth + rate limit) |
+| `POST /api/helpdesk/draft-ticket` | Structured ticket draft from the last N chat turns (auth + rate limit) |
+| `POST /api/helpdesk/create-issue` | File reviewed draft to GitHub (idempotent, demo repo) |
+
+## Frontend (`frontend-vue/`)
+
+- **Data flow**: Axios client (`src/api/`) → Pinia stores (`src/stores/`) → views/components. Cookies sent with `withCredentials`.
+- **Chat UI**: `ChatView` + sidebar session list; `MessageBubble` (Markdown, user/assistant lanes, accessible accent); `SourcesPanel` / `SourcesSummary` below assistant replies; `MessageFeedback`; SSE streaming with typing/status indicator. Dev server: `http://127.0.0.1:5173`.
+- **Routing**: Vue Router guards call `fetchCurrentUser` for protected routes.
+- **Testing**: Vitest + MSW (`src/mocks/`) for unit/integration tests; Playwright under `e2e/` (see [OPERATIONS.md — Playwright E2E](operations-manual/operations.md#playwright-e2e-frontend-vue)).
+
+## Production-oriented behavior
+
+When `APP_ENV` is `production` or `prod` (configurable via `.env`):
+
+- `ENABLE_DEV_API_ROUTES` defaults to **false** (hides `/api/auth/debug-auth`, `/api/chat/test_langsmith`).
+- `ENABLE_OPENAPI_DOCS` defaults to **false** (no Swagger/ReDoc/OpenAPI JSON).
+- `AUTH_COOKIE_SECURE` defaults to **true**.
+
+Override any of these explicitly in `.env` when needed.
+
+## CORS
+
+- If `BACKEND_CORS_ORIGINS` is `*`, the app allows a fixed list of local origins plus `FRONTEND_URL`.
+- For production, set `BACKEND_CORS_ORIGINS` to an explicit comma-separated list of allowed origins (see `.env.example`).
+
 ## Rate limiting
 
 - `backend/app/core/rate_limit.py` — process-local sliding windows on auth/chat (`RATE_LIMIT_ENABLED`). Use Redis-backed limits for multi-instance production.
+
+## Testing note
+
+Integration tests mock RAG by patching **`backend.app.api.chat.get_rag_service`** (the name bound in the chat router module), not only `backend.app.services.rag.get_rag_service`, because the router imports that function by reference at load time.

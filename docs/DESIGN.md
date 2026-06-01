@@ -97,6 +97,19 @@ retrieve node → Bedrock KB API → OpenSearch Serverless index
 
 ---
 
+### Azure AI Search (Azure)
+
+The Azure retrieval path uses **Azure AI Search** directly instead of a managed retrieval API. `RETRIEVER_PROVIDER=azure` selects `AzureHybridRetriever`, which embeds the user query with `AzureOpenAIEmbeddings` and sends one hybrid request to Azure AI Search (`vector_queries` plus `search_text`).
+
+This keeps the app contract aligned with AWS and mock providers while making the Azure-specific boundary explicit:
+
+- Azure AI Search owns the vector + keyword index.
+- The app owns query embedding, hybrid search construction, and result-to-citation mapping.
+- Index ingestion and refresh happen outside the app process.
+- Azure OpenAI chat and embedding deployments are configured separately.
+
+This is intentionally different from AWS Bedrock Knowledge Base: Azure gives the application more direct control over hybrid query shape, while AWS delegates retrieval orchestration and index lifecycle behind the KB retrieve API.
+
 ### Provider registry (LLM + retriever)
 
 `LLM_PROVIDER` and `RETRIEVER_PROVIDER` select `aws`, `azure`, or `mock` implementations. `RAG_FORCE_MOCK=true` forces mock for demos and CI.

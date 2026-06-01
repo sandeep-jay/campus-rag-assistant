@@ -4,29 +4,6 @@ A bounded **multi-turn helpdesk capability** that picks up where RAG cannot, exp
 
 > **Why this section exists separately.** The helpdesk capability is a deliberate piece of agentic engineering, not a roadmap item. The two specs below — product UX contract and engineering spec — are the canonical references. The summary on this page is the entry point.
 
-## Today vs target state
-
-The shipped helpdesk loop is real, observable, multi-turn, and HITL-gated, but the supervisor that picks `next_action` is currently a **deterministic 3-branch routine** (not an LLM). The [Agentic Helpdesk Rebuild](../roadmap/AGENTIC_HELPDESK_REBUILD.md) is the live forward-looking plan that swaps the routine for a real LLM supervisor + Pydantic-structured-output specialists on top of a compiled `StateGraph` + `AsyncPostgresSaver` checkpointer.
-
-| Capability | Shipped on `main` (v3.0.0) | Target (Agentic Rebuild) |
-|---|---|---|
-| Tool calls (`retry_kb`, `web_search`, `search_dups`, `file_ticket`) | Yes | Yes — wrapped as LangGraph `@tool` |
-| Multi-turn pause / resume via clarifying questions | Yes | Yes — via LangGraph `interrupt()` |
-| HITL gate on `file_ticket` (only via `/agent/confirm`) | Yes | Yes (invariant) |
-| Four terminal outcomes (`resolved_by_agent` / `linked` / `filed` / `aborted`) | Yes | Yes |
-| Redaction of PII / cloud keys / GitHub tokens before LLM + before GitHub | Yes | Yes (Phase 0 extends to all tool inputs) |
-| Prometheus metrics (`chatbot_helpdesk_agent_*`) | Yes | Yes (Phase 3 adds decision / latency / tokens histograms) |
-| LangSmith spans | Yes (canned SSE status) | Phase 3 — real `astream_events` per node + tool |
-| Supervisor picks `next_action` | Deterministic 3-branch routine | LLM supervisor with `with_structured_output(SupervisorDecision)` (Phase 2) |
-| Specialists (Clarifier / Classifier / Writer / Solution) | Hand-coded helpers | LLM nodes with focused prompts (Phase 2) |
-| `StateGraph` compiled with conditional edges | No — hand-coded `runner.py` | Phase 1a |
-| Checkpointer | Custom JSON-on-SQLite | `AsyncPostgresSaver` keyed by `chat_session_id`, schema owned by Alembic (Phase 1b) |
-| Hard budget enforcement (turns, questions, retries, tokens, deadline) | Counters tracked but not read | Phase 0 wires enforcement at every increment site |
-| Trajectory eval (`test_helpdesk_agent_scenarios.py`) | Scenario rig as designed | Phase 4 — mock-CI gate + live-nightly comparison |
-| Campus router (`classify_domain`) | Not built | Phase 5 — LLM domain router with capability registry |
-
-Roadmap source of truth: [docs/roadmap/AGENTIC_HELPDESK_REBUILD.md](../roadmap/AGENTIC_HELPDESK_REBUILD.md). Decision record: [ADR-005](../adr/ADR-005-bounded-helpdesk-agent.md) (original commitment) and [ADR-006](../adr/ADR-006-live-llm-supervisor-migration.md) (rebuild supersession).
-
 ## What it does
 
 When the KB path cannot resolve a question, instead of dead-ending the user the system can:
@@ -74,6 +51,29 @@ flowchart LR
 | **Kill switch** | `HELPDESK_AGENT_KILL_SWITCH` disables all agent endpoints with a single env flip |
 | **HITL** | `file_ticket` reachable only via `/agent/confirm` — never auto-files |
 | **Privacy** | `services/helpdesk/redaction.py` strips emails / JWTs / cloud keys / GitHub tokens both before LLM calls and again immediately before posting to GitHub |
+
+## Today vs target state
+
+The shipped helpdesk loop is real, observable, multi-turn, and HITL-gated, but the supervisor that picks `next_action` is currently a **deterministic 3-branch routine** (not an LLM). The [Agentic Helpdesk Rebuild](../roadmap/AGENTIC_HELPDESK_REBUILD.md) is the live forward-looking plan that swaps the routine for a real LLM supervisor + Pydantic-structured-output specialists on top of a compiled `StateGraph` + `AsyncPostgresSaver` checkpointer.
+
+| Capability | Shipped on `main` (v3.0.0) | Target (Agentic Rebuild) |
+|---|---|---|
+| Tool calls (`retry_kb`, `web_search`, `search_dups`, `file_ticket`) | Yes | Yes — wrapped as LangGraph `@tool` |
+| Multi-turn pause / resume via clarifying questions | Yes | Yes — via LangGraph `interrupt()` |
+| HITL gate on `file_ticket` (only via `/agent/confirm`) | Yes | Yes (invariant) |
+| Four terminal outcomes (`resolved_by_agent` / `linked` / `filed` / `aborted`) | Yes | Yes |
+| Redaction of PII / cloud keys / GitHub tokens before LLM + before GitHub | Yes | Yes (Phase 0 extends to all tool inputs) |
+| Prometheus metrics (`chatbot_helpdesk_agent_*`) | Yes | Yes (Phase 3 adds decision / latency / tokens histograms) |
+| LangSmith spans | Yes (canned SSE status) | Phase 3 — real `astream_events` per node + tool |
+| Supervisor picks `next_action` | Deterministic 3-branch routine | LLM supervisor with `with_structured_output(SupervisorDecision)` (Phase 2) |
+| Specialists (Clarifier / Classifier / Writer / Solution) | Hand-coded helpers | LLM nodes with focused prompts (Phase 2) |
+| `StateGraph` compiled with conditional edges | No — hand-coded `runner.py` | Phase 1a |
+| Checkpointer | Custom JSON-on-SQLite | `AsyncPostgresSaver` keyed by `chat_session_id`, schema owned by Alembic (Phase 1b) |
+| Hard budget enforcement (turns, questions, retries, tokens, deadline) | Counters tracked but not read | Phase 0 wires enforcement at every increment site |
+| Trajectory eval (`test_helpdesk_agent_scenarios.py`) | Scenario rig as designed | Phase 4 — mock-CI gate + live-nightly comparison |
+| Campus router (`classify_domain`) | Not built | Phase 5 — LLM domain router with capability registry |
+
+Roadmap source of truth: [docs/roadmap/AGENTIC_HELPDESK_REBUILD.md](../roadmap/AGENTIC_HELPDESK_REBUILD.md). Decision record: [ADR-005](../adr/ADR-005-bounded-helpdesk-agent.md) (original commitment) and [ADR-006](../adr/ADR-006-live-llm-supervisor-migration.md) (rebuild supersession).
 
 ## Where to read more
 
