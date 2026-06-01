@@ -133,4 +133,4 @@ The **`Protect main`** ruleset on the default branch requires these status check
 
 A separate ruleset, **`Protect main, qa, release from deletion`**, blocks branch deletion on `main`, `qa`, and `release`.
 
-Remote branches on `origin`: `main`, `qa`, `release`. Release tags: `v0.1`, `v2.0`.
+Remote branches on `origin`: `main`, `qa`, `release`. Release tags: [`v1.0`](https://github.com/sandeep-jay/campus-rag-assistant/releases/tag/v1.0) (alias of `v0.1`), [`v2.0`](https://github.com/sandeep-jay/campus-rag-assistant/releases/tag/v2.0), [`v3.0.0`](https://github.com/sandeep-jay/campus-rag-assistant/releases/tag/v3.0.0). See [release-notes/](./release-notes/index.md) for high-level summaries and [RELEASE.md](./RELEASE.md) for the promotion process.

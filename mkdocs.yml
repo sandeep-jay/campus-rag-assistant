@@ -4,8 +4,6 @@ site_url: https://sandeep-jay.github.io/campus-rag-assistant/
 repo_url: https://github.com/sandeep-jay/campus-rag-assistant
 repo_name: sandeep-jay/campus-rag-assistant
 edit_uri: edit/main/docs/
-exclude_docs: |
-  /README.md
 
 validation:
   nav:
@@ -105,10 +103,7 @@ nav:
       - Agentic Helpdesk Rebuild: roadmap/AGENTIC_HELPDESK_REBUILD.md
       - LangGraph: roadmap/LANGGRAPH.md
       - Web Research: roadmap/WEB_RESEARCH.md
-  - Release Notes:
-      - v3.0.0: release-notes/v3.0.0.md
-      - v2.0: release-notes/v2.0.md
-      - v1.0: release-notes/v1.0.md
+  - Releases: release-notes/index.md
   - Changelog: changelog.md
   - Notice: notice.md
   - License: license.md

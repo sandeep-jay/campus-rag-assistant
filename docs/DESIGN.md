@@ -231,5 +231,5 @@ Documented in [roadmap/PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md):
 ## Related
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — diagrams, API summary, frontend layout
-- [docs/README.md](./README.md) — documentation index
-- [changelog/CHANGELOG.md](../changelog/CHANGELOG.md) — what shipped when
+- [release-notes/](./release-notes/index.md) — high-level summaries per tag
+- [changelog/CHANGELOG.md](../changelog/CHANGELOG.md) — fine-grained per-PR changelog
