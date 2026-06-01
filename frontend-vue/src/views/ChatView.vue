@@ -17,7 +17,7 @@ const chatStore = useChatStore()
 const helpdeskStore = useHelpdeskStore()
 const { messages, streamingMessage, streamingStatus, isSendingMessage, isLoading, activeSessionId, retryableSendContent, researchMode, chatMode } =
   storeToRefs(chatStore)
-const { agentRunning, agentStatus, activeTurn } = storeToRefs(helpdeskStore)
+const { agentRunning, agentStatus, agentSteps, activeTurn } = storeToRefs(helpdeskStore)
 
 const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null)
 const messageListRef = ref<HTMLElement | null>(null)
@@ -187,6 +187,7 @@ function handlePromptSelected(prompt: string): void {
       <TypingIndicator
         v-if="(isSendingMessage && !streamingMessage?.content) || agentRunning"
         :status="agentRunning ? agentStatus : streamingStatus"
+        :agent-steps="agentRunning ? agentSteps : []"
       />
     </div>
 

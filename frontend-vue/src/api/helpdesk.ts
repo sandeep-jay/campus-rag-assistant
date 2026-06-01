@@ -1,5 +1,6 @@
 import client from './client'
 import type {
+  AgentStreamStepEvent,
   AgentStreamEvent,
   AgentTurn,
   ConversationSummary,
@@ -97,6 +98,7 @@ async function streamAgentTurn(
   url: string,
   payload: unknown,
   onStatus?: (message: string) => void,
+  onStep?: (event: AgentStreamStepEvent) => void,
 ): Promise<AgentTurn> {
   const csrfCookie = document.cookie
     .split('; ')
@@ -141,6 +143,8 @@ async function streamAgentTurn(
         const event = JSON.parse(rawJson) as AgentStreamEvent
         if (event.type === 'status') {
           onStatus?.(event.message)
+        } else if (event.type === 'step') {
+          onStep?.(event)
         } else if (event.type === 'done') {
           finalTurn = event.turn
         } else if (event.type === 'error') {
@@ -161,11 +165,13 @@ export async function streamStartAgentSession(
   conversation: ConversationTurn[],
   chat_session_id?: number | null,
   onStatus?: (message: string) => void,
+  onStep?: (event: AgentStreamStepEvent) => void,
 ): Promise<AgentTurn> {
   return streamAgentTurn(
     '/api/helpdesk/agent/start/stream',
     { conversation, chat_session_id: chat_session_id ?? null },
     onStatus,
+    onStep,
   )
 }
 
@@ -175,6 +181,6 @@ export async function streamResumeAgentSession(params: {
   choice?: string
   pending_question_id?: string
   chat_session_id?: number | null
-}, onStatus?: (message: string) => void): Promise<AgentTurn> {
-  return streamAgentTurn('/api/helpdesk/agent/resume/stream', params, onStatus)
+}, onStatus?: (message: string) => void, onStep?: (event: AgentStreamStepEvent) => void): Promise<AgentTurn> {
+  return streamAgentTurn('/api/helpdesk/agent/resume/stream', params, onStatus, onStep)
 }

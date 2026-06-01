@@ -40,6 +40,16 @@ export interface AgentStep {
   action: string
   outcome: string
   message: string | null
+  latency_ms?: number | null
+}
+
+export interface AgentStreamStepEvent {
+  type: 'step'
+  node: string
+  action: string
+  status: 'running' | 'success' | 'error'
+  latency_ms: number | null
+  summary: string | null
 }
 
 export type AgentTurnKind =
@@ -75,5 +85,6 @@ export interface AgentTurn {
 
 export type AgentStreamEvent =
   | { type: 'status'; message: string }
+  | AgentStreamStepEvent
   | { type: 'done'; turn: AgentTurn }
   | { type: 'error'; message: string }

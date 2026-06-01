@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 from backend.app.core.config_manager import settings
+from backend.app.core.metrics import HELPDESK_AGENT_DECISION_TOTAL
 
 if TYPE_CHECKING:
     from backend.app.services.helpdesk_graph.state import HelpdeskState
@@ -154,15 +155,25 @@ def select_supervisor_action(state: HelpdeskState) -> SupervisorAction:
     one ``SupervisorAction`` out) stays the same.
     """
     if state.get('_graph_turn') is not None:
-        return 'end'
+        action: SupervisorAction = 'end'
+        HELPDESK_AGENT_DECISION_TOTAL.labels(next_action=action).inc()
+        return action
     entry = state.get('entry')
     if entry in _ENTRY_DISPATCH:
-        return _ENTRY_DISPATCH[entry]
+        action = _ENTRY_DISPATCH[entry]
+        HELPDESK_AGENT_DECISION_TOTAL.labels(next_action=action).inc()
+        return action
     if entry == 'start':
-        return _action_for_start(state)
+        action = _action_for_start(state)
+        HELPDESK_AGENT_DECISION_TOTAL.labels(next_action=action).inc()
+        return action
     if entry == 'resume':
-        return _action_for_resume(state)
-    return 'end'
+        action = _action_for_resume(state)
+        HELPDESK_AGENT_DECISION_TOTAL.labels(next_action=action).inc()
+        return action
+    action = 'end'
+    HELPDESK_AGENT_DECISION_TOTAL.labels(next_action=action).inc()
+    return action
 
 
 def _contains_any(text: str, needles: tuple[str, ...]) -> bool:

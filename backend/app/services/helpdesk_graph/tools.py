@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import functools
 import logging
+import time
 from typing import TYPE_CHECKING, Any
 
 import httpx
@@ -12,12 +14,18 @@ from langchain_core.tools import BaseTool, tool
 from pydantic import BaseModel, Field
 
 from backend.app.core.config_manager import settings
-from backend.app.core.metrics import HELPDESK_AGENT_TOOL_TOTAL
+from backend.app.core.metrics import (
+    HELPDESK_AGENT_TOOL_LATENCY_SECONDS,
+    HELPDESK_AGENT_TOOL_TOTAL,
+)
 from backend.app.services.helpdesk.github import create_github_issue
 from backend.app.services.helpdesk.redaction import redact_text
 from backend.app.services.helpdesk_graph.state import GitHubIssue, HelpdeskState
 from backend.app.services.helpdesk_graph.tracing import trace_agent_tool
-from backend.app.services.retrieval import apply_client_metadata_filter, retrieve_with_queries
+from backend.app.services.retrieval import (
+    apply_client_metadata_filter,
+    retrieve_with_queries,
+)
 from backend.app.services.tools.web_search import web_search_documents
 
 if TYPE_CHECKING:
@@ -27,23 +35,54 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def track_helpdesk_tool_latency(tool_name: str):
+    """Record wall-clock latency for a helpdesk tool call."""
+
+    def decorator(func):
+        @functools.wraps(func)
+        async def wrapper(*args, **kwargs):
+            started = time.perf_counter()
+            try:
+                return await func(*args, **kwargs)
+            finally:
+                HELPDESK_AGENT_TOOL_LATENCY_SECONDS.labels(tool=tool_name).observe(time.perf_counter() - started)
+
+        return wrapper
+
+    return decorator
+
+
 class RetryKbToolArgs(BaseModel):
     """Arguments for the KB retry helpdesk tool."""
 
-    query: str = Field(min_length=1, description='User helpdesk question to retry against the campus KB.')
+    query: str = Field(
+        min_length=1,
+        description='User helpdesk question to retry against the campus KB.',
+    )
 
 
 class WebSearchToolArgs(BaseModel):
     """Arguments for the web search helpdesk tool."""
 
-    query: str = Field(min_length=1, description='User helpdesk question to search on the configured web provider.')
+    query: str = Field(
+        min_length=1,
+        description='User helpdesk question to search on the configured web provider.',
+    )
 
 
 class SearchExistingIssuesToolArgs(BaseModel):
     """Arguments for the duplicate GitHub issue search tool."""
 
-    query: str = Field(min_length=1, description='Issue summary or user question to search for duplicates.')
-    limit: int = Field(default=3, ge=1, le=10, description='Maximum number of candidate issues to return.')
+    query: str = Field(
+        min_length=1,
+        description='Issue summary or user question to search for duplicates.',
+    )
+    limit: int = Field(
+        default=3,
+        ge=1,
+        le=10,
+        description='Maximum number of candidate issues to return.',
+    )
 
 
 class FileTicketToolArgs(BaseModel):
@@ -107,7 +146,10 @@ async def _run_with_timeout(func, *, timeout: float):
 
 
 @trace_agent_tool('helpdesk_agent.retry_kb')
-async def retry_kb(query: str, *, rag_service: RAGService, state: HelpdeskState | None = None) -> list[Document]:  # noqa: PLR0911
+@track_helpdesk_tool_latency('retry_kb')
+async def retry_kb(  # noqa: PLR0911 - explicit no-op exits keep tool outcomes legible
+    query: str, *, rag_service: RAGService, state: HelpdeskState | None = None
+) -> list[Document]:
     """Run a retrieval-only KB retry without generating an answer."""
     tool = 'retry_kb'
     safe_query = _redacted_query(query)
@@ -129,7 +171,10 @@ async def retry_kb(query: str, *, rag_service: RAGService, state: HelpdeskState 
         documents = [
             Document(
                 page_content=f'Mock KB retry result for: {safe_query}',
-                metadata={'source': 'mock-kb', 'source_metadata': {'short_description': 'Mock KB retry result'}},
+                metadata={
+                    'source': 'mock-kb',
+                    'source_metadata': {'short_description': 'Mock KB retry result'},
+                },
             )
         ]
         _cache_put(state, tool, cleaned, documents)
@@ -164,6 +209,7 @@ async def retry_kb(query: str, *, rag_service: RAGService, state: HelpdeskState 
 
 
 @trace_agent_tool('helpdesk_agent.web_search')
+@track_helpdesk_tool_latency('web_search')
 async def web_search(query: str, *, state: HelpdeskState | None = None) -> list[Document]:
     """Run the configured web-search provider with timeout and in-session cache."""
     tool = 'web_search'
@@ -199,6 +245,7 @@ async def web_search(query: str, *, state: HelpdeskState | None = None) -> list[
 
 
 @trace_agent_tool('helpdesk_agent.search_existing_issues')
+@track_helpdesk_tool_latency('search_existing_issues')
 async def search_existing_issues(
     query: str,
     *,
@@ -236,7 +283,11 @@ async def search_existing_issues(
         async with httpx.AsyncClient(timeout=timeout, transport=transport) as client:
             response = await client.get('https://api.github.com/search/issues', headers=headers, params=params)
     except httpx.HTTPError as exc:
-        HELPDESK_AGENT_TOOL_TOTAL.labels(tool='search_existing_issues', outcome='error', reason=exc.__class__.__name__).inc()
+        HELPDESK_AGENT_TOOL_TOTAL.labels(
+            tool='search_existing_issues',
+            outcome='error',
+            reason=exc.__class__.__name__,
+        ).inc()
         logger.warning('GitHub duplicate search failed: %s', exc)
         return []
 
@@ -267,6 +318,7 @@ async def search_existing_issues(
 
 
 @trace_agent_tool('helpdesk_agent.file_ticket')
+@track_helpdesk_tool_latency('file_ticket')
 async def file_ticket(draft: TicketDraft, *, user_id: int | str) -> CreateIssueResponse:
     """HITL-gated issue creation wrapper for future `/agent/confirm`."""
     HELPDESK_AGENT_TOOL_TOTAL.labels(tool='file_ticket', outcome='started', reason='hitl_confirmed').inc()

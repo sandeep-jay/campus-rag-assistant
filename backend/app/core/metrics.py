@@ -5,7 +5,13 @@ from contextlib import contextmanager, suppress
 from typing import TYPE_CHECKING
 
 from fastapi import Request, Response
-from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    Counter,
+    Gauge,
+    Histogram,
+    generate_latest,
+)
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
@@ -87,6 +93,28 @@ HELPDESK_AGENT_TOOL_TOTAL = Counter(
     'chatbot_helpdesk_agent_tool_total',
     'Helpdesk agent tool calls by tool and outcome',
     ['tool', 'outcome', 'reason'],
+)
+HELPDESK_AGENT_TOOL_LATENCY_SECONDS = Histogram(
+    'chatbot_helpdesk_agent_tool_latency_seconds',
+    'Helpdesk agent tool latency by tool',
+    ['tool'],
+    buckets=(0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 20),
+)
+HELPDESK_AGENT_TOKENS_TOTAL = Counter(
+    'chatbot_helpdesk_agent_tokens_total',
+    'Estimated helpdesk agent tokens by node',
+    ['node'],
+)
+HELPDESK_AGENT_DECISION_TOTAL = Counter(
+    'chatbot_helpdesk_agent_decision_total',
+    'Helpdesk agent supervisor decisions',
+    ['next_action'],
+)
+HELPDESK_AGENT_TURNS_TAKEN = Histogram(
+    'chatbot_helpdesk_agent_turns_taken',
+    'Helpdesk agent turns taken by outcome',
+    ['outcome'],
+    buckets=(0, 1, 2, 3, 5, 8, 13),
 )
 HELPDESK_AGENT_OUTCOME_TOTAL = Counter(
     'chatbot_helpdesk_agent_outcome_total',

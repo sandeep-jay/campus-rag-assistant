@@ -21,7 +21,12 @@ from sqlalchemy import text
 from starlette.testclient import TestClient
 
 from backend.app.core.config_manager import settings
-from backend.app.core.metrics import HELPDESK_AGENT_ERROR_TOTAL, HELPDESK_AGENT_FUNNEL_TOTAL
+from backend.app.core.metrics import (
+    HELPDESK_AGENT_DECISION_TOTAL,
+    HELPDESK_AGENT_ERROR_TOTAL,
+    HELPDESK_AGENT_FUNNEL_TOTAL,
+    HELPDESK_AGENT_TOOL_LATENCY_SECONDS,
+)
 from backend.app.schemas.helpdesk import ConversationTurn
 from backend.app.services.helpdesk import github as github_module
 from backend.app.services.helpdesk_graph import runner as runner_module
@@ -43,7 +48,11 @@ def enable_helpdesk(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, 'HELPDESK_DEDUP_WINDOW_SECONDS', 300)
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_USE_LANGGRAPH_CHECKPOINT', True)
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_CHECKPOINT_BACKEND', 'memory')
-    monkeypatch.setattr(settings, 'HELPDESK_AGENT_CHECKPOINT_PATH', str(tmp_path / 'helpdesk_agent.sqlite'))
+    monkeypatch.setattr(
+        settings,
+        'HELPDESK_AGENT_CHECKPOINT_PATH',
+        str(tmp_path / 'helpdesk_agent.sqlite'),
+    )
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_CHECKPOINT_TTL_SECONDS', 86400)
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_MAX_TURNS', 8)
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_MAX_QUESTIONS', 2)
@@ -215,7 +224,10 @@ def _start_agent_for_oracle_issue(client: TestClient, token: str) -> dict:
     """
     payload = {
         'conversation': [
-            {'role': 'user', 'content': 'Oracle Financials 403 error on budget reports'},
+            {
+                'role': 'user',
+                'content': 'Oracle Financials 403 error on budget reports',
+            },
         ]
     }
     start = client.post(
@@ -264,13 +276,20 @@ def test_agent_start_stream_returns_status_and_final_turn(
 ):
     response = client.post(
         '/api/helpdesk/agent/start/stream',
-        json={'conversation': [{'role': 'user', 'content': 'Oracle Financials 403 error on budget reports'}]},
+        json={
+            'conversation': [
+                {
+                    'role': 'user',
+                    'content': 'Oracle Financials 403 error on budget reports',
+                }
+            ]
+        },
         headers={'Authorization': f'Bearer {test_user_token}'},
     )
 
     assert response.status_code == 200, response.text
-    assert 'Starting helpdesk agent' in response.text
-    assert 'Checking existing issues' in response.text
+    assert '"type": "step"' in response.text
+    assert '"node": "supervisor"' in response.text
     assert '"type": "done"' in response.text
     assert '"kind": "info"' in response.text
 
@@ -292,8 +311,8 @@ def test_agent_resume_stream_returns_status_and_final_turn(
     )
 
     assert response.status_code == 200, response.text
-    assert 'Continuing helpdesk workflow' in response.text
-    assert 'Running agent tools' in response.text
+    assert '"type": "step"' in response.text
+    assert '"node": "supervisor"' in response.text
     assert '"type": "done"' in response.text
     assert '"kind": "resolved"' in response.text
 
@@ -316,6 +335,32 @@ def test_agent_metrics_record_funnel_and_errors(
     assert missing.status_code == 404
     assert _counter_value(HELPDESK_AGENT_FUNNEL_TOTAL, stage='started', outcome='api') == started_before + 1
     assert _counter_value(HELPDESK_AGENT_ERROR_TOTAL, operation='resume', reason='http_404') == error_before + 1
+
+
+def test_agent_stream_records_decision_and_tool_latency_metrics(
+    client: TestClient,
+    test_user_token: str,
+    enable_helpdesk,
+):
+    decision_before = _counter_value(HELPDESK_AGENT_DECISION_TOTAL, next_action='search_duplicates')
+
+    response = client.post(
+        '/api/helpdesk/agent/start/stream',
+        json={
+            'conversation': [
+                {
+                    'role': 'user',
+                    'content': 'Oracle Financials 403 error on budget reports',
+                }
+            ]
+        },
+        headers={'Authorization': f'Bearer {test_user_token}'},
+    )
+
+    assert response.status_code == 200, response.text
+    assert _counter_value(HELPDESK_AGENT_DECISION_TOTAL, next_action='search_duplicates') >= decision_before + 1
+    samples = HELPDESK_AGENT_TOOL_LATENCY_SECONDS.labels(tool='retry_kb')._sum.get()
+    assert samples >= 0
 
 
 @pytest.mark.asyncio()
@@ -366,8 +411,14 @@ def test_agent_always_attempts_solution_even_after_out_of_scope_ask(
     """
     payload = {
         'conversation': [
-            {'role': 'user', 'content': 'Oracle Financials 403 error on budget reports'},
-            {'role': 'assistant', 'content': 'I can only answer questions covered by the knowledge base.'},
+            {
+                'role': 'user',
+                'content': 'Oracle Financials 403 error on budget reports',
+            },
+            {
+                'role': 'assistant',
+                'content': 'I can only answer questions covered by the knowledge base.',
+            },
         ]
     }
     start = client.post(
@@ -398,12 +449,19 @@ def test_agent_resume_proposes_solution_after_impact_answer(
     assert body['kind'] == 'info'
     assert body['session_id'] == first['session_id']
     assert body['draft'] is None
-    assert body['choices'] == ['Yes, that solved it', "No, doesn't apply", "Tried it, didn't work"]
+    assert body['choices'] == [
+        'Yes, that solved it',
+        "No, doesn't apply",
+        "Tried it, didn't work",
+    ]
     # The solution message renders with a markdown title and a source link
     # (chat-prose formatted), so we just assert both shape pieces are present.
     assert body['message'].lstrip().startswith('###')
     assert 'View source' in body['message'] or 'KB' in body['message']
-    assert [step['action'] for step in body['debug_trace']] == ['retry_kb', 'propose_solution']
+    assert [step['action'] for step in body['debug_trace']] == [
+        'retry_kb',
+        'propose_solution',
+    ]
 
 
 def test_agent_asks_clarification_after_help_attempt_when_impact_ambiguous(
@@ -506,7 +564,11 @@ def test_agent_solution_rejection_returns_ticket_draft(
     body = response.json()
     assert body['kind'] == 'draft_ready'
     assert body['draft']['title']
-    assert [step['action'] for step in body['debug_trace']] == ['solution_feedback', 'classify_ticket', 'write_draft']
+    assert [step['action'] for step in body['debug_trace']] == [
+        'solution_feedback',
+        'classify_ticket',
+        'write_draft',
+    ]
     assert body['draft']['severity'] == 'high'
     assert body['draft']['category'] == 'access'
     assert body['draft']['impact'] == 'Single user'
@@ -519,13 +581,24 @@ def test_agent_resume_rejects_stale_question_id(
 ):
     start = client.post(
         '/api/helpdesk/agent/start',
-        json={'conversation': [{'role': 'user', 'content': 'Oracle Financials 403 error on budget reports'}]},
+        json={
+            'conversation': [
+                {
+                    'role': 'user',
+                    'content': 'Oracle Financials 403 error on budget reports',
+                }
+            ]
+        },
         headers={'Authorization': f'Bearer {test_user_token}'},
     )
     assert start.status_code == 200, start.text
     response = client.post(
         '/api/helpdesk/agent/resume',
-        json={'session_id': start.json()['session_id'], 'choice': 'My team', 'pending_question_id': 'stale'},
+        json={
+            'session_id': start.json()['session_id'],
+            'choice': 'My team',
+            'pending_question_id': 'stale',
+        },
         headers={'Authorization': f'Bearer {test_user_token}'},
     )
     assert response.status_code == 409
@@ -570,7 +643,10 @@ def test_agent_confirm_files_reviewed_draft(
         )
 
     reviewed = {**draft_turn['draft'], 'title': 'Reviewed Oracle Financials 403'}
-    with patch('backend.app.services.helpdesk_graph.runner.create_github_issue', _fake_create_github_issue):
+    with patch(
+        'backend.app.services.helpdesk_graph.runner.create_github_issue',
+        _fake_create_github_issue,
+    ):
         response = client.post(
             '/api/helpdesk/agent/confirm',
             json={'session_id': draft_turn['session_id'], 'draft': reviewed},
@@ -616,7 +692,10 @@ def test_agent_confirm_idempotency_key_reuses_prior_turn(
         'Idempotency-Key': 'confirm-double-click',
     }
     payload = {'session_id': draft_turn['session_id'], 'draft': draft_turn['draft']}
-    with patch('backend.app.services.helpdesk_graph.runner.create_github_issue', _fake_create_github_issue):
+    with patch(
+        'backend.app.services.helpdesk_graph.runner.create_github_issue',
+        _fake_create_github_issue,
+    ):
         first = client.post('/api/helpdesk/agent/confirm', json=payload, headers=headers)
         second = client.post('/api/helpdesk/agent/confirm', json=payload, headers=headers)
 
@@ -700,7 +779,10 @@ def test_agent_start_links_existing_mock_duplicate(
 ):
     payload = {
         'conversation': [
-            {'role': 'user', 'content': 'known duplicate Oracle Financials access issue'},
+            {
+                'role': 'user',
+                'content': 'known duplicate Oracle Financials access issue',
+            },
         ]
     }
     response = client.post(
@@ -756,7 +838,14 @@ def test_draft_ticket_returns_mock_draft(client: TestClient, test_user_token: st
     draft = body['draft']
     assert draft['title']
     assert draft['severity'] in {'low', 'medium', 'high', 'critical'}
-    assert draft['category'] in {'network', 'access', 'application', 'hardware', 'account', 'other'}
+    assert draft['category'] in {
+        'network',
+        'access',
+        'application',
+        'hardware',
+        'account',
+        'other',
+    }
     assert draft['impact'] in {'Single user', 'Team', 'Campus-wide'}
 
 
@@ -797,7 +886,10 @@ def test_draft_ticket_redacts_email_before_calling_llm(
         ]
     }
     with (
-        patch('backend.app.services.helpdesk.agent.get_llm_provider', return_value=_FakeProvider()),
+        patch(
+            'backend.app.services.helpdesk.agent.get_llm_provider',
+            return_value=_FakeProvider(),
+        ),
         patch('backend.app.services.helpdesk.agent._ainvoke', _fake_ainvoke),
     ):
         response = client.post(
@@ -840,7 +932,10 @@ def test_summarize_redacts_email_before_calling_llm(
         ]
     }
     with (
-        patch('backend.app.services.helpdesk.agent.get_llm_provider', return_value=_FakeProvider()),
+        patch(
+            'backend.app.services.helpdesk.agent.get_llm_provider',
+            return_value=_FakeProvider(),
+        ),
         patch('backend.app.services.helpdesk.agent._ainvoke', _fake_ainvoke),
     ):
         response = client.post(
@@ -864,7 +959,10 @@ def test_create_issue_calls_github_and_dedups(client: TestClient, test_user_toke
         assert 'Severity' in body['body']
         return httpx.Response(
             201,
-            json={'html_url': 'https://github.com/demo-org/demo-repo/issues/1', 'number': 1},
+            json={
+                'html_url': 'https://github.com/demo-org/demo-repo/issues/1',
+                'number': 1,
+            },
         )
 
     draft = {
@@ -1017,7 +1115,10 @@ def test_agent_confirm_persists_summary_with_issue_link(
             deduplicated=False,
         )
 
-    with patch('backend.app.services.helpdesk_graph.runner.create_github_issue', _fake_create_github_issue):
+    with patch(
+        'backend.app.services.helpdesk_graph.runner.create_github_issue',
+        _fake_create_github_issue,
+    ):
         response = client.post(
             '/api/helpdesk/agent/confirm',
             json={
@@ -1096,7 +1197,10 @@ def test_agent_start_upserts_question_when_chat_session_id_provided(
         '/api/helpdesk/agent/start',
         json={
             'conversation': [
-                {'role': 'user', 'content': 'Oracle Financials 403 error on budget reports'},
+                {
+                    'role': 'user',
+                    'content': 'Oracle Financials 403 error on budget reports',
+                },
             ],
             'chat_session_id': chat_session_id,
         },
@@ -1130,7 +1234,10 @@ def test_agent_journey_upserts_same_chat_message_row(
         '/api/helpdesk/agent/start',
         json={
             'conversation': [
-                {'role': 'user', 'content': 'Oracle Financials 403 error on budget reports'},
+                {
+                    'role': 'user',
+                    'content': 'Oracle Financials 403 error on budget reports',
+                },
             ],
             'chat_session_id': chat_session_id,
         },

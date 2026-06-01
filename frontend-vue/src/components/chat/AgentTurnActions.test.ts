@@ -70,7 +70,7 @@ describe('AgentTurnActions', () => {
       chat_session_id: null,
       choice: 'Yes, that solved it',
       pending_question_id: 'solution-agent-1',
-    }, expect.any(Function))
+    }, expect.any(Function), expect.any(Function))
     expect(chat.messages.some((m) => m.role === 'user' && m.content === 'Yes, that solved it')).toBe(true)
     expect(chat.messages.some((m) => m.role === 'assistant' && m.content.includes('resolved'))).toBe(true)
   })
@@ -121,7 +121,7 @@ describe('AgentTurnActions', () => {
       chat_session_id: null,
       choice: 'My team',
       pending_question_id: 'impact-agent-1',
-    }, expect.any(Function))
+    }, expect.any(Function), expect.any(Function))
   })
 
   it('opens the ticket modal when resume returns a draft', async () => {

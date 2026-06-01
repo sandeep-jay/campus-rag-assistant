@@ -12,6 +12,8 @@ import {
   streamStartAgentSession,
 } from '@/api/helpdesk'
 import type {
+  AgentStep,
+  AgentStreamStepEvent,
   AgentTurn,
   ConversationSummary,
   ConversationTurn,
@@ -30,6 +32,7 @@ export const useHelpdeskStore = defineStore('helpdesk', () => {
   const submitting = ref(false)
   const agentRunning = ref(false)
   const agentStatus = ref<string | null>(null)
+  const agentSteps = ref<AgentStep[]>([])
   const draft = ref<TicketDraft | null>(null)
   const activeTurn = ref<AgentTurn | null>(null)
   const result = ref<CreateIssueResponse | null>(null)
@@ -80,11 +83,17 @@ export const useHelpdeskStore = defineStore('helpdesk', () => {
   ): Promise<AgentTurn | null> {
     agentRunning.value = true
     error.value = null
+    agentSteps.value = []
     trackHelpdeskAgentEvent('start_requested', { turn_count: conversation.length })
     try {
       let turn: AgentTurn
       try {
-        turn = await streamStartAgentSession(conversation, chat_session_id ?? null, (message) => { agentStatus.value = message })
+        turn = await streamStartAgentSession(
+          conversation,
+          chat_session_id ?? null,
+          updateAgentStatus,
+          recordAgentStreamStep,
+        )
       } catch {
         trackHelpdeskAgentEvent('stream_fallback', { operation: 'start' })
         turn = await startAgentSession(conversation, chat_session_id ?? null)
@@ -99,6 +108,7 @@ export const useHelpdeskStore = defineStore('helpdesk', () => {
     } finally {
       agentRunning.value = false
       agentStatus.value = null
+      agentSteps.value = []
     }
   }
 
@@ -107,14 +117,16 @@ export const useHelpdeskStore = defineStore('helpdesk', () => {
     reply?: string
     choice?: string
     pending_question_id?: string
+    chat_session_id?: number | null
   }): Promise<AgentTurn | null> {
     agentRunning.value = true
     error.value = null
+    agentSteps.value = []
     trackHelpdeskAgentEvent('resume_requested', { has_choice: Boolean(params.choice), has_reply: Boolean(params.reply) })
     try {
       let turn: AgentTurn
       try {
-        turn = await streamResumeAgentSession(params, (message) => { agentStatus.value = message })
+        turn = await streamResumeAgentSession(params, updateAgentStatus, recordAgentStreamStep)
       } catch {
         trackHelpdeskAgentEvent('stream_fallback', { operation: 'resume' })
         turn = await resumeAgentSession(params)
@@ -129,6 +141,7 @@ export const useHelpdeskStore = defineStore('helpdesk', () => {
     } finally {
       agentRunning.value = false
       agentStatus.value = null
+      agentSteps.value = []
     }
   }
 
@@ -157,6 +170,37 @@ export const useHelpdeskStore = defineStore('helpdesk', () => {
     if (turn.draft) {
       draft.value = turn.draft
     }
+  }
+
+  function updateAgentStatus(message: string): void {
+    agentStatus.value = message
+  }
+
+  function recordAgentStreamStep(event: AgentStreamStepEvent): void {
+    const step: AgentStep = {
+      step: event.node,
+      action: event.action,
+      outcome: event.status,
+      message: event.summary,
+      latency_ms: event.latency_ms,
+    }
+    const duplicateRunningIndex = agentSteps.value.findIndex(
+      (existing) =>
+        existing.step === step.step &&
+        existing.action === step.action &&
+        existing.outcome === 'running',
+    )
+    if (duplicateRunningIndex >= 0 && step.outcome !== 'running') {
+      agentSteps.value = [
+        ...agentSteps.value.slice(0, duplicateRunningIndex),
+        step,
+        ...agentSteps.value.slice(duplicateRunningIndex + 1),
+      ]
+      agentStatus.value = event.summary
+      return
+    }
+    agentSteps.value = [...agentSteps.value, step]
+    agentStatus.value = event.summary
   }
 
   function clearAgentTurn(): void {
@@ -225,6 +269,7 @@ export const useHelpdeskStore = defineStore('helpdesk', () => {
     submitting.value = false
     agentRunning.value = false
     agentStatus.value = null
+    agentSteps.value = []
     activeTurn.value = null
     draft.value = null
     result.value = null
@@ -239,6 +284,7 @@ export const useHelpdeskStore = defineStore('helpdesk', () => {
     submitting,
     agentRunning,
     agentStatus,
+    agentSteps,
     activeTurn,
     draft,
     result,

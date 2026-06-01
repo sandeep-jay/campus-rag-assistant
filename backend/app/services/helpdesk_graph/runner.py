@@ -6,6 +6,7 @@ import logging
 import re
 import time
 import uuid
+from contextlib import suppress
 from dataclasses import dataclass
 from threading import Lock
 from typing import TYPE_CHECKING, Any
@@ -19,9 +20,19 @@ from backend.app.core.metrics import (
     HELPDESK_AGENT_FUNNEL_TOTAL,
     HELPDESK_AGENT_OUTCOME_TOTAL,
     HELPDESK_AGENT_STARTED_TOTAL,
+    HELPDESK_AGENT_TOKENS_TOTAL,
     HELPDESK_AGENT_TOOL_TOTAL,
+    HELPDESK_AGENT_TURNS_TAKEN,
 )
-from backend.app.schemas.helpdesk import AgentStep, AgentTurn, Category, ConversationTurn, Impact, Severity, TicketDraft
+from backend.app.schemas.helpdesk import (
+    AgentStep,
+    AgentTurn,
+    Category,
+    ConversationTurn,
+    Impact,
+    Severity,
+    TicketDraft,
+)
 from backend.app.services.helpdesk.agent import draft_ticket
 from backend.app.services.helpdesk.github import create_github_issue
 from backend.app.services.helpdesk.persist import TERMINAL_KINDS, upsert_agent_summary
@@ -32,14 +43,27 @@ from backend.app.services.helpdesk_graph.checkpoint import (
     save_checkpoint,
     use_langgraph_checkpoint,
 )
-from backend.app.services.helpdesk_graph.graph import HELPDESK_GRAPH, helpdesk_graph_for_request
+from backend.app.services.helpdesk_graph.graph import (
+    HELPDESK_GRAPH,
+    helpdesk_graph_for_request,
+)
 from backend.app.services.helpdesk_graph.nodes import _should_clarify_classification
 from backend.app.services.helpdesk_graph.prompts import SOLUTION_PROMPT
-from backend.app.services.helpdesk_graph.state import AwaitingUserPayload, GitHubIssue, HelpdeskState, ProposedSolution
-from backend.app.services.helpdesk_graph.tracing import trace_agent_run, trace_agent_tool
+from backend.app.services.helpdesk_graph.state import (
+    AwaitingUserPayload,
+    GitHubIssue,
+    HelpdeskState,
+    ProposedSolution,
+)
+from backend.app.services.helpdesk_graph.tracing import (
+    trace_agent_run,
+    trace_agent_tool,
+)
 from backend.app.services.providers import get_llm_provider
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
     from langchain.schema import Document
     from langchain_core.runnables import RunnableConfig
     from langgraph.graph.state import CompiledStateGraph
@@ -218,6 +242,13 @@ def _record_agent_error(operation: str, exc: Exception) -> None:
     HELPDESK_AGENT_ERROR_TOTAL.labels(operation=operation, reason=reason).inc()
 
 
+def _record_turn_metrics(turn: AgentTurn, state: HelpdeskState | None) -> None:
+    if state is None:
+        return
+    HELPDESK_AGENT_TOKENS_TOTAL.labels(node='turn').inc(_token_estimate(state))
+    HELPDESK_AGENT_TURNS_TAKEN.labels(outcome=turn.kind).observe(float(state.get('turns_taken', 0) or 0))
+
+
 def _last_user_text(conversation: list[ConversationTurn]) -> str:
     for turn in reversed(conversation):
         if turn.role.lower() == 'user':
@@ -246,9 +277,15 @@ def _trace(step: str, action: str, outcome: str, message: str | None = None) -> 
 
 def _require_agent_enabled() -> None:
     if not settings.HELPDESK_AGENT_ENABLED:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Helpdesk agent is not enabled.')
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Helpdesk agent is not enabled.',
+        )
     if settings.HELPDESK_AGENT_KILL_SWITCH:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail='Helpdesk agent is temporarily disabled.')
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail='Helpdesk agent is temporarily disabled.',
+        )
 
 
 def _positive_int_setting(name: str, default: int) -> int:
@@ -294,7 +331,12 @@ async def _budget_exhausted_turn(state: HelpdeskState, trace: list[AgentStep] | 
     )
 
 
-def _new_state(session_id: str, user_id: int | str, question: str, conversation: list[ConversationTurn]) -> HelpdeskState:
+def _new_state(
+    session_id: str,
+    user_id: int | str,
+    question: str,
+    conversation: list[ConversationTurn],
+) -> HelpdeskState:
     now = time.time()
     deadline_seconds = max(0.1, float(getattr(settings, 'HELPDESK_AGENT_DEADLINE_SECONDS', 60.0) or 60.0))
     return {
@@ -396,7 +438,10 @@ def _is_solution_rejection(answer: str) -> bool:
 
 
 def _append_user_reply(state: HelpdeskState, answer: str, *, label: str) -> list[ConversationTurn]:
-    conversation = [*state.get('conversation', []), ConversationTurn(role='user', content=f'{label}: {answer}')]
+    conversation = [
+        *state.get('conversation', []),
+        ConversationTurn(role='user', content=f'{label}: {answer}'),
+    ]
     state['conversation'] = conversation
     state['user_replies'] = [*state.get('user_replies', []), answer]
     return conversation
@@ -493,11 +538,18 @@ async def _propose_solution_or_draft(state: HelpdeskState, trace: list[AgentStep
 
     question_id = f"solution-{state['session_id']}"
     state['proposed_solutions'] = [*state.get('proposed_solutions', []), solution]
-    state['awaiting_user'] = AwaitingUserPayload(question_id=question_id, question='Did this solve the issue?', choices=SOLUTION_CHOICES)
+    state['awaiting_user'] = AwaitingUserPayload(
+        question_id=question_id,
+        question='Did this solve the issue?',
+        choices=SOLUTION_CHOICES,
+    )
     state['next_action'] = 'propose_solution'
     state['turns_taken'] = int(state.get('turns_taken', 0)) + 1
     if _budget_exhausted(state):
-        return await _budget_exhausted_turn(state, [*trace, _trace('supervisor', 'propose_solution', 'blocked', question_id)])
+        return await _budget_exhausted_turn(
+            state,
+            [*trace, _trace('supervisor', 'propose_solution', 'blocked', question_id)],
+        )
     save_checkpoint(state)
     HELPDESK_AGENT_OUTCOME_TOTAL.labels(outcome='solution_proposed').inc()
     _record_funnel('solution_proposed')
@@ -506,7 +558,10 @@ async def _propose_solution_or_draft(state: HelpdeskState, trace: list[AgentStep
         kind='info',
         message=_solution_message(solution),
         choices=SOLUTION_CHOICES,
-        debug_trace=[*trace, _trace('supervisor', 'propose_solution', 'waiting', question_id)],
+        debug_trace=[
+            *trace,
+            _trace('supervisor', 'propose_solution', 'waiting', question_id),
+        ],
     )
 
 
@@ -540,6 +595,7 @@ def _persist_and_stamp(
       live affordances. The persisted recap text is read-only history.
     """
     if db is None or chat_session_id is None:
+        _record_turn_metrics(turn, state)
         return turn
     try:
         row = upsert_agent_summary(
@@ -552,13 +608,17 @@ def _persist_and_stamp(
         )
     except Exception:  # persistence must never break agent UX
         logger.exception('failed to persist agent summary for kind=%s', turn.kind)
+        _record_turn_metrics(turn, state)
         return turn
     if row is None:
+        _record_turn_metrics(turn, state)
         return turn
     updates: dict[str, Any] = {'chat_message_id': row.id}
     if turn.kind in TERMINAL_KINDS:
         updates['message'] = row.content
-    return turn.model_copy(update=updates)
+    stamped = turn.model_copy(update=updates)
+    _record_turn_metrics(stamped, state)
+    return stamped
 
 
 async def graph_tool_search_duplicates(state: HelpdeskState) -> list[GitHubIssue]:
@@ -588,7 +648,10 @@ async def graph_clarifier_step(state: HelpdeskState) -> dict[str, Any]:
     (no search at all) leaves the fact unset.
     """
     if 'duplicate_candidates' in state and not state['duplicate_candidates']:
-        state['facts'] = {**state.get('facts', {}), 'duplicate_search': 'no matching issue found'}
+        state['facts'] = {
+            **state.get('facts', {}),
+            'duplicate_search': 'no matching issue found',
+        }
     turn = await _pause_for_impact(state)
     state['_graph_turn'] = turn
     return state
@@ -649,9 +712,11 @@ async def graph_writer_step(state: HelpdeskState) -> dict[str, Any]:
         trace_seed.append(_trace('resume', 'solution_feedback', 'rejected', question_id))
     turn = await _draft_from_state(
         state,
-        message='Thanks — I prepared a ticket draft instead. Review it before filing.'
-        if awaiting is not None
-        else 'I could not find a likely fix, so I prepared a ticket draft. Review it before filing.',
+        message=(
+            'Thanks — I prepared a ticket draft instead. Review it before filing.'
+            if awaiting is not None
+            else 'I could not find a likely fix, so I prepared a ticket draft. Review it before filing.'
+        ),
         trace=trace_seed,
     )
     state['_graph_turn'] = turn
@@ -698,7 +763,12 @@ async def graph_link_existing_step(state: HelpdeskState) -> dict[str, Any]:
         linked_issue_url=candidate.url,
         debug_trace=[
             _trace('supervisor', 'search_duplicates', 'selected'),
-            _trace('tool', 'search_existing_issues', 'success', f'{len(candidates)} candidate(s)'),
+            _trace(
+                'tool',
+                'search_existing_issues',
+                'success',
+                f'{len(candidates)} candidate(s)',
+            ),
             _trace('supervisor', 'link_existing', 'selected'),
         ],
     )
@@ -713,7 +783,10 @@ async def graph_file_ticket_step(state: HelpdeskState) -> dict[str, Any]:
     if draft is None:
         # Defensive fallback; the runner's confirm entry point validates
         # the draft before reaching the graph.
-        exc = HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Helpdesk agent confirm draft missing.')
+        exc = HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail='Helpdesk agent confirm draft missing.',
+        )
         _record_agent_error('confirm', exc)
         raise exc
     user_id = state['user_id']
@@ -734,7 +807,14 @@ async def graph_file_ticket_step(state: HelpdeskState) -> dict[str, Any]:
         kind='filed',
         message=body,
         linked_issue_url=issue.issue_url,
-        debug_trace=[_trace('tool', 'file_ticket', 'deduplicated' if issue.deduplicated else 'success', str(issue.issue_number))],
+        debug_trace=[
+            _trace(
+                'tool',
+                'file_ticket',
+                'deduplicated' if issue.deduplicated else 'success',
+                str(issue.issue_number),
+            )
+        ],
     )
     state['_graph_turn'] = turn
     return state
@@ -764,7 +844,10 @@ def _graph_config(session_id: str) -> RunnableConfig:
 
 
 def _state_not_found_exc(operation: str) -> HTTPException:
-    exc = HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Helpdesk agent session was not found.')
+    exc = HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail='Helpdesk agent session was not found.',
+    )
     _record_agent_error(operation, exc)
     return exc
 
@@ -807,6 +890,176 @@ async def _run_graph(
         logger.warning('helpdesk graph completed without _graph_turn for operation=%s', operation)
         turn = await _budget_exhausted_turn(dict(result))
     return turn, result
+
+
+_VISIBLE_CHAIN_NODES = {
+    'supervisor',
+    'clarifier',
+    'classifier',
+    'writer',
+    'solution',
+    'tools',
+    'link_existing',
+    'file_ticket',
+    'resolved',
+    'aborted',
+}
+_VISIBLE_TOOL_NAMES = {
+    'retry_kb',
+    'web_search',
+    'search_existing_issues',
+    'file_ticket',
+}
+_NODE_ACTIONS = {
+    'supervisor': 'route',
+    'clarifier': 'ask_user',
+    'classifier': 'classify_ticket',
+    'writer': 'write_draft',
+    'solution': 'propose_solution',
+    'tools': 'search_existing_issues',
+    'link_existing': 'link_existing',
+    'file_ticket': 'file_ticket',
+    'resolved': 'resolved_by_agent',
+    'aborted': 'abort',
+}
+
+
+def _event_output(event: dict[str, Any]) -> Any:
+    data = event.get('data')
+    if isinstance(data, dict):
+        return data.get('output')
+    return None
+
+
+def _turn_from_output(output: Any) -> AgentTurn | None:
+    if not isinstance(output, dict):
+        return None
+    turn = output.get('_graph_turn')
+    if isinstance(turn, AgentTurn):
+        return turn
+    if isinstance(turn, dict):
+        return AgentTurn(**turn)
+    return None
+
+
+def _event_step_summary(name: str, output: Any, status_value: str) -> str:
+    if status_value == 'running':
+        return f'Started {name.replace("_", " ")}'
+    if isinstance(output, dict):
+        if name == 'supervisor' and output.get('_next'):
+            return f"Selected {output['_next']}"
+        turn = _turn_from_output(output)
+        if turn is not None:
+            return f'Produced {turn.kind} turn'
+    if isinstance(output, list):
+        return f'{len(output)} result(s)'
+    return f'Finished {name.replace("_", " ")}'
+
+
+def _step_event_from_graph_event(
+    event: dict[str, Any],
+    *,
+    started_at: dict[str, float],
+) -> dict[str, Any] | None:
+    event_kind = str(event.get('event') or '')
+    name = str(event.get('name') or '')
+    run_id = str(event.get('run_id') or f'{name}:{event_kind}')
+    is_tool = event_kind.startswith('on_tool_')
+    is_chain = event_kind.startswith('on_chain_')
+    if is_tool:
+        if name not in _VISIBLE_TOOL_NAMES:
+            return None
+        node = name
+        action = name
+    elif is_chain:
+        if name not in _VISIBLE_CHAIN_NODES:
+            return None
+        node = name
+        action = _NODE_ACTIONS.get(name, name)
+    else:
+        return None
+
+    if event_kind.endswith('_start'):
+        started_at[run_id] = time.perf_counter()
+        status_value = 'running'
+        latency_ms = None
+        output = None
+    elif event_kind.endswith('_end'):
+        started = started_at.pop(run_id, None)
+        status_value = 'success'
+        latency_ms = round((time.perf_counter() - started) * 1000, 2) if started is not None else None
+        output = _event_output(event)
+    elif event_kind.endswith('_error'):
+        started = started_at.pop(run_id, None)
+        status_value = 'error'
+        latency_ms = round((time.perf_counter() - started) * 1000, 2) if started is not None else None
+        output = _event_output(event)
+    else:
+        return None
+
+    return {
+        'type': 'step',
+        'node': node,
+        'action': action,
+        'status': status_value,
+        'latency_ms': latency_ms,
+        'summary': _event_step_summary(name, output, status_value),
+    }
+
+
+async def _stream_graph(  # noqa: C901 - event parsing keeps stream state in one place
+    state_or_command: HelpdeskState | Command,
+    *,
+    operation: str,
+    graph: CompiledStateGraph,
+    config: RunnableConfig | None,
+) -> AsyncIterator[dict[str, Any]]:
+    started_at: dict[str, float] = {}
+    final_state: HelpdeskState | None = None
+    final_turn: AgentTurn | None = None
+    async for event in graph.astream_events(state_or_command, config=config, version='v2'):
+        output = _event_output(event)
+        if isinstance(output, dict):
+            turn = _turn_from_output(output)
+            if turn is not None:
+                final_turn = turn
+                final_state = dict(output)
+        step_event = _step_event_from_graph_event(event, started_at=started_at)
+        if step_event is not None:
+            yield step_event
+        if final_turn is not None:
+            break
+
+    if final_state is None and config is not None:
+        with suppress(Exception):
+            snapshot = await graph.aget_state(config)
+            values = getattr(snapshot, 'values', None) or {}
+            if values:
+                final_state = dict(values)
+                final_turn = _turn_from_output(final_state)
+
+    if final_state is None or final_turn is None:
+        logger.warning(
+            'helpdesk graph stream completed without _graph_turn for operation=%s',
+            operation,
+        )
+        state = final_state or {}
+        final_turn = await _budget_exhausted_turn(dict(state))
+        final_state = dict(state)
+
+    if config is not None:
+        producer_node = None
+        if final_turn.kind == 'draft_ready':
+            producer_node = 'writer'
+        elif final_turn.kind == 'question':
+            producer_node = 'clarifier'
+        elif final_turn.kind == 'info':
+            producer_node = 'solution'
+        if producer_node is not None:
+            with suppress(Exception):
+                await graph.aupdate_state(config, final_state, as_node=producer_node)
+
+    yield {'type': '_internal_done', 'turn': final_turn, 'state': final_state}
 
 
 @trace_agent_run('start')
@@ -863,6 +1116,69 @@ async def start_session(
     )
 
 
+async def stream_start_session(
+    conversation: list[ConversationTurn],
+    *,
+    user_id: int | str,
+    trigger: str = 'stream',
+    chat_session_id: int | None = None,
+    db: Session | None = None,
+) -> AsyncIterator[dict[str, Any]]:
+    """Stream graph step events for a new helpdesk-agent session."""
+    _require_agent_enabled()
+    await maybe_gc_langgraph_checkpoints()
+    HELPDESK_AGENT_STARTED_TOTAL.labels(trigger=trigger).inc()
+    _record_funnel('started', trigger)
+
+    session_id = str(uuid.uuid4())
+    question = _last_user_text(conversation)
+    state = _new_state(session_id, user_id, question, conversation)
+    if _budget_exhausted(state):
+        turn = _persist_and_stamp(
+            await _budget_exhausted_turn(state),
+            db=db,
+            chat_session_id=chat_session_id,
+            user_id=user_id,
+            state=state,
+        )
+        yield {'type': 'done', 'turn': turn.model_dump(mode='json')}
+        return
+
+    state['entry'] = 'start'
+    if use_langgraph_checkpoint():
+        async with helpdesk_graph_for_request() as graph:
+            async for event in _stream_graph(
+                state,
+                operation='start',
+                graph=graph,
+                config=_graph_config(session_id),
+            ):
+                if event.get('type') != '_internal_done':
+                    yield event
+                    continue
+                turn = _persist_and_stamp(
+                    event['turn'],
+                    db=db,
+                    chat_session_id=chat_session_id,
+                    user_id=user_id,
+                    state=event['state'],
+                )
+                yield {'type': 'done', 'turn': turn.model_dump(mode='json')}
+    else:
+        async for event in _stream_graph(state, operation='start', graph=HELPDESK_GRAPH, config=None):
+            if event.get('type') != '_internal_done':
+                yield event
+                continue
+            turn = _persist_and_stamp(
+                event['turn'],
+                db=db,
+                chat_session_id=chat_session_id,
+                user_id=user_id,
+                state=event['state'],
+            )
+            yield {'type': 'done', 'turn': turn.model_dump(mode='json')}
+
+
 @trace_agent_run('resume')
 async def resume_session(  # noqa: C901 - mirrors legacy and LangGraph checkpoint resume paths during rollback window
     session_id: str,
@@ -890,24 +1206,43 @@ async def resume_session(  # noqa: C901 - mirrors legacy and LangGraph checkpoin
 
             awaiting = state.get('awaiting_user')
             if awaiting is None:
-                exc = HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Helpdesk agent is not waiting for user input.')
+                exc = HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail='Helpdesk agent is not waiting for user input.',
+                )
                 _record_agent_error('resume', exc)
                 raise exc
             if pending_question_id and pending_question_id != awaiting.question_id:
-                exc = HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Helpdesk agent question is stale.')
+                exc = HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail='Helpdesk agent question is stale.',
+                )
                 _record_agent_error('resume', exc)
                 raise exc
 
             answer = (choice or reply or '').strip()
             if not answer:
-                exc = HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail='A reply or choice is required.')
+                exc = HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail='A reply or choice is required.',
+                )
                 _record_agent_error('resume', exc)
                 raise exc
 
             state['turns_taken'] = int(state.get('turns_taken', 0)) + 1
             if _budget_exhausted(state):
                 _append_user_reply(state, answer, label='Budget-stop reply')
-                draft_turn = await _budget_exhausted_turn(state, [_trace('resume', 'append_user_reply', 'success', awaiting.question_id)])
+                draft_turn = await _budget_exhausted_turn(
+                    state,
+                    [
+                        _trace(
+                            'resume',
+                            'append_user_reply',
+                            'success',
+                            awaiting.question_id,
+                        )
+                    ],
+                )
                 return _persist_and_stamp(
                     draft_turn,
                     db=db,
@@ -917,7 +1252,10 @@ async def resume_session(  # noqa: C901 - mirrors legacy and LangGraph checkpoin
                 )
 
             turn, final_state = await _run_graph(
-                Command(resume=answer, update={'entry': 'resume', 'turns_taken': state['turns_taken']}),
+                Command(
+                    resume=answer,
+                    update={'entry': 'resume', 'turns_taken': state['turns_taken']},
+                ),
                 operation='resume',
                 graph=graph,
                 config=_graph_config(session_id),
@@ -944,24 +1282,36 @@ async def resume_session(  # noqa: C901 - mirrors legacy and LangGraph checkpoin
 
     awaiting = state.get('awaiting_user')
     if awaiting is None:
-        exc = HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Helpdesk agent is not waiting for user input.')
+        exc = HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail='Helpdesk agent is not waiting for user input.',
+        )
         _record_agent_error('resume', exc)
         raise exc
     if pending_question_id and pending_question_id != awaiting.question_id:
-        exc = HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Helpdesk agent question is stale.')
+        exc = HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail='Helpdesk agent question is stale.',
+        )
         _record_agent_error('resume', exc)
         raise exc
 
     answer = (choice or reply or '').strip()
     if not answer:
-        exc = HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail='A reply or choice is required.')
+        exc = HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail='A reply or choice is required.',
+        )
         _record_agent_error('resume', exc)
         raise exc
 
     state['turns_taken'] = int(state.get('turns_taken', 0)) + 1
     if _budget_exhausted(state):
         _append_user_reply(state, answer, label='Budget-stop reply')
-        draft_turn = await _budget_exhausted_turn(state, [_trace('resume', 'append_user_reply', 'success', awaiting.question_id)])
+        draft_turn = await _budget_exhausted_turn(
+            state,
+            [_trace('resume', 'append_user_reply', 'success', awaiting.question_id)],
+        )
         return _persist_and_stamp(
             draft_turn,
             db=db,
@@ -980,6 +1330,175 @@ async def resume_session(  # noqa: C901 - mirrors legacy and LangGraph checkpoin
         user_id=user_id,
         state=final_state,
     )
+
+
+async def stream_resume_session(  # noqa: C901, PLR0912, PLR0915 - mirrors resume_session during checkpoint rollback window
+    session_id: str,
+    *,
+    user_id: int | str,
+    reply: str | None = None,
+    choice: str | None = None,
+    pending_question_id: str | None = None,
+    chat_session_id: int | None = None,
+    db: Session | None = None,
+) -> AsyncIterator[dict[str, Any]]:
+    """Stream graph step events while resuming a paused helpdesk-agent session."""
+    _require_agent_enabled()
+    if use_langgraph_checkpoint():
+        async with helpdesk_graph_for_request() as graph:
+            state = await _load_langgraph_state(graph, session_id, user_id=user_id, operation='resume')
+            if _budget_exhausted(state):
+                turn = _persist_and_stamp(
+                    await _budget_exhausted_turn(state),
+                    db=db,
+                    chat_session_id=chat_session_id,
+                    user_id=user_id,
+                    state=state,
+                )
+                yield {'type': 'done', 'turn': turn.model_dump(mode='json')}
+                return
+
+            awaiting = state.get('awaiting_user')
+            if awaiting is None:
+                exc = HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail='Helpdesk agent is not waiting for user input.',
+                )
+                _record_agent_error('resume', exc)
+                raise exc
+            if pending_question_id and pending_question_id != awaiting.question_id:
+                exc = HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail='Helpdesk agent question is stale.',
+                )
+                _record_agent_error('resume', exc)
+                raise exc
+
+            answer = (choice or reply or '').strip()
+            if not answer:
+                exc = HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail='A reply or choice is required.',
+                )
+                _record_agent_error('resume', exc)
+                raise exc
+
+            state['turns_taken'] = int(state.get('turns_taken', 0)) + 1
+            if _budget_exhausted(state):
+                _append_user_reply(state, answer, label='Budget-stop reply')
+                draft_turn = await _budget_exhausted_turn(
+                    state,
+                    [
+                        _trace(
+                            'resume',
+                            'append_user_reply',
+                            'success',
+                            awaiting.question_id,
+                        )
+                    ],
+                )
+                turn = _persist_and_stamp(
+                    draft_turn,
+                    db=db,
+                    chat_session_id=chat_session_id,
+                    user_id=user_id,
+                    state=state,
+                )
+                yield {'type': 'done', 'turn': turn.model_dump(mode='json')}
+                return
+
+            async for event in _stream_graph(
+                Command(
+                    resume=answer,
+                    update={'entry': 'resume', 'turns_taken': state['turns_taken']},
+                ),
+                operation='resume',
+                graph=graph,
+                config=_graph_config(session_id),
+            ):
+                if event.get('type') != '_internal_done':
+                    yield event
+                    continue
+                turn = _persist_and_stamp(
+                    event['turn'],
+                    db=db,
+                    chat_session_id=chat_session_id,
+                    user_id=user_id,
+                    state=event['state'],
+                )
+                yield {'type': 'done', 'turn': turn.model_dump(mode='json')}
+            return
+
+    state = load_checkpoint(session_id, user_id=user_id)
+    if state is None:
+        raise _state_not_found_exc('resume')
+    if _budget_exhausted(state):
+        turn = _persist_and_stamp(
+            await _budget_exhausted_turn(state),
+            db=db,
+            chat_session_id=chat_session_id,
+            user_id=user_id,
+            state=state,
+        )
+        yield {'type': 'done', 'turn': turn.model_dump(mode='json')}
+        return
+
+    awaiting = state.get('awaiting_user')
+    if awaiting is None:
+        exc = HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail='Helpdesk agent is not waiting for user input.',
+        )
+        _record_agent_error('resume', exc)
+        raise exc
+    if pending_question_id and pending_question_id != awaiting.question_id:
+        exc = HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail='Helpdesk agent question is stale.',
+        )
+        _record_agent_error('resume', exc)
+        raise exc
+
+    answer = (choice or reply or '').strip()
+    if not answer:
+        exc = HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail='A reply or choice is required.',
+        )
+        _record_agent_error('resume', exc)
+        raise exc
+
+    state['turns_taken'] = int(state.get('turns_taken', 0)) + 1
+    if _budget_exhausted(state):
+        _append_user_reply(state, answer, label='Budget-stop reply')
+        draft_turn = await _budget_exhausted_turn(
+            state,
+            [_trace('resume', 'append_user_reply', 'success', awaiting.question_id)],
+        )
+        turn = _persist_and_stamp(
+            draft_turn,
+            db=db,
+            chat_session_id=chat_session_id,
+            user_id=user_id,
+            state=state,
+        )
+        yield {'type': 'done', 'turn': turn.model_dump(mode='json')}
+        return
+
+    state['entry'] = 'resume'
+    state['resume_answer'] = answer
+    async for event in _stream_graph(state, operation='resume', graph=HELPDESK_GRAPH, config=None):
+        if event.get('type') != '_internal_done':
+            yield event
+            continue
+        turn = _persist_and_stamp(
+            event['turn'],
+            db=db,
+            chat_session_id=chat_session_id,
+            user_id=user_id,
+            state=event['state'],
+        )
+        yield {'type': 'done', 'turn': turn.model_dump(mode='json')}
 
 
 @trace_agent_run('confirm')
@@ -1004,7 +1523,10 @@ async def confirm_session(
         async with helpdesk_graph_for_request() as graph:
             state = await _load_langgraph_state(graph, session_id, user_id=user_id, operation='confirm')
             if state.get('next_action') != 'await_user_confirm' or state.get('draft') is None:
-                exc = HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Helpdesk agent is not waiting for ticket confirmation.')
+                exc = HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail='Helpdesk agent is not waiting for ticket confirmation.',
+                )
                 _record_agent_error('confirm', exc)
                 raise exc
 
@@ -1029,7 +1551,10 @@ async def confirm_session(
     if state is None:
         raise _state_not_found_exc('confirm')
     if state.get('next_action') != 'await_user_confirm' or state.get('draft') is None:
-        exc = HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Helpdesk agent is not waiting for ticket confirmation.')
+        exc = HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail='Helpdesk agent is not waiting for ticket confirmation.',
+        )
         _record_agent_error('confirm', exc)
         raise exc
 

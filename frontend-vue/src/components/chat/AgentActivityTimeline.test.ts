@@ -31,7 +31,7 @@ describe('AgentActivityTimeline', () => {
     const user = userEvent.setup()
     render(AgentActivityTimeline, { props: { steps: STEPS } })
 
-    const toggle = screen.getByRole('button', { name: /Steps \(4\)/ })
+    const toggle = screen.getByRole('button', { name: /What the agent did \(4\)/ })
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
 
     await user.click(toggle)
