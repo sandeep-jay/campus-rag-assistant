@@ -40,11 +40,14 @@ class HelpdeskState(TypedDict, total=False):
     state_version: int
     session_id: str
     user_id: int | str
+    created_at: float
+    deadline_at: float
     original_question: str
     conversation: list[ConversationTurn]
     turns_taken: int
     questions_asked: list[str]
     user_replies: list[str]
+    tool_attempts: int
     duplicate_candidates: list[GitHubIssue]
     kb_retry_results: list[Any]
     web_search_results: list[Any]

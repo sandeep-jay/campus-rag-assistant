@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+import httpx
 import pytest
 from langchain.schema import Document
 
@@ -11,6 +12,14 @@ from backend.app.services.graph.nodes import _compute_kb_resolved
 from backend.app.services.helpdesk.redaction import redact_text
 from backend.app.services.helpdesk_graph import tools
 from backend.app.services.helpdesk_graph.nodes import classify_ticket_facts
+
+
+class _SecretLike:
+    def __init__(self, value: str) -> None:
+        self._value = value
+
+    def get_secret_value(self) -> str:
+        return self._value
 
 
 def test_redact_text_handles_emails_tokens_secrets():
@@ -99,6 +108,28 @@ async def test_retry_kb_respects_disabled_flag(monkeypatch):
 
 
 @pytest.mark.asyncio()
+async def test_web_search_redacts_secret_before_provider_query(monkeypatch):
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_TOOL_WEB_SEARCH', True)
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_WEB_SEARCH_TIMEOUT_SECONDS', 1.0)
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_TOOL_OUTPUT_MAX_CHARS', 4000)
+    captured: dict[str, str] = {}
+    fake_aws_key = 'AKIA' + 'ABCDEFGHIJKLMNOP'
+
+    def _fake_web_search(query: str):
+        captured['query'] = query
+        return [Document(page_content='safe web result', metadata={'source': 'web'})]
+
+    with patch('backend.app.services.helpdesk_graph.tools.web_search_documents', _fake_web_search):
+        await tools.web_search(
+            f'Canvas login broken with key {fake_aws_key}',
+            state={'session_id': 's1', 'user_id': 'u1', 'tool_cache': {}},
+        )
+
+    assert fake_aws_key not in captured['query']
+    assert '[redacted]' in captured['query']
+
+
+@pytest.mark.asyncio()
 async def test_web_search_uses_helper_and_session_cache(monkeypatch):
     monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_TOOL_WEB_SEARCH', True)
     monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_WEB_SEARCH_TIMEOUT_SECONDS', 1.0)
@@ -134,6 +165,28 @@ async def test_web_search_truncates_tool_output(monkeypatch):
 
     assert docs[0].page_content == '01234'
     assert docs[0].metadata['truncated'] is True
+
+
+@pytest.mark.asyncio()
+async def test_search_existing_issues_redacts_secret_from_github_query(monkeypatch):
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_TOOL_GITHUB_SEARCH', True)
+    monkeypatch.setattr(tools.settings, 'GITHUB_TOKEN', _SecretLike('demo-token'))
+    monkeypatch.setattr(tools.settings, 'GITHUB_REPO', 'demo-org/demo-repo')
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_GITHUB_SEARCH_TIMEOUT_SECONDS', 1.0)
+    captured: dict[str, str] = {}
+    fake_aws_key = 'AKIA' + 'ABCDEFGHIJKLMNOP'
+
+    def _handler(request: httpx.Request) -> httpx.Response:
+        captured['q'] = str(request.url.params.get('q'))
+        return httpx.Response(200, json={'items': []})
+
+    await tools.search_existing_issues(
+        f'Canvas login broken with key {fake_aws_key}',
+        transport=httpx.MockTransport(_handler),
+    )
+
+    assert fake_aws_key not in captured['q']
+    assert '[REDACTED]' in captured['q']
 
 
 def test_classify_ticket_facts_infers_access_high_team():

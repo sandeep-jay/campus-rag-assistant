@@ -10,20 +10,24 @@ AGENT mode. Product-level shape (modes, intent routing, UX) lives in
 
 ---
 
-## Why an agent (not just LLM endpoints)
+## Target state (in progress)
+
+The sections below describe the target architecture tracked by [ADR-006](../adr/ADR-006-live-llm-supervisor-migration.md). Shipped behavior is called out explicitly where it differs.
+
+### Why an agent (not just LLM endpoints)
 
 The first pass of helpdesk shipped as three LLM endpoints — `/summarize`,
 `/draft-ticket`, `/create-issue`. That is not agentic: the LLM never picks
 what to do next; the model never sees a tool result; multi-turn requires
 the user to start over each time.
 
-This spec replaces that with a real agent: a supervisor LLM that picks
+The target design replaces that with a real agent: a supervisor LLM that picks
 actions, calls tools, asks the user for missing info, and decides when to
 file a ticket or to link an existing one. The original three endpoints
 remain available — they are the cheap, non-agentic fallbacks invoked by
 the agent's tools and by Layer 3 phrase shortcuts.
 
-What "agentic" means here, concretely:
+What target "agentic" means here, concretely:
 
 1. The LLM decides at every step what to do next.
 2. The LLM uses tools (KB retrieval, web search, GitHub issue search,
@@ -35,7 +39,7 @@ What "agentic" means here, concretely:
 
 ---
 
-## Topology
+## Target Topology
 
 ```mermaid
 flowchart TB
@@ -147,13 +151,13 @@ LangGraph's checkpointer pattern (target):
 
 ## Termination rules (hard, non-negotiable)
 
-- Supervisor loop <= 8 steps; otherwise force `write_draft` then `await_user_confirm`.
-- <= 3 clarifying questions per session.
-- <= 2 KB retries.
-- <= 2 web searches.
+- Supervisor loop <= `HELPDESK_AGENT_MAX_TURNS` (default 8); otherwise force `write_draft` then `await_user_confirm`.
+- <= `HELPDESK_AGENT_MAX_QUESTIONS` (default 2) clarifying questions per session.
+- <= `HELPDESK_AGENT_MAX_TOOL_RETRIES` (default 2) read-tool attempts before forced draft.
 - <= 2 solution proposals (don't badger).
 - <= 1 GitHub duplicate search (it's expensive; cache once).
-- Per-session token cap (`HELPDESK_AGENT_TOKEN_BUDGET=25000`) hard stop.
+- Per-session token cap (`HELPDESK_AGENT_MAX_TOKENS_PER_SESSION=20000`) hard stop.
+- Per-session wall-clock deadline (`HELPDESK_AGENT_DEADLINE_SECONDS=60.0`) hard stop.
 - Per-user daily session cap (`HELPDESK_AGENT_MAX_SESSIONS_PER_USER_PER_DAY=10`).
 - **HITL gate** before filing: `file_new` and `link_existing` never execute
   without an explicit user "File it" / "Link it" confirmation.
@@ -271,7 +275,7 @@ bill twice. Cache lives in `HelpdeskState`; cleared on session end.
 
 The async supervisor loop dies when a worker shuts down. On restart:
 
-- `SqliteSaver` checkpoints survive (on-disk).
+- Shipped today: custom JSON-on-SQLite checkpoints survive on disk. Target Phase 1b: `AsyncPostgresSaver`.
 - Each session is in one of three states:
   - `awaiting_user` — clean; the user resumes when they return.
   - `awaiting_user_confirm` — clean; the modal is still open client-side.
@@ -298,9 +302,9 @@ The async supervisor loop dies when a worker shuts down. On restart:
 - Before LLM calls: conversation content is redacted (existing behavior).
 - Before tool calls (`web_search` query, GitHub search query, GitHub
   issue body): redacted again.
-- Before checkpoint write: redacted. The on-disk `SqliteSaver` only ever
-  stores redacted text. Unredacted text exists in-process and in the
-  chat DB (which has its own retention contract).
+- Target Phase 1b: checkpoint writes store only redacted tool/LLM context.
+  Shipped today, the checkpoint may contain the original chat text, so it
+  stays local, gitignored, TTL-bound, and keyed by user/session.
 
 ### Right to delete
 

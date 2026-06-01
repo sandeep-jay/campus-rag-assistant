@@ -67,14 +67,13 @@ CHANGELOG_HEADING_PATTERNS = (
 
 CANONICAL_LEDE = (
     "Campus RAG Assistant is a source-reviewable AI platform for governed campus "
-    "knowledge. It combines a cited-answer RAG path with LangGraph agentic "
-    "helpdesk orchestration: when the knowledge base cannot resolve a question, "
-    "the agent can retry retrieval, use controlled web research, search GitHub "
+    "knowledge. It combines a cited-answer RAG path with a HITL-gated helpdesk "
+    "escalation loop: when the knowledge base cannot resolve a question, the "
+    "system can retry retrieval, use controlled web research, search GitHub "
     "issues for duplicates, draft a ticket, and file to GitHub only after human "
     "confirmation. The system runs behind one FastAPI backend and Vue 3 SPA with "
     "AWS / Azure / mock providers, RAGAS evaluation, LangSmith and Prometheus "
-    "observability, CI/security gates, redaction, and HITL guardrails for "
-    "responsible AI."
+    "observability, CI/security gates, redaction, and responsible-AI guardrails."
 )
 
 CANONICAL_LEDE_DOCS: tuple[Path, ...] = (
@@ -251,13 +250,13 @@ def check_intro_consistency(path: Path) -> list[Finding]:
                     'missing "## What this shows" near the top of the doc.',
                 )
             )
-        if "| **Agentic helpdesk orchestration** |" not in text:
+        if "| **Helpdesk escalation loop** |" not in text:
             findings.append(
                 Finding(
                     "error",
                     path,
-                    "missing agentic-helpdesk-orchestration row in the capability table; "
-                    "the agent should stay visible in quick-review docs.",
+                    "missing helpdesk-escalation row in the capability table; "
+                    "the HITL escalation loop should stay visible in quick-review docs.",
                 )
             )
 

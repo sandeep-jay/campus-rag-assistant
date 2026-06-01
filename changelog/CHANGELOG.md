@@ -21,6 +21,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Added
 
+- **Helpdesk agent guardrails** — added `HELPDESK_AGENT_MAX_TURNS`, `HELPDESK_AGENT_MAX_QUESTIONS`, `HELPDESK_AGENT_MAX_TOOL_RETRIES`, `HELPDESK_AGENT_MAX_TOKENS_PER_SESSION`, and `HELPDESK_AGENT_DEADLINE_SECONDS` defaults for Phase 0 budget enforcement.
 - **Local Postgres via Docker Compose** — added a repo-root `docker-compose.yml` with a `postgres:14` `db` service, first-run database bootstrap SQL, and backend runner startup/health-check wiring so local development no longer depends on Homebrew Postgres by default.
 - **Database listener guard** — the backend runner now detects non-Docker listeners on port 5432 and asks developers to stop them or opt into `SKIP_DOCKER_DB=1`, preventing accidental connections to an old local Postgres.
 
@@ -31,7 +32,11 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Fixed
 
+- **Helpdesk docs truth-in-advertising** — README and helpdesk docs now separate the shipped deterministic runner from the target LLM supervisor / compiled `StateGraph` / `AsyncPostgresSaver` migration tracked in ADR-006.
+
 ### Security
+
+- **Helpdesk tool input redaction** — redacts outbound KB retry, Tavily/web-search, and GitHub duplicate-search queries before provider calls so cloud keys or tokens pasted by a user do not leave the app in tool parameters.
 
 ## [v3.0.0] — 2026-05-31
 

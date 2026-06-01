@@ -12,6 +12,7 @@ from langchain.schema import Document
 from backend.app.core.config_manager import settings
 from backend.app.core.metrics import HELPDESK_AGENT_TOOL_TOTAL
 from backend.app.services.helpdesk.github import create_github_issue
+from backend.app.services.helpdesk.redaction import redact_text
 from backend.app.services.helpdesk_graph.state import GitHubIssue, HelpdeskState
 from backend.app.services.helpdesk_graph.tracing import trace_agent_tool
 from backend.app.services.retrieval import apply_client_metadata_filter, retrieve_with_queries
@@ -34,6 +35,10 @@ def _github_token_and_repo() -> tuple[str, str] | None:
 
 def _normalize_query(query: str) -> str:
     return ' '.join((query or '').split()).strip().lower()[:256]
+
+
+def _redacted_query(query: str) -> str:
+    return redact_text(query or '')
 
 
 def _cache_get(state: HelpdeskState | None, tool: str, query: str) -> list[Document] | None:
@@ -73,7 +78,8 @@ async def _run_with_timeout(func, *, timeout: float):
 async def retry_kb(query: str, *, rag_service: RAGService, state: HelpdeskState | None = None) -> list[Document]:  # noqa: PLR0911
     """Run a retrieval-only KB retry without generating an answer."""
     tool = 'retry_kb'
-    cleaned = _normalize_query(query)
+    safe_query = _redacted_query(query)
+    cleaned = _normalize_query(safe_query)
     if not settings.HELPDESK_AGENT_TOOL_KB_RETRY:
         HELPDESK_AGENT_TOOL_TOTAL.labels(tool=tool, outcome='skipped', reason='disabled').inc()
         return []
@@ -90,7 +96,7 @@ async def retry_kb(query: str, *, rag_service: RAGService, state: HelpdeskState 
         HELPDESK_AGENT_TOOL_TOTAL.labels(tool=tool, outcome='mock', reason='provider_mock').inc()
         documents = [
             Document(
-                page_content=f'Mock KB retry result for: {query}',
+                page_content=f'Mock KB retry result for: {safe_query}',
                 metadata={'source': 'mock-kb', 'source_metadata': {'short_description': 'Mock KB retry result'}},
             )
         ]
@@ -129,7 +135,8 @@ async def retry_kb(query: str, *, rag_service: RAGService, state: HelpdeskState 
 async def web_search(query: str, *, state: HelpdeskState | None = None) -> list[Document]:
     """Run the configured web-search provider with timeout and in-session cache."""
     tool = 'web_search'
-    cleaned = _normalize_query(query)
+    safe_query = _redacted_query(query)
+    cleaned = _normalize_query(safe_query)
     if not settings.HELPDESK_AGENT_TOOL_WEB_SEARCH:
         HELPDESK_AGENT_TOOL_TOTAL.labels(tool=tool, outcome='skipped', reason='disabled').inc()
         return []
@@ -180,7 +187,7 @@ async def search_existing_issues(
         return []
 
     token, repo = config
-    cleaned = ' '.join(query.split())[:256]
+    cleaned = ' '.join(_redacted_query(query).split())[:256]
     if not cleaned:
         HELPDESK_AGENT_TOOL_TOTAL.labels(tool='search_existing_issues', outcome='skipped', reason='empty_query').inc()
         return []
