@@ -17,8 +17,10 @@ Campus RAG Assistant uses **environment branches** to trigger stack-specific CI/
 Promote by moving branch pointers to a known commit (fast-forward or reset), not by divergent commits on env branches.
 
 ```text
-main  ──promote──►  qa  ──after QA sign-off──►  release  ──tag──►  v2.0
+main  ──promote──►  qa  ──after QA sign-off──►  release  ──tag──►  v3.0.0
 ```
+
+Released tags so far: [`v1.0`](https://github.com/sandeep-jay/campus-rag-assistant/releases/tag/v1.0) (upstream chabot baseline, alias of the historical `v0.1` fork tag), [`v2.0`](https://github.com/sandeep-jay/campus-rag-assistant/releases/tag/v2.0) (RAG platform transformation), [`v3.0.0`](https://github.com/sandeep-jay/campus-rag-assistant/releases/tag/v3.0.0) (helpdesk agent). High-level summaries: [release-notes/](./release-notes/index.md).
 
 ### Commands (from repo root)
 
@@ -43,11 +45,16 @@ git reset --hard qa
 git push origin release
 
 # Immutable release marker (on release branch tip)
-git tag -a v2.0 -m "Campus RAG Assistant v2.0 — Vue SPA, LangGraph RAG, Phase 5 retrieval, web research, RAGAS baseline"
-git push origin v2.0
+git tag -a v3.0.0 -m "Campus RAG Assistant v3.0.0 — bounded helpdesk agent, v3 architecture refresh"
+git push origin v3.0.0
+
+# Then publish the GitHub Release pointing at the tag and release notes:
+gh release create v3.0.0 \
+  --title "v3.0.0 — Helpdesk agent + docs refresh" \
+  --notes-file docs/release-notes/index.md
 ```
 
-Use **annotated tags** (`-a`) for releases. Prefer semver (`v2.0`, `v2.0.1`) for patch releases.
+Use **annotated tags** (`-a`) for releases. Prefer semver (`v3.0.0`, `v3.0.1`) for patch releases. When backfilling a historical release tag for the release ladder (as we did for `v1.0` aliasing `v0.1`), tag the same commit the legacy tag points to.
 
 ## Hotfixes
 
@@ -74,8 +81,9 @@ Tag the same commit `release` points to after promotion.
 
 ## Related docs
 
+- [release-notes/](./release-notes/index.md) — high-level summaries for each tag
 - [CI.md](./CI.md) — GitHub Actions variables, secrets, workflows
-- [changelog/CHANGELOG.md](../changelog/CHANGELOG.md) — release notes
+- [changelog/CHANGELOG.md](../changelog/CHANGELOG.md) — fine-grained per-PR changelog
 - [OPERATIONS.md](./OPERATIONS.md) — deploy order, metrics
 - [LOAD_TESTING.md](./LOAD_TESTING.md) — pre-release load validation
 - [EVALUATION.md](./EVALUATION.md) — RAGAS gates on release

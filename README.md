@@ -29,6 +29,7 @@ Campus RAG Assistant demonstrates multicloud RAG platform engineering plus bound
 | RAG quality | [docs/EVALUATION.md](docs/EVALUATION.md) + [docs/eval_baseline_2026-05-19.md](docs/eval_baseline_2026-05-19.md) |
 | Agentic orchestration | [docs/helpdesk/index.md](docs/helpdesk/index.md) (overview) -> [docs/roadmap/CONVERSATION_FLOW.md](docs/roadmap/CONVERSATION_FLOW.md) (product spec) + [docs/roadmap/HELPDESK_AGENT.md](docs/roadmap/HELPDESK_AGENT.md) (engineering spec) + [ADR-005](docs/adr/ADR-005-bounded-helpdesk-agent.md) |
 | Operations and security | [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/CI.md](docs/CI.md), [docs/SECURITY.md](docs/SECURITY.md) |
+| Release history | [docs/release-notes/](docs/release-notes/index.md) — v1.0 / v2.0 / v3.0.0 |
 
 ## Why this project matters
 

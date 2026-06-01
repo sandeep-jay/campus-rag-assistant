@@ -103,6 +103,7 @@ Design detail: [Architecture](ARCHITECTURE.md) and [Design Notes](DESIGN.md).
 | Operations reviewer | [Operations](OPERATIONS.md), [CI/CD](CI.md), [Release](RELEASE.md), [Security](SECURITY.md) |
 | Product demo reviewer | [Screenshots and demo script](assets/README.md) |
 | Roadmap reviewer | [Product Roadmap](roadmap/PRODUCT_ROADMAP.md) |
+| Release history | [Releases](release-notes/index.md) (v1.0 / v2.0 / v3.0.0) |
 
 ## Screenshots
 
