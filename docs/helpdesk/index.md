@@ -23,15 +23,15 @@ Every session terminates in exactly one of four explicit outcomes: `resolved_by_
 flowchart LR
   User[User] -->|kb_resolved=false| Vue[Vue Chat AGENT mode]
   Vue -->|/agent/start /resume /confirm /abort| API[FastAPI helpdesk router]
-  API --> Agent[Helpdesk LangGraph]
-  Agent --> Supervisor[Supervisor LLM]
-  Supervisor -->|chooses next_action| Tools{Tools and specialists}
+  API --> Agent[Helpdesk deterministic runner]
+  Agent --> Supervisor[Deterministic supervisor]
+  Supervisor -->|chooses next_action| Tools{Tools and helpers}
   Tools --> RetryKB[retry_kb tool]
   Tools --> WebSearch[web_search tool]
   Tools --> SearchDups[search_dups tool]
-  Tools --> Clarifier[Clarifier specialist LLM]
-  Tools --> Classifier[Classifier specialist LLM]
-  Tools --> Writer[Draft writer specialist LLM]
+  Tools --> Clarifier[Clarifier helper]
+  Tools --> Classifier[Classifier helper]
+  Tools --> Writer[Draft writer helper]
   Supervisor -->|HITL gate| FileTicket[file_ticket tool]
   FileTicket --> GH[(GitHub Issues<br/>private demo repo)]
   Agent --> Checkpoint[(SQLite checkpointer<br/>session_id keyed)]
@@ -43,10 +43,10 @@ flowchart LR
 
 | Boundary | Mechanism |
 |---|---|
-| **Loop length** | Hard supervisor-step cap (`HELPDESK_AGENT_MAX_STEPS`) |
-| **Clarifying questions** | Per-session cap |
-| **KB / web / dup retries** | Independent per-tool budgets |
-| **Token spend** | Per-session token cap |
+| **Loop length** | Hard turn cap (`HELPDESK_AGENT_MAX_TURNS`) |
+| **Clarifying questions** | Per-session cap (`HELPDESK_AGENT_MAX_QUESTIONS`) |
+| **KB / web retries** | Read-tool attempt cap (`HELPDESK_AGENT_MAX_TOOL_RETRIES`) |
+| **Token spend / deadline** | Per-session token estimate and wall-clock caps |
 | **Per-user quota** | Per-user-per-day session cap |
 | **Kill switch** | `HELPDESK_AGENT_KILL_SWITCH` disables all agent endpoints with a single env flip |
 | **HITL** | `file_ticket` reachable only via `/agent/confirm` — never auto-files |
@@ -69,7 +69,7 @@ The shipped helpdesk loop is real, observable, multi-turn, and HITL-gated, but t
 | Specialists (Clarifier / Classifier / Writer / Solution) | Hand-coded helpers | LLM nodes with focused prompts (Phase 2) |
 | `StateGraph` compiled with conditional edges | No — hand-coded `runner.py` | Phase 1a |
 | Checkpointer | Custom JSON-on-SQLite | `AsyncPostgresSaver` keyed by `chat_session_id`, schema owned by Alembic (Phase 1b) |
-| Hard budget enforcement (turns, questions, retries, tokens, deadline) | Counters tracked but not read | Phase 0 wires enforcement at every increment site |
+| Hard budget enforcement (turns, questions, retries, tokens, deadline) | Yes — Phase 0 guardrails | Phase 3 adds provider token accounting and richer metrics |
 | Trajectory eval (`test_helpdesk_agent_scenarios.py`) | Scenario rig as designed | Phase 4 — mock-CI gate + live-nightly comparison |
 | Campus router (`classify_domain`) | Not built | Phase 5 — LLM domain router with capability registry |
 

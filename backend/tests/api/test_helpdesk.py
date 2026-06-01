@@ -38,6 +38,11 @@ def enable_helpdesk(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, 'HELPDESK_DEDUP_WINDOW_SECONDS', 300)
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_CHECKPOINT_PATH', str(tmp_path / 'helpdesk_agent.sqlite'))
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_CHECKPOINT_TTL_SECONDS', 86400)
+    monkeypatch.setattr(settings, 'HELPDESK_AGENT_MAX_TURNS', 8)
+    monkeypatch.setattr(settings, 'HELPDESK_AGENT_MAX_QUESTIONS', 2)
+    monkeypatch.setattr(settings, 'HELPDESK_AGENT_MAX_TOOL_RETRIES', 2)
+    monkeypatch.setattr(settings, 'HELPDESK_AGENT_MAX_TOKENS_PER_SESSION', 20000)
+    monkeypatch.setattr(settings, 'HELPDESK_AGENT_DEADLINE_SECONDS', 60.0)
     # Reset the in-process dedup cache for test isolation.
     github_module._dedup_cache._store.clear()
 
@@ -299,6 +304,22 @@ def test_agent_resume_proposes_solution_after_impact_answer(
     assert body['message'].lstrip().startswith('###')
     assert 'View source' in body['message'] or 'KB' in body['message']
     assert [step['action'] for step in body['debug_trace']] == ['append_user_reply', 'retry_kb', 'propose_solution']
+
+
+def test_agent_budget_exhaustion_returns_ticket_draft(
+    client: TestClient,
+    test_user_token: str,
+    enable_helpdesk,
+    monkeypatch,
+):
+    monkeypatch.setattr(settings, 'HELPDESK_AGENT_MAX_TURNS', 1)
+    first = _start_agent_for_oracle_issue(client, test_user_token)
+
+    body = _answer_impact(client, test_user_token, first)
+
+    assert body['kind'] == 'draft_ready'
+    assert body['draft']['title']
+    assert any(step['action'] == 'budget_exhausted' for step in body['debug_trace'])
 
 
 def test_agent_solution_acceptance_resolves_session(

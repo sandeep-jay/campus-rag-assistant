@@ -1,12 +1,11 @@
 # Architecture
 
 Campus RAG Assistant is a source-reviewable AI platform for governed campus knowledge. It combines a
-cited-answer RAG path with LangGraph agentic helpdesk orchestration: when the knowledge base cannot
-resolve a question, the agent can retry retrieval, use controlled web research, search GitHub issues
+cited-answer RAG path with a HITL-gated helpdesk escalation loop: when the knowledge base cannot
+resolve a question, the system can retry retrieval, use controlled web research, search GitHub issues
 for duplicates, draft a ticket, and file to GitHub only after human confirmation. The system runs
 behind one FastAPI backend and Vue 3 SPA with AWS / Azure / mock providers, RAGAS evaluation,
-LangSmith and Prometheus observability, CI/security gates, redaction, and HITL guardrails for
-responsible AI.
+LangSmith and Prometheus observability, CI/security gates, redaction, and responsible-AI guardrails.
 
 This page describes the current system architecture first, then keeps earlier versions as collapsed drill-downs so reviewers can understand the evolution without reconstructing the live architecture from release history.
 

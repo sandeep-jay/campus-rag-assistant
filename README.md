@@ -10,12 +10,11 @@
 [![RAGAS](https://img.shields.io/badge/eval-RAGAS-yellow.svg)](docs/EVALUATION.md)
 
 Campus RAG Assistant is a source-reviewable AI platform for governed campus knowledge. It combines a
-cited-answer RAG path with LangGraph agentic helpdesk orchestration: when the knowledge base cannot
-resolve a question, the agent can retry retrieval, use controlled web research, search GitHub issues
+cited-answer RAG path with a HITL-gated helpdesk escalation loop: when the knowledge base cannot
+resolve a question, the system can retry retrieval, use controlled web research, search GitHub issues
 for duplicates, draft a ticket, and file to GitHub only after human confirmation. The system runs
 behind one FastAPI backend and Vue 3 SPA with AWS / Azure / mock providers, RAGAS evaluation,
-LangSmith and Prometheus observability, CI/security gates, redaction, and HITL guardrails for
-responsible AI.
+LangSmith and Prometheus observability, CI/security gates, redaction, and responsible-AI guardrails.
 
 Review it as an engineering artifact: source code, architecture, screenshots, evaluation results,
 observability, CI/CD, security posture, and release hygiene. It is not presented as a hosted public
@@ -33,7 +32,7 @@ product.
 | Ownership and product judgment | [docs/PORTFOLIO_CASE_STUDY.md](docs/PORTFOLIO_CASE_STUDY.md) |
 | System design | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) + [docs/DESIGN.md](docs/DESIGN.md) |
 | RAG quality | [docs/EVALUATION.md](docs/EVALUATION.md) + [docs/eval_baseline_v2.md](docs/eval_baseline_v2.md) |
-| Agentic orchestration | [docs/helpdesk/index.md](docs/helpdesk/index.md) (overview) -> [docs/roadmap/CONVERSATION_FLOW.md](docs/roadmap/CONVERSATION_FLOW.md) (product spec) + [docs/roadmap/HELPDESK_AGENT.md](docs/roadmap/HELPDESK_AGENT.md) (engineering spec) + [ADR-005](docs/adr/ADR-005-bounded-helpdesk-agent.md) |
+| Agentic orchestration | [docs/helpdesk/index.md](docs/helpdesk/index.md) (overview) -> [docs/roadmap/CONVERSATION_FLOW.md](docs/roadmap/CONVERSATION_FLOW.md) (product spec) + [docs/roadmap/HELPDESK_AGENT.md](docs/roadmap/HELPDESK_AGENT.md) (engineering spec) + [ADR-005](docs/adr/ADR-005-bounded-helpdesk-agent.md) + [ADR-006](docs/adr/ADR-006-live-llm-supervisor-migration.md) |
 | Operations and security | [docs/operations-manual/](docs/operations-manual/index.md) |
 | Release history | [docs/release-notes/](docs/release-notes/index.md) — v1.0 / v2.0 / v3.0.0 |
 
@@ -67,9 +66,13 @@ product.
 
 - **`metadata.kb_resolved`** signal — Vue surfaces escalation chips when the KB cannot answer.
 - **ASK-mode actions** — one-shot `/summarize` and `/draft-ticket`; reviewed drafts are filed via `/create-issue` to a private demo GitHub repo (HITL-gated).
-- **AGENT mode** — multi-turn LangGraph agent (`HELPDESK_AGENT_ENABLED`) with supervisor + clarifier/classifier/writer specialists, KB retry / web search / GitHub-search tools, SQLite checkpointer, SSE status, and four explicit outcomes (`resolved_by_agent`, `linked`, `filed`, `aborted`).
+- **AGENT mode** — multi-turn helpdesk loop (`HELPDESK_AGENT_ENABLED`) with a deterministic supervisor, KB retry / web search / GitHub-search tools, JSON-on-SQLite checkpointing, SSE status, and four explicit outcomes (`resolved_by_agent`, `linked`, `filed`, `aborted`).
 - **Privacy** — emails, JWTs, AWS keys, GitHub tokens, and bearer tokens are redacted before summarization or issue filing.
 - Specs: [docs/roadmap/CONVERSATION_FLOW.md](docs/roadmap/CONVERSATION_FLOW.md), [docs/roadmap/HELPDESK_AGENT.md](docs/roadmap/HELPDESK_AGENT.md).
+
+#### Target state (in progress)
+
+The [Agentic Helpdesk Rebuild](docs/roadmap/AGENTIC_HELPDESK_REBUILD.md) and [ADR-006](docs/adr/ADR-006-live-llm-supervisor-migration.md) migrate AGENT mode to a compiled `StateGraph`, live LLM supervisor, structured-output specialists, `AsyncPostgresSaver`, real node-level SSE events, and trajectory eval. The shipped-vs-target table is maintained in [docs/helpdesk/index.md#today-vs-target-state](docs/helpdesk/index.md#today-vs-target-state).
 
 ## Architecture
 
@@ -77,9 +80,9 @@ product.
 flowchart LR
   VueSPA["Vue 3 SPA"] --> FastAPI["FastAPI"]
   FastAPI --> LangGraph["LangGraph RAG"]
-  FastAPI --> HelpdeskAgent["Helpdesk Agent (LangGraph)"]
+  FastAPI --> HelpdeskAgent["Helpdesk Agent (deterministic runner today)"]
   HelpdeskAgent --> AgentTools["KB retry / web search / GitHub-issue search"]
-  HelpdeskAgent --> Checkpoint["SQLite checkpointer"]
+  HelpdeskAgent --> Checkpoint["JSON-on-SQLite checkpoint"]
   HelpdeskAgent --> GHIssues["GitHub Issues (HITL)"]
   LangGraph --> Providers["Provider Registry"]
   Providers --> BedrockKB["AWS Bedrock KB"]
@@ -164,7 +167,7 @@ This is intentionally presented as an **engineering baseline**, not a marketing 
 | **Retrieval**         | **Vector stores:** Bedrock KB → OpenSearch Serverless (vector/keyword/hybrid); Azure AI Search (vector + keyword/hybrid); multi-query + RRF; optional FlashRank / keyword rerank |
 | **LLM**               | AWS Bedrock, Azure OpenAI, or **mock** (`LLM_PROVIDER` / `RETRIEVER_PROVIDER`)                            |
 | **Web search**        | Mock or **Tavily** (`tavily-python`) behind `research_mode=web`                                           |
-| **Helpdesk agent**    | LangGraph supervisor + tools, SQLite checkpointer, HITL ticket filing to a private demo GitHub repo (`HELPDESK_AGENT_ENABLED`) |
+| **Helpdesk agent**    | Deterministic supervisor + tools, JSON-on-SQLite checkpointing, HITL ticket filing to a private demo GitHub repo (`HELPDESK_AGENT_ENABLED`); LangGraph supervisor migration tracked in ADR-006 |
 | **Eval**              | **RAGAS** harness (`backend/tests/eval/`), golden dataset, `tox -e eval`                                  |
 | **Observability**     | **LangSmith** (`LANGCHAIN_TRACING_V2`), structured logs, first-token latency metric                       |
 | **CI/CD**             | GitHub Actions — tox suite, gitleaks, dependency review, no tool attribution, docs build, and optional CD ([docs/operations-manual/ci-cd.md](docs/operations-manual/ci-cd.md))          |

@@ -1,12 +1,11 @@
 # Portfolio Case Study: Campus RAG Assistant
 
 Campus RAG Assistant is a source-reviewable AI platform for governed campus knowledge. It combines a
-cited-answer RAG path with LangGraph agentic helpdesk orchestration: when the knowledge base cannot
-resolve a question, the agent can retry retrieval, use controlled web research, search GitHub issues
+cited-answer RAG path with a HITL-gated helpdesk escalation loop: when the knowledge base cannot
+resolve a question, the system can retry retrieval, use controlled web research, search GitHub issues
 for duplicates, draft a ticket, and file to GitHub only after human confirmation. The system runs
 behind one FastAPI backend and Vue 3 SPA with AWS / Azure / mock providers, RAGAS evaluation,
-LangSmith and Prometheus observability, CI/security gates, redaction, and HITL guardrails for
-responsible AI.
+LangSmith and Prometheus observability, CI/security gates, redaction, and responsible-AI guardrails.
 
 Review it as an engineering artifact: source code, architecture, screenshots, evaluation results,
 observability, CI/CD, security posture, and release hygiene. It is not presented as a hosted public
@@ -27,7 +26,7 @@ The project builds from the public [`ets-berkeley-edu/chabot`](https://github.co
 | Capability | What it shows | Evidence |
 |---|---|---|
 | **Cited RAG path** | LangGraph retrieval stages, KB-first answers, multi-query retrieval, rerank hooks, source contracts, and opt-in web research | [./DESIGN.md](./DESIGN.md) · [./EVALUATION.md](./EVALUATION.md) · [ADR-001](./adr/ADR-001-provider-registry.md) · [ADR-003](./adr/ADR-003-opt-in-web-research.md) |
-| **Agentic helpdesk orchestration** | Bounded LangGraph escalation with KB retry, web research, GitHub duplicate search, GitHub ticket drafting/filing, clarifying turns, redaction, HITL confirmation, and four explicit outcomes | [Helpdesk overview](./helpdesk/index.md) · [ADR-005](./adr/ADR-005-bounded-helpdesk-agent.md) · [ADR-006](./adr/ADR-006-live-llm-supervisor-migration.md) |
+| **Helpdesk escalation loop** | Bounded multi-turn escalation with KB retry, web research, GitHub duplicate search, GitHub ticket drafting/filing, clarifying turns, redaction, HITL confirmation, and four explicit outcomes; ADR-006 tracks the LangGraph supervisor migration | [Helpdesk overview](./helpdesk/index.md) · [ADR-005](./adr/ADR-005-bounded-helpdesk-agent.md) · [ADR-006](./adr/ADR-006-live-llm-supervisor-migration.md) |
 | **AI platform architecture** | One FastAPI + Vue product surface over AWS / Azure / mock providers, tenant configuration, feature flags, migrations, and CI-safe local mode | [./ARCHITECTURE.md](./ARCHITECTURE.md) · [ADR-001](./adr/ADR-001-provider-registry.md) |
 | **Evaluation, observability, and responsible AI** | RAGAS baseline, LangSmith traces, Prometheus metrics, k6 load profiles, gitleaks, protected branches, redaction, and human approval before side effects | [./eval_baseline_v2.md](./eval_baseline_v2.md) · [./operations-manual/index.md](./operations-manual/index.md) · [ADR-004](./adr/ADR-004-eval-gating-policy.md) |
 

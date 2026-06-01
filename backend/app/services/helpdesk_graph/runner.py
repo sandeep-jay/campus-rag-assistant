@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 import uuid
 from typing import TYPE_CHECKING, Any
 
@@ -198,16 +199,64 @@ def _require_agent_enabled() -> None:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail='Helpdesk agent is temporarily disabled.')
 
 
+def _positive_int_setting(name: str, default: int) -> int:
+    value = int(getattr(settings, name, default) or default)
+    return max(1, value)
+
+
+def _token_estimate(state: HelpdeskState) -> int:
+    """Cheap deterministic guardrail; exact provider token counts arrive in Phase 3."""
+    text_parts = [state.get('original_question', '')]
+    text_parts.extend(turn.content for turn in state.get('conversation', []))
+    text_parts.extend(state.get('user_replies', []))
+    text_parts.extend(solution.summary for solution in state.get('proposed_solutions', []))
+    draft = state.get('draft')
+    if draft is not None:
+        text_parts.extend([draft.title, draft.description, draft.steps_to_reproduce or ''])
+    return sum(max(1, len(part) // 4) for part in text_parts if part)
+
+
+def _budget_exhausted(state: HelpdeskState) -> bool:
+    max_turns = _positive_int_setting('HELPDESK_AGENT_MAX_TURNS', 8)
+    max_questions = _positive_int_setting('HELPDESK_AGENT_MAX_QUESTIONS', 2)
+    max_tokens = _positive_int_setting('HELPDESK_AGENT_MAX_TOKENS_PER_SESSION', 20000)
+    deadline_at = float(state.get('deadline_at') or 0)
+    return (
+        int(state.get('turns_taken', 0)) > max_turns
+        or len(state.get('questions_asked', [])) > max_questions
+        or _token_estimate(state) > max_tokens
+        or (deadline_at > 0 and time.time() >= deadline_at)
+    )
+
+
+def _tool_budget_exhausted(state: HelpdeskState) -> bool:
+    max_tool_retries = _positive_int_setting('HELPDESK_AGENT_MAX_TOOL_RETRIES', 2)
+    return int(state.get('tool_attempts', 0)) >= max_tool_retries
+
+
+async def _budget_exhausted_turn(state: HelpdeskState, trace: list[AgentStep] | None = None) -> AgentTurn:
+    return await _draft_from_state(
+        state,
+        message='I reached the helpdesk agent safety budget, so I prepared a ticket draft for your review.',
+        trace=[*(trace or []), _trace('budget', 'budget_exhausted', 'forced_draft')],
+    )
+
+
 def _new_state(session_id: str, user_id: int | str, question: str, conversation: list[ConversationTurn]) -> HelpdeskState:
+    now = time.time()
+    deadline_seconds = max(0.1, float(getattr(settings, 'HELPDESK_AGENT_DEADLINE_SECONDS', 60.0) or 60.0))
     return {
         'state_version': STATE_VERSION,
         'session_id': session_id,
         'user_id': user_id,
+        'created_at': now,
+        'deadline_at': now + deadline_seconds,
         'original_question': question,
         'conversation': conversation,
         'turns_taken': 0,
         'questions_asked': [],
         'user_replies': [],
+        'tool_attempts': 0,
         'kb_retry_results': [],
         'web_search_results': [],
         'tool_cache': {},
@@ -217,13 +266,15 @@ def _new_state(session_id: str, user_id: int | str, question: str, conversation:
     }
 
 
-def _pause_for_impact(state: HelpdeskState) -> AgentTurn:
+async def _pause_for_impact(state: HelpdeskState) -> AgentTurn:
     question_id = f"impact-{state['session_id']}"
     awaiting = AwaitingUserPayload(question_id=question_id, question=IMPACT_QUESTION, choices=IMPACT_CHOICES)
     state['awaiting_user'] = awaiting
     state['next_action'] = 'ask_user'
     state['questions_asked'] = [*state.get('questions_asked', []), IMPACT_QUESTION]
     state['turns_taken'] = int(state.get('turns_taken', 0)) + 1
+    if _budget_exhausted(state):
+        return await _budget_exhausted_turn(state, [_trace('clarifier', 'ask_user', 'blocked', question_id)])
     save_checkpoint(state)
     HELPDESK_AGENT_OUTCOME_TOTAL.labels(outcome='question').inc()
     _record_funnel('clarification_requested')
@@ -334,12 +385,18 @@ async def _propose_solution_or_draft(state: HelpdeskState, trace: list[AgentStep
 
     query = state.get('original_question', '')
     rag_service = RAGService()
+    if _tool_budget_exhausted(state):
+        return await _budget_exhausted_turn(state, trace)
+    state['tool_attempts'] = int(state.get('tool_attempts', 0)) + 1
     kb_docs = await tools.retry_kb(query, rag_service=rag_service, state=state)
     state['kb_retry_results'] = kb_docs
     trace.append(_trace('tool', 'retry_kb', 'success', f'{len(kb_docs)} document(s)'))
 
     solution = await _solution_from_documents(kb_docs, source='kb', question=query)
     if solution is None:
+        if _tool_budget_exhausted(state):
+            return await _budget_exhausted_turn(state, trace)
+        state['tool_attempts'] = int(state.get('tool_attempts', 0)) + 1
         web_docs = await tools.web_search(query, state=state)
         state['web_search_results'] = web_docs
         trace.append(_trace('tool', 'web_search', 'success', f'{len(web_docs)} document(s)'))
@@ -357,6 +414,8 @@ async def _propose_solution_or_draft(state: HelpdeskState, trace: list[AgentStep
     state['awaiting_user'] = AwaitingUserPayload(question_id=question_id, question='Did this solve the issue?', choices=SOLUTION_CHOICES)
     state['next_action'] = 'propose_solution'
     state['turns_taken'] = int(state.get('turns_taken', 0)) + 1
+    if _budget_exhausted(state):
+        return await _budget_exhausted_turn(state, [*trace, _trace('supervisor', 'propose_solution', 'blocked', question_id)])
     save_checkpoint(state)
     HELPDESK_AGENT_OUTCOME_TOTAL.labels(outcome='solution_proposed').inc()
     _record_funnel('solution_proposed')
@@ -438,10 +497,18 @@ async def start_session(
     question = _last_user_text(conversation)
     state = _new_state(session_id, user_id, question, conversation)
     debug_trace: list[AgentStep] = []
+    if _budget_exhausted(state):
+        return _persist_and_stamp(
+            await _budget_exhausted_turn(state),
+            db=db,
+            chat_session_id=chat_session_id,
+            user_id=user_id,
+            state=state,
+        )
 
     if not question:
         return _persist_and_stamp(
-            _pause_for_impact(state),
+            await _pause_for_impact(state),
             db=db,
             chat_session_id=chat_session_id,
             user_id=user_id,
@@ -482,7 +549,7 @@ async def start_session(
 
     state['facts']['duplicate_search'] = 'no matching issue found'
     return _persist_and_stamp(
-        _pause_for_impact(state),
+        await _pause_for_impact(state),
         db=db,
         chat_session_id=chat_session_id,
         user_id=user_id,
@@ -508,6 +575,14 @@ async def resume_session(
         exc = HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Helpdesk agent session was not found.')
         _record_agent_error('resume', exc)
         raise exc
+    if _budget_exhausted(state):
+        return _persist_and_stamp(
+            await _budget_exhausted_turn(state),
+            db=db,
+            chat_session_id=chat_session_id,
+            user_id=user_id,
+            state=state,
+        )
 
     awaiting = state.get('awaiting_user')
     if awaiting is None:
@@ -526,6 +601,16 @@ async def resume_session(
         raise exc
 
     state['turns_taken'] = int(state.get('turns_taken', 0)) + 1
+    if _budget_exhausted(state):
+        _append_user_reply(state, answer, label='Budget-stop reply')
+        draft_turn = await _budget_exhausted_turn(state, [_trace('resume', 'append_user_reply', 'success', awaiting.question_id)])
+        return _persist_and_stamp(
+            draft_turn,
+            db=db,
+            chat_session_id=chat_session_id,
+            user_id=user_id,
+            state=state,
+        )
 
     if awaiting.question_id.startswith('solution-'):
         _append_user_reply(state, answer, label='Solution feedback')
