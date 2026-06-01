@@ -20,6 +20,17 @@ NextAction = Literal['search_duplicates', 'link_existing', 'write_draft']
 
 # Full supervisor enum used by the compiled StateGraph. Values map 1:1
 # to graph nodes via ``backend.app.services.helpdesk_graph.graph.route_supervisor``.
+SUPERVISOR_ACTIONS = (
+    'search_duplicates',
+    'link_existing',
+    'ask_user',
+    'propose_solution',
+    'resolved_by_agent',
+    'write_draft',
+    'file_new',
+    'abort',
+    'end',
+)
 SupervisorAction = Literal[
     'search_duplicates',
     'link_existing',
@@ -74,6 +85,44 @@ _ENTRY_DISPATCH: dict[str, SupervisorAction] = {
     'abort': 'abort',
     'confirm': 'file_new',
 }
+
+
+def allowed_supervisor_actions(state: HelpdeskState) -> set[SupervisorAction]:
+    """Return the closed action allow-list for the current graph state."""
+    if state.get('_graph_turn') is not None:
+        actions: set[SupervisorAction] = {'end'}
+    elif state.get('entry') == 'abort':
+        actions = {'abort'}
+    elif state.get('entry') == 'confirm':
+        actions = {'file_new', 'abort'}
+    elif state.get('entry') == 'resume':
+        awaiting = state.get('awaiting_user')
+        if awaiting is not None and awaiting.question_id.startswith('solution-'):
+            actions = {'resolved_by_agent', 'write_draft', 'abort'}
+        else:
+            actions = {'propose_solution', 'write_draft', 'abort'}
+    elif state.get('entry') == 'start':
+        if not state.get('original_question'):
+            actions = {'ask_user', 'write_draft', 'abort'}
+        elif 'duplicate_candidates' not in state:
+            actions = {'search_duplicates', 'write_draft', 'abort'}
+        elif state.get('duplicate_candidates'):
+            actions = {'link_existing', 'write_draft', 'abort'}
+        else:
+            actions = {'ask_user', 'write_draft', 'abort'}
+    else:
+        actions = {'end'}
+    return actions
+
+
+def validate_supervisor_action(state: HelpdeskState, action: str | None) -> SupervisorAction | None:
+    """Accept only enum members that are legal for this state."""
+    if action not in SUPERVISOR_ACTIONS:
+        return None
+    typed_action = action  # type: ignore[assignment]
+    if typed_action not in allowed_supervisor_actions(state):
+        return None
+    return typed_action
 
 
 def select_supervisor_action(state: HelpdeskState) -> SupervisorAction:

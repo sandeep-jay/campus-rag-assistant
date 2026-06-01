@@ -25,8 +25,9 @@ from typing import TYPE_CHECKING, Any
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
+from backend.app.core.config_manager import settings
 from backend.app.services.helpdesk_graph.checkpoint import checkpointer_context, use_langgraph_checkpoint
-from backend.app.services.helpdesk_graph.nodes import select_supervisor_action
+from backend.app.services.helpdesk_graph.nodes import select_supervisor_action, validate_supervisor_action
 from backend.app.services.helpdesk_graph.state import HelpdeskState
 
 if TYPE_CHECKING:
@@ -77,6 +78,19 @@ def _route_after_specialist(state: HelpdeskState) -> str:
 
 
 async def _supervisor_node(state: HelpdeskState) -> dict[str, Any]:
+    if settings.HELPDESK_AGENT_LLM_SUPERVISOR:
+        try:
+            from backend.app.services.helpdesk_graph.llm import supervisor_decide
+
+            decision = await supervisor_decide(state)
+            action = validate_supervisor_action(state, getattr(decision, 'next_action', None))
+            if action is not None:
+                return {'_next': action}
+            return {'_next': 'end' if state.get('_graph_turn') is not None else 'write_draft'}
+        except Exception:
+            # Supervisor failures must never escape to the user; the
+            # deterministic supervisor remains the rollback path.
+            return {'_next': select_supervisor_action(state)}
     return {'_next': select_supervisor_action(state)}
 
 
