@@ -1,6 +1,6 @@
 # Sprint record — LangGraph live validation (2026-05-18)
 
-> **Archived.** Active design: [DESIGN.md — LangGraph KB path](../../DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank). Roadmap: [PRODUCT_ROADMAP.md](../PRODUCT_ROADMAP.md).
+> **Archived.** Active design: [DESIGN.md — LangGraph KB path](../../DESIGN.md#langgraph-kb-path-multi-query-retrieve-rerank). Roadmap: [PRODUCT_ROADMAP.md](../PRODUCT_ROADMAP.md).
 
 ## Goal
 
@@ -27,6 +27,6 @@ Prove LangGraph **KB path** on **live AWS** (Bedrock + Knowledge Base) with real
 
 ## Related
 
-- [DESIGN.md — LangGraph KB path](../../DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank) — current graph design
+- [DESIGN.md — LangGraph KB path](../../DESIGN.md#langgraph-kb-path-multi-query-retrieve-rerank) — current graph design
 - [DESIGN.md — Opt-in web research](../../DESIGN.md#opt-in-web-research)
 - [EVALUATION.md](../../EVALUATION.md)

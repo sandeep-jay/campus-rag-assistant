@@ -20,13 +20,14 @@ theme:
   name: material
   custom_dir: docs/overrides
   features:
-    - navigation.sections
+    - navigation.indexes
     - navigation.top
     - navigation.tracking
-    - navigation.indexes
+    - toc.follow
     - search.suggest
     - search.highlight
     - content.code.copy
+    - content.action.edit
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -71,8 +72,9 @@ nav:
   - Start Here: index.md
   - Reviewer Guide: REVIEWER_GUIDE.md
   - Case Study: PORTFOLIO_CASE_STUDY.md
-  - Architecture: ARCHITECTURE.md
-  - Design Notes: DESIGN.md
+  - Architecture:
+      - Overview: ARCHITECTURE.md
+      - Design Notes: DESIGN.md
   - Helpdesk Agent:
       - Overview: helpdesk/index.md
       - Conversation Flow (product spec): roadmap/CONVERSATION_FLOW.md
@@ -80,13 +82,14 @@ nav:
   - Evaluation:
       - Approach: EVALUATION.md
       - Baseline: eval_baseline_v2.md
-  - Operations:
-      - Operations: OPERATIONS.md
-      - CI/CD: CI.md
-      - Release: RELEASE.md
-      - Security: SECURITY.md
-      - Production Hardening: PRODUCTION_HARDENING.md
-      - Load Testing: LOAD_TESTING.md
+  - Operations Manual:
+      - Overview: operations-manual/index.md
+      - Runbook and Observability: operations-manual/operations.md
+      - CI/CD: operations-manual/ci-cd.md
+      - Release: operations-manual/release.md
+      - Security: operations-manual/security.md
+      - Load Testing: operations-manual/load-testing.md
+      - Production Hardening: operations-manual/production-hardening.md
   - Architecture Decisions:
       - Index: adr/README.md
       - ADR-001 — Provider registry: adr/ADR-001-provider-registry.md
@@ -98,8 +101,10 @@ nav:
   - Roadmap:
       - Product Roadmap: roadmap/PRODUCT_ROADMAP.md
       - Agentic Helpdesk Rebuild: roadmap/AGENTIC_HELPDESK_REBUILD.md
-  - Releases: release-notes/index.md
-  - Changelog: changelog.md
-  - Notice: notice.md
-  - License: license.md
-  - Code on GitHub: https://github.com/sandeep-jay/campus-rag-assistant
+  - Releases and Changelog:
+      - Releases: release-notes/index.md
+      - Changelog: changelog.md
+  - About:
+      - Notice: notice.md
+      - License: license.md
+      - Code on GitHub: https://github.com/sandeep-jay/campus-rag-assistant

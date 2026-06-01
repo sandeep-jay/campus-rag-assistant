@@ -1,6 +1,6 @@
 # Campus / production scale roadmap (archived)
 
-> **Archived.** Product roadmap: [PRODUCT_ROADMAP.md](../PRODUCT_ROADMAP.md). **Phase 5 (retrieval stack)** (multi-query, rerank on LangGraph) is already shipped on `main` — see [DESIGN.md — LangGraph KB path](../../DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank) and [eval_baseline_v2.md](../../eval_baseline_v2.md). This file is the **org / campus** scale track (Redis HA, EB, tenant budgets) with its **own** phase numbers.
+> **Archived.** Product roadmap: [PRODUCT_ROADMAP.md](../PRODUCT_ROADMAP.md). **Phase 5 (retrieval stack)** (multi-query, rerank on LangGraph) is already shipped on `main` — see [DESIGN.md — LangGraph KB path](../../DESIGN.md#langgraph-kb-path-multi-query-retrieve-rerank) and [eval_baseline_v2.md](../../eval_baseline_v2.md). This file is the **org / campus** scale track (Redis HA, EB, tenant budgets) with its **own** phase numbers.
 
 **Last updated:** 2026-05-19 (archive; see product roadmap for current status)
 
@@ -40,7 +40,7 @@ flowchart LR
 
 ## Phase 0 — Baseline (maintain, do not regress)
 
-**Performance Phase 0 (shipped):** history cap, DB pool envs, SSE first-token metric, optional stream delay, multi-worker `run_services.sh` — see [OPERATIONS.md — Shipped performance guardrails](../../OPERATIONS.md#shipped-performance-guardrails-campus-phase-0).
+**Performance Phase 0 (shipped):** history cap, DB pool envs, SSE first-token metric, optional stream delay, multi-worker `run_services.sh` — see [OPERATIONS.md — Shipped performance guardrails](../../operations-manual/operations.md#shipped-performance-guardrails-campus-phase-0).
 
 **Goal:** Keep what shipped stable while layering on Phase 1.
 
@@ -160,6 +160,6 @@ flowchart LR
 
 - [PRODUCT_ROADMAP.md](../PRODUCT_ROADMAP.md) — product roadmap
 - [ARCHITECTURE.md](../../ARCHITECTURE.md)
-- [OPERATIONS.md](../../OPERATIONS.md)
-- [LOAD_TESTING.md](../../LOAD_TESTING.md)
-- [OPERATIONS.md — Playwright E2E](../../OPERATIONS.md#playwright-e2e-frontend-vue)
+- [OPERATIONS.md](../../operations-manual/operations.md)
+- [LOAD_TESTING.md](../../operations-manual/load-testing.md)
+- [OPERATIONS.md — Playwright E2E](../../operations-manual/operations.md#playwright-e2e-frontend-vue)

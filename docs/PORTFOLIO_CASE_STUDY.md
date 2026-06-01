@@ -2,81 +2,75 @@
 
 ## One-line summary
 
-A production-style RAG platform for governed institutional knowledge, built to demonstrate AI product engineering and platform architecture.
+A source-reviewable AI platform case study: governed campus knowledge becomes cited answers, measurable retrieval quality, and a bounded helpdesk escalation flow.
 
 ## Problem
 
-Campus knowledge is scattered across LMS guides, ServiceNow articles, and policy documents. Staff and students need fast answers they can verify—not another generic chatbot that guesses from the open web.
-
-## What changed in v3 (2026-05-31)
-
-`v3.0.0` adds the **bounded helpdesk agent** end-to-end (backend LangGraph + Vue Ask/Agent mode + HITL ticket filing to a private GitHub demo repo), versioned architecture diagrams and product screenshots (`docs/assets/{architecture,product,auth}/{v1,v2,v3}/`), and the [Agentic Helpdesk Rebuild](./roadmap/AGENTIC_HELPDESK_REBUILD.md) roadmap that migrates the deterministic supervisor to a real LLM supervisor with structured-output specialists, `AsyncPostgresSaver`, enforced budgets, real-event SSE, trajectory eval, and a live campus router. Row-by-row shipped-vs-target reference: [helpdesk/index.md](./helpdesk/index.md#today-vs-target-state). Decision records: [ADR-005](./adr/ADR-005-bounded-helpdesk-agent.md) (original commitment) and [ADR-006](./adr/ADR-006-live-llm-supervisor-migration.md) (LLM supervisor migration). Full release-by-release summary: [release-notes/](./release-notes/index.md).
+Campus support knowledge is fragmented across LMS guides, service desk articles, policy pages, and tribal memory. Users need answers they can verify, while platform owners need evidence that the system is observable, testable, and safe to run without turning every question into an open-web chatbot.
 
 ## My role
 
-I owned the platform transformation work represented in this repository: the Vue product UI, provider registry, AWS / Azure / mock execution modes, LangGraph orchestration, RAGAS evaluation harness, LangSmith observability, CI/CD, load testing, and operational documentation.
+I owned the platform transformation represented in this repository: Vue product UI, FastAPI API, provider boundaries, LangGraph RAG orchestration, evaluation harness, LangSmith/Prometheus observability, CI/CD, and the bounded helpdesk escalation path.
 
-The project builds from the public [`ets-berkeley-edu/chabot`](https://github.com/ets-berkeley-edu/chabot) codebase, which established the campus chatbot domain. This repository extends that base into a source-reviewable AI platform architecture artifact for portfolio and educational review. It is not an official UC Berkeley or UC product.
+The project builds from the public [`ets-berkeley-edu/chabot`](https://github.com/ets-berkeley-edu/chabot) codebase, which established the campus chatbot domain. This repository extends that base into a portfolio and educational architecture artifact. It is not an official UC Berkeley or UC product.
 
 ## Architecture
 
 ![High-level architecture](assets/architecture/v3/overview.png)
 
-| Layer | Components |
-|-------|------------|
-| **UI** | Vue 3 SPA (primary); optional Streamlit on the same API |
-| **API** | FastAPI — SSE streaming, sessions, feedback, JWT/OAuth |
-| **RAG** | LangGraph (`condense` → `multi_query` → `retrieve` → `rerank` → `generate`) or LangChain chain (true token streaming) |
-| **Providers** | AWS Bedrock KB, Azure AI Search + OpenAI, mock (CI/local) |
-| **Data** | PostgreSQL + Alembic; per-tenant `rag_config` |
-| **Quality** | RAGAS golden set, LangSmith traces, Prometheus, k6 |
-| **Helpdesk agent** | LangGraph supervisor + tools (KB retry, web search, GitHub-issue search), SQLite checkpoint, HITL ticket filing to a private demo repo |
+| Layer | What matters |
+|-------|--------------|
+| **Product UI** | Vue 3 SPA with sessions, streaming chat, cited source panels, feedback, OAuth handoff, Ask/Agent mode |
+| **API** | FastAPI with SSE, JWT cookies, Alembic migrations, request IDs, Prometheus metrics |
+| **RAG** | LangGraph KB path (`condense → multi_query → retrieve → rerank → generate → format`) plus chain path for true token streaming |
+| **Providers** | AWS Bedrock KB, Azure AI Search/OpenAI, and mock mode behind the same interface |
+| **Quality** | RAGAS golden set, release-oriented gates, LangSmith traces, k6 load profiles |
+| **Helpdesk escalation** | Bounded workflow with KB retry, web search, duplicate issue search, HITL ticket filing, and four explicit outcomes |
 
-Detailed diagrams and request flows: [ARCHITECTURE.md](./ARCHITECTURE.md).
-
-## Key decisions
-
-| Decision | Rationale | ADR |
-|----------|-----------|-----|
-| **Provider registry** (AWS / Azure / mock) | Same API and UI across environments; CI runs without cloud credentials | [ADR-001](./adr/ADR-001-provider-registry.md) |
-| **Dual RAG engines** (`chain` vs `langgraph`) | Chain preserves true SSE; LangGraph adds observable stages and retrieval tuning | [ADR-002](./adr/ADR-002-langgraph-vs-chain.md) |
-| **Opt-in web research** | Governed KB-first; open web is explicit per message with disclaimer | [ADR-003](./adr/ADR-003-opt-in-web-research.md) |
-| **RAGAS gates as release controls** | Honest baselines on PR CI; strict gates on release milestones only | [ADR-004](./adr/ADR-004-eval-gating-policy.md) |
-| **Bedrock KB API** (not direct OpenSearch) | Managed sync, retrieve, and citation metadata; simpler ops | [DESIGN.md](./DESIGN.md#bedrock-knowledge-base-with-opensearch-aws) |
-| **Bounded helpdesk agent** | Real agentic loop (LLM-chosen tools, multi-turn checkpointing, HITL gate) without unbounded autonomy; original one-shot endpoints kept as fallbacks | [ADR-005](./adr/ADR-005-bounded-helpdesk-agent.md) + [ADR-006](./adr/ADR-006-live-llm-supervisor-migration.md), [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md) |
+Detailed diagrams and request flows: [ARCHITECTURE.md](./ARCHITECTURE.md). Design rationale: [DESIGN.md](./DESIGN.md).
 
 ## Measured outcomes
 
 | Signal | Evidence |
 |--------|----------|
-| **Test breadth** | ~48 backend, frontend, e2e, and eval test files; `tox (lint, backend, frontends)` on every PR |
-| **RAGAS baseline** | 10-question golden set; AWS Phase 5 tuned profile: **context_recall 0.80** (passes gate) |
-| **CI without cloud** | Mock providers; `RAG_FORCE_MOCK=true`; no AWS credentials in GitHub Actions |
-| **Load profile** | k6 validates auth, session CRUD, and chat under load — [LOAD_TESTING.md](./LOAD_TESTING.md) |
-| **Observability** | LangSmith per-node spans on LangGraph path; Prometheus `/api/metrics` |
-| **Helpdesk agent observability** | `chatbot_helpdesk_agent_*` Prometheus metrics surface outcome distribution and tool usage; trajectory scenario rig planned in [Agentic Rebuild Phase 4](./roadmap/AGENTIC_HELPDESK_REBUILD.md) |
+| **Runs without cloud** | Mock providers and `RAG_FORCE_MOCK=true` let CI/local exercise the app without AWS or Azure credentials |
+| **Retrieval work is measured** | 10-question RAGAS baseline; tuned AWS profile reaches **context_recall 0.80** |
+| **Quality claims stay bounded** | RAGAS gates are release controls, not marketing claims; context precision remains explicitly named as the quality bottleneck |
+| **Operational shape is visible** | GitHub Actions, gitleaks, dependency review, no tool attribution, Prometheus metrics, request IDs, k6 profiles |
+| **Agentic scope is constrained** | Helpdesk escalation is HITL-gated; current supervisor is deterministic; LLM supervisor migration is documented separately |
 
-Full score tables: [eval_baseline_v2.md](./eval_baseline_v2.md).
+Full score tables: [eval_baseline_v2.md](./eval_baseline_v2.md). Operations detail: [operations-manual/](./operations-manual/index.md).
+
+## Key decisions
+
+| Decision | Why it matters | Reference |
+|----------|----------------|-----------|
+| **Provider registry** | Keeps AWS, Azure, and mock execution modes behind the same app contract | [ADR-001](./adr/ADR-001-provider-registry.md) |
+| **Dual RAG engines** | Preserves true streaming on the chain path while using LangGraph for staged retrieval tuning and traces | [ADR-002](./adr/ADR-002-langgraph-vs-chain.md) |
+| **Opt-in web research** | Makes open-web answers a deliberate user choice, not a hidden fallback when KB retrieval is weak | [ADR-003](./adr/ADR-003-opt-in-web-research.md) |
+| **RAGAS gates as release controls** | Keeps PR CI fast and cloud-free while preserving stricter milestone checks | [ADR-004](./adr/ADR-004-eval-gating-policy.md) |
+| **Bedrock KB API over direct OpenSearch calls** | Lets AWS own ingestion, sync, and vector index lifecycle while the app owns retrieval contracts | [DESIGN.md](./DESIGN.md#bedrock-knowledge-base-with-opensearch-aws) |
+| **Bounded helpdesk escalation** | Shows agentic product thinking without unbounded autonomy; side effects require human confirmation | [helpdesk/index.md](./helpdesk/index.md), [ADR-005](./adr/ADR-005-bounded-helpdesk-agent.md), [ADR-006](./adr/ADR-006-live-llm-supervisor-migration.md) |
 
 ## Known limits
 
-- **Eval set is small** (10 rows) and corpus-specific—good for regression baseline, not production quality claims.
-- **Context precision** (~0.50) is the main quality bottleneck; next levers are ingestion/chunking and rerank tuning.
-- **LangGraph path** buffers output into paced SSE chunks rather than true token streaming (Phase 6a optional).
-- **UC license** limits commercial reuse; treat as portfolio/educational fork, not a drop-in commercial product.
+- **Evaluation set is intentionally small** — useful as a regression baseline, not production proof.
+- **Context precision is still the main RAG quality gap** — next levers are ingestion, chunking, and rerank tuning.
+- **Graph path buffers output** — chain path has true token streaming; LangGraph-native SSE is a planned optional improvement.
+- **Helpdesk supervisor is deterministic today** — the LLM supervisor, Postgres checkpointing, and trajectory eval are the [Agentic Helpdesk Rebuild](./roadmap/AGENTIC_HELPDESK_REBUILD.md) track.
+- **License and deployment scope are bounded** — UC license retained; this is a portfolio/educational fork, not a commercial product claim.
 
 ## What this demonstrates
 
-- **Lead AI engineering** — retrieval tuning, orchestration, citations, eval discipline, failure-mode thinking
-- **AI platform architecture** — multicloud abstraction, tenant config, mock/live environments, CI/CD
-- **Product judgment** — opt-in web research, topic scoping, source transparency, feedback loop
-- **Evaluation discipline** — RAGAS + LangSmith as complementary tools; honest baselines
-- **Production-readiness thinking** — metrics, rate limits, migrations, security notes, hardening backlog
+- **AI platform architecture:** provider boundaries, tenant configuration, mock/live parity, CI-safe local mode.
+- **RAG engineering judgment:** explicit retrieval stages, citation contracts, eval baselines, and named quality gaps.
+- **Product judgment:** KB-first UX, source transparency, opt-in web research, feedback loop, bounded escalation.
+- **Production-readiness thinking:** runbooks, metrics, security review, load profiles, release process, hardening backlog.
 
 ## Related
 
-- [README](../README.md) — quick start and portfolio highlights
-- [release-notes/](./release-notes/index.md) — what shipped in v1.0 / v2.0 / v3.0.0
-- [DESIGN.md](./DESIGN.md) — goals, boundaries, tradeoffs
-- [PRODUCTION_HARDENING.md](./PRODUCTION_HARDENING.md) — scale and ops backlog
-- [docs/adr/](./adr/) — architecture decision records (incl. ADR-006 for the agentic rebuild)
+- [README](../README.md) — repo landing page and quick review paths
+- [Reviewer Guide](./REVIEWER_GUIDE.md) — 90-second signal map
+- [Architecture](./ARCHITECTURE.md) and [Design Notes](./DESIGN.md) — system shape and tradeoffs
+- [Operations Manual](./operations-manual/index.md) — runbooks, CI/CD, release, security, load testing
+- [Release notes](./release-notes/index.md) — version-by-version history

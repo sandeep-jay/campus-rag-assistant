@@ -5,24 +5,15 @@
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://github.com/sandeep-jay/campus-rag-assistant/blob/main/pyproject.toml)
 [![Node](https://img.shields.io/badge/node-20%2B-green.svg)](https://github.com/sandeep-jay/campus-rag-assistant/blob/main/frontend-vue/.nvmrc)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688.svg)](https://github.com/sandeep-jay/campus-rag-assistant/blob/main/backend/app/main.py)
-[![LangGraph](https://img.shields.io/badge/RAG-LangGraph-purple.svg)](DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank)
+[![LangGraph](https://img.shields.io/badge/RAG-LangGraph-purple.svg)](DESIGN.md#langgraph-kb-path-multi-query-retrieve-rerank)
 [![RAGAS](https://img.shields.io/badge/eval-RAGAS-yellow.svg)](EVALUATION.md)
 
 **Production-style enterprise RAG platform for governed campus knowledge.**
 
-Campus RAG Assistant demonstrates how institutional knowledge can be served through a measurable, observable, citation-first RAG platform plus bounded **agentic orchestration** (a multi-turn helpdesk agent with HITL ticket filing). It combines a Vue product UI, FastAPI backend, AWS / Azure / mock provider boundaries, LangGraph orchestration, RAGAS evaluation, LangSmith traces, CI/CD, load testing, and operational hardening docs.
-
-**Portfolio focus:** Lead AI Engineering and AI Platform Architecture. The full surface area is designed to demonstrate strengths relevant to:
-
-- Higher Education / EdTech AI Strategist
-- Lead Data & AI Platform Architect
-- Lead / Senior / Staff AI Engineer
-- GenAI Platform Engineer
-- Applied ML / LLMOps Engineer
-- Full Stack Engineer
+Campus RAG Assistant shows how an institutional knowledge assistant can be built as a measurable platform, not a one-off chatbot: cited KB answers, source transparency, multicloud provider boundaries, evaluation baselines, observability, and a bounded helpdesk escalation path.
 
 !!! note "Review model"
-    This project is evaluated through source code, architecture docs, screenshots, evaluation results, and operational artifacts. It is not presented as a hosted public product.
+    Review this project through source code, architecture docs, screenshots, evaluation results, and operational artifacts. It is not presented as a hosted public product.
 
 **[View source on GitHub ->](https://github.com/sandeep-jay/campus-rag-assistant)**
 
@@ -33,40 +24,17 @@ Campus RAG Assistant demonstrates how institutional knowledge can be served thro
 | If you are... | Read |
 |---|---|
 | Short on time | [Reviewer Guide](REVIEWER_GUIDE.md) |
-| Evaluating ownership and judgment | [Case Study](PORTFOLIO_CASE_STUDY.md) |
+| Evaluating ownership and product judgment | [Case Study](PORTFOLIO_CASE_STUDY.md) |
 | Reviewing architecture | [Architecture](ARCHITECTURE.md) + [Design Notes](DESIGN.md) |
 | Reviewing AI quality | [Evaluation](EVALUATION.md) + [Baseline](eval_baseline_v2.md) |
-| Reviewing agentic orchestration | [Helpdesk Agent overview](helpdesk/index.md) -> [Conversation Flow](roadmap/CONVERSATION_FLOW.md) (product spec) + [Engineering Spec](roadmap/HELPDESK_AGENT.md) + [ADR-005](adr/ADR-005-bounded-helpdesk-agent.md) + [ADR-006](adr/ADR-006-live-llm-supervisor-migration.md) + [Agentic Rebuild plan](roadmap/AGENTIC_HELPDESK_REBUILD.md) |
-| Reviewing production maturity | [CI/CD](CI.md) + [Operations](OPERATIONS.md) + [Security](SECURITY.md) |
-
-## Senior engineering signals
-
-| Area | Signal |
-|---|---|
-| Platform architecture | Provider registry isolates AWS, Azure, and mock execution modes |
-| RAG orchestration | LangGraph exposes retrieval stages for tuning and traceability |
-| Evaluation | RAGAS baseline is documented honestly, with gates used as release controls |
-| Observability | LangSmith spans, Prometheus metrics, request IDs, structured logs |
-| Product judgment | KB-first answers, cited sources, opt-in web research, visible disclaimer |
-| Agentic depth | Bounded LangGraph helpdesk agent with HITL ticket filing — [Conversation Flow](roadmap/CONVERSATION_FLOW.md), [Helpdesk Agent](roadmap/HELPDESK_AGENT.md) |
-| CI safety | Mock providers allow tests without cloud credentials |
-
-## What this shows
-
-| Layer | What is demonstrated |
-|-------|----------------------|
-| **Product** | Governed KB-first chat, cited sources, opt-in web research, feedback loop, and campus-ready UX |
-| **RAG engineering** | LangGraph retrieval stages, multi-query retrieval, rerank hooks, fallback chain streaming, and explicit source contracts |
-| **Platform architecture** | AWS/Azure/mock provider registry, tenant config, feature flags, Alembic migrations, and CI-safe local mode |
-| **Evaluation** | RAGAS golden-set regression harness, documented Phase 5 baseline, and LangSmith traces for KB/web paths |
-| **Helpdesk agent** | Multi-turn LangGraph escalation with KB retry, web search, duplicate-issue search, and HITL ticket filing to a demo GitHub repo |
-| **Operations** | GitHub Actions, gitleaks, dependency review, no tool attribution, Prometheus metrics, k6 load tests, release docs, and runbooks |
+| Reviewing agentic orchestration | [Helpdesk overview](helpdesk/index.md) + [ADR-006](adr/ADR-006-live-llm-supervisor-migration.md) |
+| Reviewing production maturity | [Operations Manual](operations-manual/index.md) |
 
 ## Quality baseline
 
-The project includes a **RAGAS golden-set harness** and a documented baseline. Phase 5 retrieval tuning improved AWS **context recall to 0.800**, passing the retrieval coverage gate. **Context precision** remains the main improvement target; next work focuses on ingestion/chunking and rerank tuning.
+The project includes a **RAGAS golden-set harness** and a documented v2 retrieval baseline. Phase 5 retrieval tuning improved AWS **context recall to 0.800**, passing the retrieval coverage gate. **Context precision** remains the main improvement target.
 
-This is intentionally presented as an engineering baseline, not a marketing claim. Strict RAGAS gates are release controls, not blockers for local demo or ordinary PR CI.
+This is an engineering baseline, not a marketing claim. Strict RAGAS gates are release controls, not blockers for local demo or ordinary PR CI.
 
 Read more: [Evaluation approach](EVALUATION.md) and [baseline scores](eval_baseline_v2.md).
 
@@ -100,7 +68,7 @@ Design detail: [Architecture](ARCHITECTURE.md) and [Design Notes](DESIGN.md).
 | Architecture reviewer | [Architecture](ARCHITECTURE.md), [Design Notes](DESIGN.md), [ADRs](adr/README.md) |
 | Agentic orchestration reviewer | [Helpdesk Agent overview](helpdesk/index.md), [Conversation Flow](roadmap/CONVERSATION_FLOW.md), [Engineering Spec](roadmap/HELPDESK_AGENT.md), [ADR-005](adr/ADR-005-bounded-helpdesk-agent.md), [ADR-006](adr/ADR-006-live-llm-supervisor-migration.md) |
 | Evaluation reviewer | [Evaluation Approach](EVALUATION.md), [Evaluation Baseline](eval_baseline_v2.md) |
-| Operations reviewer | [Operations](OPERATIONS.md), [CI/CD](CI.md), [Release](RELEASE.md), [Security](SECURITY.md) |
+| Operations reviewer | [Operations](operations-manual/operations.md), [CI/CD](operations-manual/ci-cd.md), [Release](operations-manual/release.md), [Security](operations-manual/security.md) |
 | Product demo reviewer | [Screenshots and demo script](assets/README.md) |
 | Roadmap reviewer | [Product Roadmap](roadmap/PRODUCT_ROADMAP.md) |
 | Release history | [Releases](release-notes/index.md) (v1.0 / v2.0 / v3.0.0) |

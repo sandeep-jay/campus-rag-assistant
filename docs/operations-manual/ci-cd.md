@@ -6,10 +6,10 @@ Automated checks replace Travis CI. **Tox** remains the source of truth for what
 
 | Workflow | File | Triggers |
 |----------|------|----------|
-| **CI** | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | Push to `main`; PRs to `main`, `qa`, `release` |
-| **CD** | [`.github/workflows/cd.yml`](../.github/workflows/cd.yml) | Push to `qa` or `release`; manual `workflow_dispatch` |
-| **Docs** | [`.github/workflows/docs.yml`](../.github/workflows/docs.yml) | PRs touching docs/site files; push to `main`; manual `workflow_dispatch` |
-| **No tool attribution** | [`.github/workflows/no-tool-attribution.yml`](../.github/workflows/no-tool-attribution.yml) | Pull requests; required on `main` by the `Protect main` ruleset |
+| **CI** | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | Push to `main`; PRs to `main`, `qa`, `release` |
+| **CD** | [`.github/workflows/cd.yml`](../../.github/workflows/cd.yml) | Push to `qa` or `release`; manual `workflow_dispatch` |
+| **Docs** | [`.github/workflows/docs.yml`](../../.github/workflows/docs.yml) | PRs touching docs/site files; push to `main`; manual `workflow_dispatch` |
+| **No tool attribution** | [`.github/workflows/no-tool-attribution.yml`](../../.github/workflows/no-tool-attribution.yml) | Pull requests; required on `main` by the `Protect main` ruleset |
 
 ### CI jobs
 
@@ -28,7 +28,7 @@ Automated checks replace Travis CI. **Tox** remains the source of truth for what
      `gitleaks detect --log-opts="--all --reflog --no-merges" --exit-code 1`
      over the full history. Fails the build on any credential pattern hit.
    - Mirrors the local `tox -e secrets` env and the `.githooks/pre-push`
-     gate — see [SECURITY.md](./SECURITY.md#secret-leak-defense-in-depth).
+     gate — see [SECURITY.md](./security.md#secret-leak-defense-in-depth).
 
 3. **`dependency review (new high/critical CVEs)`**
    - Runs only on pull requests using `actions/dependency-review-action@v4`.
@@ -48,7 +48,7 @@ Automated checks replace Travis CI. **Tox** remains the source of truth for what
 
 ### CD pipeline
 
-On `qa` / `release` push (after branch promotion — see [RELEASE.md](./RELEASE.md)):
+On `qa` / `release` push (after branch promotion — see [RELEASE.md](./release.md)):
 
 1. **CI gate** — reusable `ci.yml` workflow.
 2. **Build Vue** — `npm ci` + `npm run build`; uploads `frontend-vue/dist` artifact.
@@ -83,7 +83,7 @@ Without AWS configuration, CD still validates builds; deploy and RAGAS jobs are 
 | `GITHUB_TOKEN` (helpdesk) | Fine-grained PAT (`issues:write`) for the private demo repo issues are filed to |
 | `GITHUB_REPO` | `owner/repo` of the private demo repo (e.g. `sandeep-jay/campus-helpdesk-demo`) |
 
-For RAGAS on release, add Bedrock/judge keys as secrets or environment-scoped variables expected by `tox -e eval` (see [EVALUATION.md](./EVALUATION.md)).
+For RAGAS on release, add Bedrock/judge keys as secrets or environment-scoped variables expected by `tox -e eval` (see [EVALUATION.md](../EVALUATION.md)).
 
 ### GitHub Environments
 
@@ -91,7 +91,7 @@ CD uses GitHub **environments** `qa` and `production` on deploy jobs (approval r
 
 ## Local parity
 
-**Fast CI check** (Vue only, no Streamlit): `tox -e lint,backend,frontend-vue` — matches [PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md). Full CI parity includes `frontend-streamlit` as in `.github/workflows/ci.yml`.
+**Fast CI check** (Vue only, no Streamlit): `tox -e lint,backend,frontend-vue` — matches [PRODUCT_ROADMAP.md](../roadmap/PRODUCT_ROADMAP.md). Full CI parity includes `frontend-streamlit` as in `.github/workflows/ci.yml`.
 
 ```bash
 tox -e lint,backend,frontend-streamlit,frontend-vue,secrets
@@ -100,7 +100,7 @@ tox -e lint,backend,frontend-streamlit,frontend-vue,secrets
 ```
 
 The local `.githooks/pre-push` hook runs the same gitleaks scan before any
-push leaves your machine — install with `./scripts/install-hooks.sh --global`
+push leaves your machine — install with `../../scripts/install-hooks.sh --global`
 for commit-msg + pre-push protections on every repo, or omit `--global` for
 repo-local hooks only.
 
@@ -112,7 +112,7 @@ promote → qa  →  CD (build + optional deploy)
 promote → release  →  CD (+ optional RAGAS gate)
 ```
 
-See [RELEASE.md](./RELEASE.md) for promotion commands and tagging.
+See [RELEASE.md](./release.md) for promotion commands and tagging.
 
 ## CI gotchas (frontend-vue)
 
@@ -133,4 +133,4 @@ The **`Protect main`** ruleset on the default branch requires these status check
 
 A separate ruleset, **`Protect main, qa, release from deletion`**, blocks branch deletion on `main`, `qa`, and `release`.
 
-Remote branches on `origin`: `main`, `qa`, `release`. Release tags: [`v1.0`](https://github.com/sandeep-jay/campus-rag-assistant/releases/tag/v1.0) (alias of `v0.1`), [`v2.0`](https://github.com/sandeep-jay/campus-rag-assistant/releases/tag/v2.0), [`v3.0.0`](https://github.com/sandeep-jay/campus-rag-assistant/releases/tag/v3.0.0). See [release-notes/](./release-notes/index.md) for high-level summaries and [RELEASE.md](./RELEASE.md) for the promotion process.
+Remote branches on `origin`: `main`, `qa`, `release`. Release tags: [`v1.0`](https://github.com/sandeep-jay/campus-rag-assistant/releases/tag/v1.0) (alias of `v0.1`), [`v2.0`](https://github.com/sandeep-jay/campus-rag-assistant/releases/tag/v2.0), [`v3.0.0`](https://github.com/sandeep-jay/campus-rag-assistant/releases/tag/v3.0.0). See [release-notes/](../release-notes/index.md) for high-level summaries and [RELEASE.md](./release.md) for the promotion process.

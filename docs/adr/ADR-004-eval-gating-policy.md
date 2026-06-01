@@ -22,7 +22,7 @@ Use **two complementary tools** with distinct roles:
 |-------|----------------------|--------|
 | PR / `main` CI (`tox (lint, backend, frontends)`) | **0** | Eval not required; mock RAG |
 | Local / release milestone | **1** | `tox -e eval` or `./scripts/run_eval_phase5.sh` |
-| CD `release` workflow | **1** when secrets configured | See [CI.md](../CI.md). The reusable CD `ragas-gate` job is **currently inactive** — it is wired in `.github/workflows/cd.yml` but not yet enabled on the `release` branch promotion. Local `tox -e eval` remains the source of truth for release milestones; PR #49 (CD permissions + `secrets: inherit` fix) re-enables the path. |
+| CD `release` workflow | **1** when secrets configured | See [CI.md](../operations-manual/ci-cd.md). The reusable CD `ragas-gate` job is **currently inactive** — it is wired in `.github/workflows/cd.yml` but not yet enabled on the `release` branch promotion. Local `tox -e eval` remains the source of truth for release milestones; PR #49 (CD permissions + `secrets: inherit` fix) re-enables the path. |
 
 Sub-threshold metrics in [eval_baseline_v2.md](../eval_baseline_v2.md) are **documented baselines** with an active improvement path (ingestion, chunking, rerank, golden-set re-bootstrap)—not demo blockers.
 
@@ -52,4 +52,4 @@ Sub-threshold metrics in [eval_baseline_v2.md](../eval_baseline_v2.md) are **doc
 - [EVALUATION.md](../EVALUATION.md)
 - [eval_baseline_v2.md](../eval_baseline_v2.md)
 - `backend/tests/eval/`, `scripts/run_eval_phase5.sh`
-- [CI.md](../CI.md)
+- [CI.md](../operations-manual/ci-cd.md)

@@ -6,8 +6,8 @@ Campus RAG Assistant uses **environment branches** to trigger stack-specific CI/
 
 | Branch | Role | Typical CI/CD |
 |--------|------|----------------|
-| `main` | Integration; feature PRs merge here | [CI](../.github/workflows/ci.yml): `tox` on PR/push; [Docs](../.github/workflows/docs.yml): GitHub Pages deploy on docs changes |
-| `qa` | QA / staging snapshot | [CD](../.github/workflows/cd.yml): build Vue + optional EB deploy |
+| `main` | Integration; feature PRs merge here | [CI](../../.github/workflows/ci.yml): `tox` on PR/push; [Docs](../../.github/workflows/docs.yml): GitHub Pages deploy on docs changes |
+| `qa` | QA / staging snapshot | [CD](../../.github/workflows/cd.yml): build Vue + optional EB deploy |
 | `release` | Production-ready line | CD + optional RAGAS gate (`RAGAS_QUALITY_GATE=1`) |
 
 **Source of truth:** `main`. Do not land feature work only on `qa` or `release`.
@@ -20,7 +20,7 @@ Promote by moving branch pointers to a known commit (fast-forward or reset), not
 main  ──promote──►  qa  ──after QA sign-off──►  release  ──tag──►  v3.0.0
 ```
 
-Released tags so far: [`v1.0`](https://github.com/sandeep-jay/campus-rag-assistant/releases/tag/v1.0) (upstream chabot baseline, alias of the historical `v0.1` fork tag), [`v2.0`](https://github.com/sandeep-jay/campus-rag-assistant/releases/tag/v2.0) (RAG platform transformation), [`v3.0.0`](https://github.com/sandeep-jay/campus-rag-assistant/releases/tag/v3.0.0) (helpdesk agent). High-level summaries: [release-notes/](./release-notes/index.md).
+Released tags so far: [`v1.0`](https://github.com/sandeep-jay/campus-rag-assistant/releases/tag/v1.0) (upstream chabot baseline, alias of the historical `v0.1` fork tag), [`v2.0`](https://github.com/sandeep-jay/campus-rag-assistant/releases/tag/v2.0) (RAG platform transformation), [`v3.0.0`](https://github.com/sandeep-jay/campus-rag-assistant/releases/tag/v3.0.0) (helpdesk agent). High-level summaries: [release-notes/](../release-notes/index.md).
 
 ### Commands (from repo root)
 
@@ -64,11 +64,11 @@ Use **annotated tags** (`-a`) for releases. Prefer semver (`v3.0.0`, `v3.0.1`) f
 
 ## Multi-stack deploy
 
-A single promoted commit should drive **all** environment artifacts for that stack. The GitHub Pages documentation site deploys from `main` via [docs.yml](../.github/workflows/docs.yml), independent of `qa` / `release` API deployments:
+A single promoted commit should drive **all** environment artifacts for that stack. The GitHub Pages documentation site deploys from `main` via [docs.yml](../../.github/workflows/docs.yml), independent of `qa` / `release` API deployments:
 
 - FastAPI on Elastic Beanstalk (`run_services.sh` / Procfile)
 - Vue static build with `VITE_API_URL` matching that environment
-- `alembic upgrade head` before app start (see [OPERATIONS.md](./OPERATIONS.md))
+- `alembic upgrade head` before app start (see [OPERATIONS.md](./operations.md))
 
 ## Version tags vs branch tips
 
@@ -81,9 +81,9 @@ Tag the same commit `release` points to after promotion.
 
 ## Related docs
 
-- [release-notes/](./release-notes/index.md) — high-level summaries for each tag
-- [CI.md](./CI.md) — GitHub Actions variables, secrets, workflows
-- [changelog/CHANGELOG.md](../changelog/CHANGELOG.md) — fine-grained per-PR changelog
-- [OPERATIONS.md](./OPERATIONS.md) — deploy order, metrics
-- [LOAD_TESTING.md](./LOAD_TESTING.md) — pre-release load validation
-- [EVALUATION.md](./EVALUATION.md) — RAGAS gates on release
+- [release-notes/](../release-notes/index.md) — high-level summaries for each tag
+- [CI.md](./ci-cd.md) — GitHub Actions variables, secrets, workflows
+- [changelog/CHANGELOG.md](../../changelog/CHANGELOG.md) — fine-grained per-PR changelog
+- [OPERATIONS.md](./operations.md) — deploy order, metrics
+- [LOAD_TESTING.md](./load-testing.md) — pre-release load validation
+- [EVALUATION.md](../EVALUATION.md) — RAGAS gates on release

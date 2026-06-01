@@ -6,29 +6,29 @@
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 [![Node](https://img.shields.io/badge/node-20%2B-green.svg)](frontend-vue/.nvmrc)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688.svg)](backend/app/main.py)
-[![LangGraph](https://img.shields.io/badge/RAG-LangGraph-purple.svg)](docs/DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank)
+[![LangGraph](https://img.shields.io/badge/RAG-LangGraph-purple.svg)](docs/DESIGN.md#langgraph-kb-path-multi-query-retrieve-rerank)
 [![RAGAS](https://img.shields.io/badge/eval-RAGAS-yellow.svg)](docs/EVALUATION.md)
 
-**Production-style enterprise RAG platform for governed campus knowledge.**
+**Source-reviewable AI platform case study for governed campus knowledge.**
 
-Campus RAG Assistant demonstrates multicloud RAG platform engineering plus bounded **agentic orchestration**: Vue product UI, FastAPI API, AWS Bedrock KB and Azure AI Search provider boundaries, LangGraph RAG, a multi-turn **helpdesk agent** with HITL ticket filing, citation-first answer UX, RAGAS evaluation, LangSmith observability, and CI/CD that runs safely without cloud credentials.
+Campus RAG Assistant turns fragmented institutional docs into cited answers, measurable retrieval quality, and a bounded helpdesk escalation path. It demonstrates the platform work around RAG — provider boundaries, evaluation, observability, CI/CD, security, and operational runbooks — not just a chat UI.
 
 **Portfolio focus:** Lead AI Engineering and AI Platform Architecture. Live docs: <https://sandeep-jay.github.io/campus-rag-assistant/>.
 
-> Review model: this project is evaluated through source code, architecture docs, screenshots, evaluation results, and operational artifacts. It is not presented as a hosted public product.
+> Review model: evaluate this through source code, architecture docs, screenshots, evaluation results, and operational artifacts. It is not presented as a hosted public product.
 
 ![Structured KB answer with session history](docs/assets/product/v3/chat-overview.png)
 
-## Review this project
+## Start here
 
 | Goal | Start here |
 |---|---|
 | 90-second overview | [docs/REVIEWER_GUIDE.md](docs/REVIEWER_GUIDE.md) |
-| Product and architecture narrative | [docs/PORTFOLIO_CASE_STUDY.md](docs/PORTFOLIO_CASE_STUDY.md) |
+| Ownership and product judgment | [docs/PORTFOLIO_CASE_STUDY.md](docs/PORTFOLIO_CASE_STUDY.md) |
 | System design | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) + [docs/DESIGN.md](docs/DESIGN.md) |
 | RAG quality | [docs/EVALUATION.md](docs/EVALUATION.md) + [docs/eval_baseline_v2.md](docs/eval_baseline_v2.md) |
 | Agentic orchestration | [docs/helpdesk/index.md](docs/helpdesk/index.md) (overview) -> [docs/roadmap/CONVERSATION_FLOW.md](docs/roadmap/CONVERSATION_FLOW.md) (product spec) + [docs/roadmap/HELPDESK_AGENT.md](docs/roadmap/HELPDESK_AGENT.md) (engineering spec) + [ADR-005](docs/adr/ADR-005-bounded-helpdesk-agent.md) |
-| Operations and security | [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/CI.md](docs/CI.md), [docs/SECURITY.md](docs/SECURITY.md) |
+| Operations and security | [docs/operations-manual/](docs/operations-manual/index.md) |
 | Release history | [docs/release-notes/](docs/release-notes/index.md) — v1.0 / v2.0 / v3.0.0 |
 
 ## Why this project matters
@@ -36,7 +36,7 @@ Campus RAG Assistant demonstrates multicloud RAG platform engineering plus bound
 - Turns scattered institutional docs (Canvas LMS, ServiceNow, policies) into **cited, natural-language answers** users can verify.
 - Shows **production RAG** concerns end-to-end: retrieval quality, observability, auth, streaming, evals, and deployment.
 - Demonstrates **platform architecture**: AWS/Azure/mock providers, tenant config, feature flags, and CI-safe local mode.
-- Goes beyond chat with a **bounded helpdesk agent**: a real LangGraph supervisor that picks tools (KB retry, web search, GitHub-issue search, file-ticket), pauses for clarifying questions, and gates ticket filing on human review.
+- Goes beyond chat with a **bounded helpdesk escalation flow**: KB retry, web search, GitHub-issue search, clarifying pauses, four outcomes, and HITL ticket filing. The current supervisor is deterministic; the LLM supervisor migration is documented in [ADR-006](docs/adr/ADR-006-live-llm-supervisor-migration.md).
 
 ## Role alignment
 
@@ -103,7 +103,7 @@ This is intentionally presented as an **engineering baseline**, not a marketing 
 
 ## Review artifacts
 
-Two-to-three minute walkthrough script for the Vue product UI: [docs/assets/README.md#product-demo-script-23-min](docs/assets/README.md#product-demo-script-23-min).
+Two-to-three minute walkthrough script for the Vue product UI: [docs/assets/README.md#product-demo-script-34-min-v3](docs/assets/README.md#product-demo-script-34-min-v3).
 
 | Artifact | Status |
 |---|---|
@@ -209,7 +209,7 @@ Enable `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, and `LANGCHAIN_PROJECT` in `
 - **SSE streaming** — `POST /api/chat/stream` with buffered fallback to `POST /api/chat/chat`
 - **Sessions** — multi-turn history; sidebar to create, switch, and delete chats
 - **Feedback** — thumbs up/down on assistant messages
-- **Auth** — email/password or **GitHub OAuth** (Google-ready); JWT in HTTP-only cookies; local dev uses API-port OAuth + handoff to Vue ([docs/OPERATIONS.md — OAuth](docs/OPERATIONS.md#oauth-and-authentication))
+- **Auth** — email/password or **GitHub OAuth** (Google-ready); JWT in HTTP-only cookies; local dev uses API-port OAuth + handoff to Vue ([docs/operations-manual/operations.md — OAuth](docs/operations-manual/operations.md#oauth-and-authentication))
 - **UI** — dark/light mode, mobile-friendly layout, copy answer
 - **Ops** — rate limiting, `X-Request-ID`, Alembic migrations, optional Streamlit client on the same API
 
@@ -234,10 +234,10 @@ Enable `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, and `LANGCHAIN_PROJECT` in `
 | **Helpdesk agent**    | LangGraph supervisor + tools, SQLite checkpointer, HITL ticket filing to a private demo GitHub repo (`HELPDESK_AGENT_ENABLED`) |
 | **Eval**              | **RAGAS** harness (`backend/tests/eval/`), golden dataset, `tox -e eval`                                  |
 | **Observability**     | **LangSmith** (`LANGCHAIN_TRACING_V2`), structured logs, first-token latency metric                       |
-| **CI/CD**             | GitHub Actions — tox suite, gitleaks, dependency review, no tool attribution, docs build, and optional CD ([docs/CI.md](docs/CI.md))          |
-| **Load tests**        | k6 ([docs/LOAD_TESTING.md](docs/LOAD_TESTING.md))                                                         |
+| **CI/CD**             | GitHub Actions — tox suite, gitleaks, dependency review, no tool attribution, docs build, and optional CD ([docs/operations-manual/ci-cd.md](docs/operations-manual/ci-cd.md))          |
+| **Load tests**        | k6 ([docs/operations-manual/load-testing.md](docs/operations-manual/load-testing.md))                                                         |
 
-Local demos: `RAG_FORCE_MOCK=true` with no cloud credentials. Design detail: [DESIGN.md — LangGraph KB path](docs/DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank), [DESIGN.md — Opt-in web research](docs/DESIGN.md#opt-in-web-research).
+Local demos: `RAG_FORCE_MOCK=true` with no cloud credentials. Design detail: [DESIGN.md — LangGraph KB path](docs/DESIGN.md#langgraph-kb-path-multi-query-retrieve-rerank), [DESIGN.md — Opt-in web research](docs/DESIGN.md#opt-in-web-research).
 
 ## Feature availability
 
@@ -273,7 +273,7 @@ alembic upgrade head
 PIP_SYNC=0 ./scripts/run-backend-venv.sh          # terminal 1 — http://127.0.0.1:8000
 cp frontend-vue/.env.example frontend-vue/.env.local
 # VITE_API_URL=http://127.0.0.1:8000
-# GitHub OAuth: VITE_OAUTH_API_URL=http://127.0.0.1:8000 — see docs/OPERATIONS.md#oauth-and-authentication
+# GitHub OAuth: VITE_OAUTH_API_URL=http://127.0.0.1:8000 — see docs/operations-manual/operations.md#oauth-and-authentication
 ./scripts/run-frontend-vue.sh          # terminal 2 — http://127.0.0.1:5173
 ```
 
@@ -289,7 +289,7 @@ streamlit run frontend-streamlit/app/main.py
 
 ## Cloud-backed RAG
 
-Set `RAG_FORCE_MOCK=false` and configure providers in `.env` (see [docs/OPERATIONS.md](docs/OPERATIONS.md)).
+Set `RAG_FORCE_MOCK=false` and configure providers in `.env` (see [docs/operations-manual/operations.md](docs/operations-manual/operations.md)).
 
 | Variable                                      | Purpose                                                                             |
 | --------------------------------------------- | ----------------------------------------------------------------------------------- |
@@ -305,7 +305,7 @@ Set `RAG_FORCE_MOCK=false` and configure providers in `.env` (see [docs/OPERATIO
 
 ## Testing
 
-**CI:** GitHub Actions on push to `main` and on PRs ([ci.yml](.github/workflows/ci.yml)). CD on `qa` / `release`: [docs/CI.md](docs/CI.md), [docs/RELEASE.md](docs/RELEASE.md).
+**CI:** GitHub Actions on push to `main` and on PRs ([ci.yml](.github/workflows/ci.yml)). CD on `qa` / `release`: [docs/operations-manual/ci-cd.md](docs/operations-manual/ci-cd.md), [docs/operations-manual/release.md](docs/operations-manual/release.md).
 
 **CI-style suite (local):**
 
@@ -327,7 +327,7 @@ pytest backend/tests/eval/ -m slow
 cd frontend-vue && npm run e2e
 ```
 
-Load tests: [docs/LOAD_TESTING.md](docs/LOAD_TESTING.md).
+Load tests: [docs/operations-manual/load-testing.md](docs/operations-manual/load-testing.md).
 
 ## Quality and observability
 
@@ -351,7 +351,7 @@ Golden set (**10** rows), thresholds, and baseline scores: [docs/EVALUATION.md](
 
 ## What's next
 
-Optional follow-ups: **LangGraph-native SSE** (Phase 6a), stricter RAGAS gates after ingestion improvements, campus-scale ops. Status: [docs/roadmap/PRODUCT_ROADMAP.md](docs/roadmap/PRODUCT_ROADMAP.md). Production hardening backlog: [docs/PRODUCTION_HARDENING.md](docs/PRODUCTION_HARDENING.md).
+Optional follow-ups: **LangGraph-native SSE** (Phase 6a), stricter RAGAS gates after ingestion improvements, campus-scale ops. Status: [docs/roadmap/PRODUCT_ROADMAP.md](docs/roadmap/PRODUCT_ROADMAP.md). Production hardening backlog: [docs/operations-manual/production-hardening.md](docs/operations-manual/production-hardening.md).
 
 ## Documentation
 
@@ -361,7 +361,7 @@ Optional follow-ups: **LangGraph-native SSE** (Phase 6a), stricter RAGAS gates a
 | Hiring / portfolio reviewer | [docs/PORTFOLIO_CASE_STUDY.md](docs/PORTFOLIO_CASE_STUDY.md) |
 | Architecture reviewer | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/DESIGN.md](docs/DESIGN.md), [docs/adr/](docs/adr/) |
 | Evaluation reviewer | [docs/EVALUATION.md](docs/EVALUATION.md), [docs/eval_baseline_v2.md](docs/eval_baseline_v2.md) |
-| Operations reviewer | [docs/OPERATIONS.md](docs/OPERATIONS.md), [docs/CI.md](docs/CI.md), [docs/RELEASE.md](docs/RELEASE.md), [docs/SECURITY.md](docs/SECURITY.md) |
+| Operations reviewer | [docs/operations-manual/operations.md](docs/operations-manual/operations.md), [docs/operations-manual/ci-cd.md](docs/operations-manual/ci-cd.md), [docs/operations-manual/release.md](docs/operations-manual/release.md), [docs/operations-manual/security.md](docs/operations-manual/security.md) |
 | Product demo reviewer | [docs/assets/README.md](docs/assets/README.md) |
 | Roadmap reviewer | [docs/roadmap/PRODUCT_ROADMAP.md](docs/roadmap/PRODUCT_ROADMAP.md) |
 | Release-history reviewer | [changelog/CHANGELOG.md](changelog/CHANGELOG.md) |

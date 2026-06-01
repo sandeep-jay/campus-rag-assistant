@@ -11,7 +11,7 @@ Setup and overview: root [README](../README.md).
 | `npm run dev` | Vite dev server (proxies `/api` to backend when configured) |
 | `npm run build` | Production build |
 | `npm run test` | Vitest |
-| `npm run e2e` | Playwright (requires API — see [../docs/OPERATIONS.md — Playwright E2E](../docs/OPERATIONS.md#playwright-e2e-frontend-vue)) |
+| `npm run e2e` | Playwright (requires API — see [../docs/operations-manual/operations.md — Playwright E2E](../docs/operations-manual/operations.md#playwright-e2e-frontend-vue)) |
 | `npm run lint` | ESLint |
 
 ## Environment
@@ -36,4 +36,4 @@ Copy [`.env.example`](./.env.example) to `.env.local` as needed.
 ## Testing
 
 - Unit/integration: **Vitest** + **Testing Library** + **MSW** (`src/test/setup.ts`).
-- E2E: **Playwright** — [../docs/OPERATIONS.md — Playwright E2E](../docs/OPERATIONS.md#playwright-e2e-frontend-vue).
+- E2E: **Playwright** — [../docs/operations-manual/operations.md — Playwright E2E](../docs/operations-manual/operations.md#playwright-e2e-frontend-vue).

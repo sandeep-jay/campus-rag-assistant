@@ -27,7 +27,7 @@ Implementations live under `backend/app/services/providers/`. The API and Vue cl
 
 **Negative**
 
-- Operators must understand env var matrix (documented in `.env.example` and [OPERATIONS.md](../OPERATIONS.md)).
+- Operators must understand env var matrix (documented in `.env.example` and [OPERATIONS.md](../operations-manual/operations.md)).
 - Azure and AWS paths can drift in retrieval behavior; RAGAS baselines are stack-specific.
 
 ## Alternatives considered
@@ -40,7 +40,7 @@ Implementations live under `backend/app/services/providers/`. The API and Vue cl
 
 ## References
 
-- [DESIGN.md — Provider registry](../DESIGN.md#provider-registry-llm--retriever)
+- [DESIGN.md — Provider registry](../DESIGN.md#provider-registry-llm-retriever)
 - `backend/app/services/providers/`
 - `backend/app/config/default.py`
 - `.env.example`

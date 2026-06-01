@@ -1,5 +1,5 @@
 # CD — branch promotion builds and optional Elastic Beanstalk deploy.
-# See docs/CI.md for secrets and branch flow (main → qa → release).
+# See docs/operations-manual/ci-cd.md for secrets and branch flow (main → qa → release).
 name: CD
 
 on:
