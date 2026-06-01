@@ -13,7 +13,7 @@ from backend.app.services.helpdesk.redaction import redact_text
 from backend.app.services.helpdesk_graph import graph as helpdesk_graph
 from backend.app.services.helpdesk_graph import llm as helpdesk_llm
 from backend.app.services.helpdesk_graph import tools
-from backend.app.services.helpdesk_graph.nodes import classify_ticket_facts
+from backend.app.services.helpdesk_graph.nodes import allowed_supervisor_actions, classify_ticket_confidence, classify_ticket_facts
 
 
 class _SecretLike:
@@ -217,6 +217,35 @@ def test_classify_ticket_facts_infers_network_outage():
     facts = classify_ticket_facts(state)
 
     assert facts == {'severity': 'critical', 'category': 'network', 'impact': 'Campus-wide'}
+
+
+def test_keyword_classifier_marks_implicit_impact_low_confidence():
+    state = {
+        'session_id': 's1',
+        'user_id': 'u1',
+        'original_question': 'Canvas assignment upload is broken',
+        'conversation': [],
+        'facts': {},
+    }
+
+    assert classify_ticket_facts(state) == {'severity': 'medium', 'category': 'application', 'impact': 'Single user'}
+    assert classify_ticket_confidence(state) < 0.75
+
+
+def test_help_first_allow_list_excludes_ask_user_before_solution_attempt(monkeypatch):
+    monkeypatch.setattr(tools.settings, 'HELPDESK_AGENT_MAX_QUESTIONS', 2)
+    state = {
+        'session_id': 's1',
+        'user_id': 'u1',
+        'entry': 'start',
+        'original_question': 'Canvas assignment upload is broken',
+        'duplicate_candidates': [],
+        'turns_taken': 0,
+        'tool_attempts': 0,
+        'proposed_solutions': [],
+    }
+
+    assert allowed_supervisor_actions(state) == {'propose_solution', 'write_draft', 'abort'}
 
 
 def test_bindable_helpdesk_tools_respect_feature_flags(monkeypatch):

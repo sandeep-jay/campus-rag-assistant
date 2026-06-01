@@ -24,6 +24,7 @@ from backend.app.core.config_manager import settings
 from backend.app.core.metrics import HELPDESK_AGENT_ERROR_TOTAL, HELPDESK_AGENT_FUNNEL_TOTAL
 from backend.app.schemas.helpdesk import ConversationTurn
 from backend.app.services.helpdesk import github as github_module
+from backend.app.services.helpdesk_graph import runner as runner_module
 from backend.app.services.helpdesk_graph.runner import resume_session, start_session
 
 
@@ -46,11 +47,13 @@ def enable_helpdesk(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_CHECKPOINT_TTL_SECONDS', 86400)
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_MAX_TURNS', 8)
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_MAX_QUESTIONS', 2)
+    monkeypatch.setattr(settings, 'HELPDESK_AGENT_CLARIFY_CONFIDENCE_FLOOR', 0.75)
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_MAX_TOOL_RETRIES', 2)
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_MAX_TOKENS_PER_SESSION', 20000)
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_DEADLINE_SECONDS', 60.0)
     # Reset the in-process dedup cache for test isolation.
     github_module._dedup_cache._store.clear()
+    runner_module._confirm_idempotency_cache._store.clear()
 
 
 def _counter_value(counter, **labels) -> float:
@@ -222,9 +225,9 @@ def _start_agent_for_oracle_issue(client: TestClient, token: str) -> dict:
     )
     assert start.status_code == 200, start.text
     body = start.json()
-    assert body['kind'] == 'question'
+    assert body['kind'] == 'info'
     assert body['session_id']
-    assert 'team' in body['message'].lower()
+    assert body['message'].lstrip().startswith('###')
     return body
 
 
@@ -235,6 +238,8 @@ def _answer_impact(
     *,
     chat_session_id: int | None = None,
 ) -> dict:
+    if first_turn['kind'] in {'info', 'draft_ready'}:
+        return first_turn
     pending_question_id = first_turn['debug_trace'][0]['message']
     payload: dict = {
         'session_id': first_turn['session_id'],
@@ -267,7 +272,7 @@ def test_agent_start_stream_returns_status_and_final_turn(
     assert 'Starting helpdesk agent' in response.text
     assert 'Checking existing issues' in response.text
     assert '"type": "done"' in response.text
-    assert '"kind": "question"' in response.text
+    assert '"kind": "info"' in response.text
 
 
 def test_agent_resume_stream_returns_status_and_final_turn(
@@ -280,8 +285,8 @@ def test_agent_resume_stream_returns_status_and_final_turn(
         '/api/helpdesk/agent/resume/stream',
         json={
             'session_id': first['session_id'],
-            'choice': 'My team',
-            'pending_question_id': first['debug_trace'][0]['message'],
+            'choice': 'Yes, that solved it',
+            'pending_question_id': first['debug_trace'][-1]['message'],
         },
         headers={'Authorization': f'Bearer {test_user_token}'},
     )
@@ -290,7 +295,7 @@ def test_agent_resume_stream_returns_status_and_final_turn(
     assert 'Continuing helpdesk workflow' in response.text
     assert 'Running agent tools' in response.text
     assert '"type": "done"' in response.text
-    assert '"kind": "info"' in response.text
+    assert '"kind": "resolved"' in response.text
 
 
 def test_agent_metrics_record_funnel_and_errors(
@@ -299,7 +304,6 @@ def test_agent_metrics_record_funnel_and_errors(
     enable_helpdesk,
 ):
     started_before = _counter_value(HELPDESK_AGENT_FUNNEL_TOTAL, stage='started', outcome='api')
-    clarify_before = _counter_value(HELPDESK_AGENT_FUNNEL_TOTAL, stage='clarification_requested', outcome='success')
     error_before = _counter_value(HELPDESK_AGENT_ERROR_TOTAL, operation='resume', reason='http_404')
 
     _start_agent_for_oracle_issue(client, test_user_token)
@@ -311,7 +315,6 @@ def test_agent_metrics_record_funnel_and_errors(
 
     assert missing.status_code == 404
     assert _counter_value(HELPDESK_AGENT_FUNNEL_TOTAL, stage='started', outcome='api') == started_before + 1
-    assert _counter_value(HELPDESK_AGENT_FUNNEL_TOTAL, stage='clarification_requested', outcome='success') == clarify_before + 1
     assert _counter_value(HELPDESK_AGENT_ERROR_TOTAL, operation='resume', reason='http_404') == error_before + 1
 
 
@@ -329,17 +332,17 @@ async def test_agent_postgres_checkpointer_round_trips_pause_resume(
         [ConversationTurn(role='user', content='Oracle Financials 403 error on budget reports')],
         user_id='postgres-checkpoint-user',
     )
-    pending_question_id = first.debug_trace[0].message
+    pending_question_id = first.debug_trace[-1].message
 
     resumed = await resume_session(
         first.session_id,
         user_id='postgres-checkpoint-user',
-        choice='My team',
+        choice='Yes, that solved it',
         pending_question_id=pending_question_id,
     )
 
-    assert first.kind == 'question'
-    assert resumed.kind == 'info'
+    assert first.kind == 'info'
+    assert resumed.kind == 'resolved'
     with engine.connect() as conn:
         checkpoint_count = conn.execute(
             text('SELECT count(*) FROM checkpoints WHERE thread_id = :thread_id'),
@@ -400,7 +403,33 @@ def test_agent_resume_proposes_solution_after_impact_answer(
     # (chat-prose formatted), so we just assert both shape pieces are present.
     assert body['message'].lstrip().startswith('###')
     assert 'View source' in body['message'] or 'KB' in body['message']
-    assert [step['action'] for step in body['debug_trace']] == ['append_user_reply', 'retry_kb', 'propose_solution']
+    assert [step['action'] for step in body['debug_trace']] == ['retry_kb', 'propose_solution']
+
+
+def test_agent_asks_clarification_after_help_attempt_when_impact_ambiguous(
+    client: TestClient,
+    test_user_token: str,
+    enable_helpdesk,
+):
+    async def _no_documents(*args, **kwargs):
+        return []
+
+    with (
+        patch('backend.app.services.helpdesk_graph.runner.tools.retry_kb', _no_documents),
+        patch('backend.app.services.helpdesk_graph.runner.tools.web_search', _no_documents),
+    ):
+        response = client.post(
+            '/api/helpdesk/agent/start',
+            json={'conversation': [{'role': 'user', 'content': 'Canvas assignment upload is broken'}]},
+            headers={'Authorization': f'Bearer {test_user_token}'},
+        )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body['kind'] == 'question'
+    assert body['input'] == 'radio'
+    assert 'campus' in body['message'].lower()
+    assert body['choices'] == ['Only me', 'My team', 'Campus-wide', 'Not sure']
 
 
 def test_agent_budget_exhaustion_returns_ticket_draft(
@@ -410,9 +439,20 @@ def test_agent_budget_exhaustion_returns_ticket_draft(
     monkeypatch,
 ):
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_MAX_TURNS', 1)
-    first = _start_agent_for_oracle_issue(client, test_user_token)
+    proposal = _start_agent_for_oracle_issue(client, test_user_token)
+    pending_question_id = proposal['debug_trace'][-1]['message']
 
-    body = _answer_impact(client, test_user_token, first)
+    response = client.post(
+        '/api/helpdesk/agent/resume',
+        json={
+            'session_id': proposal['session_id'],
+            'choice': "Tried it, didn't work",
+            'pending_question_id': pending_question_id,
+        },
+        headers={'Authorization': f'Bearer {test_user_token}'},
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
 
     assert body['kind'] == 'draft_ready'
     assert body['draft']['title']
@@ -469,7 +509,7 @@ def test_agent_solution_rejection_returns_ticket_draft(
     assert [step['action'] for step in body['debug_trace']] == ['solution_feedback', 'classify_ticket', 'write_draft']
     assert body['draft']['severity'] == 'high'
     assert body['draft']['category'] == 'access'
-    assert body['draft']['impact'] == 'Team'
+    assert body['draft']['impact'] == 'Single user'
 
 
 def test_agent_resume_rejects_stale_question_id(
@@ -551,6 +591,39 @@ def test_agent_confirm_files_reviewed_draft(
         headers={'Authorization': f'Bearer {test_user_token}'},
     )
     assert resume.status_code == 409
+
+
+def test_agent_confirm_idempotency_key_reuses_prior_turn(
+    client: TestClient,
+    test_user_token: str,
+    enable_helpdesk,
+):
+    draft_turn = _draft_ready_agent(client, test_user_token)
+    filed = {'count': 0}
+
+    async def _fake_create_github_issue(draft, *, user_id):
+        from backend.app.schemas.helpdesk import CreateIssueResponse
+
+        filed['count'] += 1
+        return CreateIssueResponse(
+            issue_url='https://github.com/demo-org/demo-repo/issues/88',
+            issue_number=88,
+            deduplicated=False,
+        )
+
+    headers = {
+        'Authorization': f'Bearer {test_user_token}',
+        'Idempotency-Key': 'confirm-double-click',
+    }
+    payload = {'session_id': draft_turn['session_id'], 'draft': draft_turn['draft']}
+    with patch('backend.app.services.helpdesk_graph.runner.create_github_issue', _fake_create_github_issue):
+        first = client.post('/api/helpdesk/agent/confirm', json=payload, headers=headers)
+        second = client.post('/api/helpdesk/agent/confirm', json=payload, headers=headers)
+
+    assert first.status_code == 200, first.text
+    assert second.status_code == 200, second.text
+    assert filed['count'] == 1
+    assert second.json() == first.json()
 
 
 def test_agent_confirm_rejects_session_not_waiting_for_confirmation(
@@ -1017,7 +1090,7 @@ def test_agent_start_upserts_question_when_chat_session_id_provided(
     test_user_token: str,
     enable_helpdesk,
 ):
-    """First agent turn persists immediately so refresh mid-question is safe."""
+    """First agent turn persists immediately so refresh mid-turn is safe."""
     chat_session_id = _create_chat_session(client, test_user_token)
     start = client.post(
         '/api/helpdesk/agent/start',
@@ -1031,7 +1104,7 @@ def test_agent_start_upserts_question_when_chat_session_id_provided(
     )
     assert start.status_code == 200, start.text
     body = start.json()
-    assert body['kind'] == 'question'
+    assert body['kind'] == 'info'
     assert isinstance(body['chat_message_id'], int)
 
     assistant_msgs = _session_assistant_messages(client, test_user_token, chat_session_id)
@@ -1039,7 +1112,7 @@ def test_agent_start_upserts_question_when_chat_session_id_provided(
     persisted = assistant_msgs[0]
     assert persisted['id'] == body['chat_message_id']
     summary = persisted['metadata']['agent_summary']
-    assert summary['kind'] == 'question'
+    assert summary['kind'] == 'info'
     assert summary['agent_session_id'] == body['session_id']
     trace = summary.get('trace')
     assert isinstance(trace, list)

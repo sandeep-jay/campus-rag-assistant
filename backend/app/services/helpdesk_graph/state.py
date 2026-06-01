@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 # ``StateGraph`` resolves the TypedDict's annotations via
 # ``typing.get_type_hints`` when compiling the channel schema; deferred
 # annotations break that resolution.
-from backend.app.schemas.helpdesk import AgentTurn, ConversationTurn, TicketDraft  # noqa: TCH001
+from backend.app.schemas.helpdesk import AgentStep, AgentTurn, ConversationTurn, TicketDraft  # noqa: TCH001
 
 
 class GitHubIssue(BaseModel):
@@ -58,6 +58,7 @@ class HelpdeskState(TypedDict, total=False):
     proposed_solutions: list[ProposedSolution]
     rejected_solutions: list[str]
     facts: dict[str, str]
+    classification_confidence: float
     draft: TicketDraft | None
     next_action: Literal[
         'retry_kb',
@@ -82,5 +83,6 @@ class HelpdeskState(TypedDict, total=False):
     entry: Literal['start', 'resume', 'confirm', 'abort']
     resume_answer: str | None
     confirm_draft: TicketDraft | None
+    _trace_seed: list[AgentStep]
     _next: str | None
     _graph_turn: AgentTurn | None

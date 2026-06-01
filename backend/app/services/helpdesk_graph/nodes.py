@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
+from backend.app.core.config_manager import settings
+
 if TYPE_CHECKING:
     from backend.app.services.helpdesk_graph.state import HelpdeskState
 
@@ -70,7 +72,11 @@ def _action_for_start(state: HelpdeskState) -> SupervisorAction:
         return 'search_duplicates'
     if state.get('duplicate_candidates'):
         return 'link_existing'
-    return 'ask_user'
+    if _should_try_solution_before_clarifying(state):
+        return 'propose_solution'
+    if _should_clarify_classification(state):
+        return 'ask_user'
+    return 'write_draft'
 
 
 def _action_for_resume(state: HelpdeskState) -> SupervisorAction:
@@ -85,6 +91,20 @@ _ENTRY_DISPATCH: dict[str, SupervisorAction] = {
     'abort': 'abort',
     'confirm': 'file_new',
 }
+
+
+def _allowed_start_actions(state: HelpdeskState) -> set[SupervisorAction]:
+    if not state.get('original_question'):
+        return {'ask_user', 'write_draft', 'abort'}
+    if 'duplicate_candidates' not in state:
+        return {'search_duplicates', 'write_draft', 'abort'}
+    if state.get('duplicate_candidates'):
+        return {'link_existing', 'write_draft', 'abort'}
+    if _should_try_solution_before_clarifying(state):
+        return {'propose_solution', 'write_draft', 'abort'}
+    if _should_clarify_classification(state):
+        return {'ask_user', 'write_draft', 'abort'}
+    return {'write_draft', 'abort'}
 
 
 def allowed_supervisor_actions(state: HelpdeskState) -> set[SupervisorAction]:
@@ -102,14 +122,7 @@ def allowed_supervisor_actions(state: HelpdeskState) -> set[SupervisorAction]:
         else:
             actions = {'propose_solution', 'write_draft', 'abort'}
     elif state.get('entry') == 'start':
-        if not state.get('original_question'):
-            actions = {'ask_user', 'write_draft', 'abort'}
-        elif 'duplicate_candidates' not in state:
-            actions = {'search_duplicates', 'write_draft', 'abort'}
-        elif state.get('duplicate_candidates'):
-            actions = {'link_existing', 'write_draft', 'abort'}
-        else:
-            actions = {'ask_user', 'write_draft', 'abort'}
+        actions = _allowed_start_actions(state)
     else:
         actions = {'end'}
     return actions
@@ -156,6 +169,49 @@ def _contains_any(text: str, needles: tuple[str, ...]) -> bool:
     return any(needle in text for needle in needles)
 
 
+def _combined_classification_text(state: HelpdeskState) -> str:
+    conversation_text = ' '.join(turn.content for turn in state.get('conversation', []))
+    facts_text = ' '.join(state.get('facts', {}).values())
+    return f"{state.get('original_question', '')} {conversation_text} {facts_text}".lower()
+
+
+def _clarification_source_text(state: HelpdeskState) -> str:
+    conversation_text = ' '.join(turn.content for turn in state.get('conversation', []))
+    facts_text = ' '.join(value for key, value in state.get('facts', {}).items() if key not in {'severity', 'category', 'impact'})
+    return f"{state.get('original_question', '')} {conversation_text} {facts_text}".lower()
+
+
+def _has_explicit_impact(text: str) -> bool:
+    return _contains_any(
+        text,
+        (
+            'campus-wide',
+            'campus wide',
+            'all users',
+            'everyone',
+            'outage',
+            'my team',
+            'team',
+            'department',
+            'multiple users',
+            'only me',
+            'just me',
+            'single user',
+        ),
+    )
+
+
+def _classification_confidence(text: str, classification: dict[str, str]) -> float:
+    confidence = 0.55
+    if _has_explicit_impact(text):
+        confidence += 0.25
+    if classification['category'] != 'other':
+        confidence += 0.1
+    if classification['severity'] in {'high', 'critical', 'low'}:
+        confidence += 0.1
+    return min(confidence, 1.0)
+
+
 def _classify_impact(text: str) -> str:
     if _contains_any(text, ('campus-wide', 'campus wide', 'all users', 'everyone', 'outage')):
         return 'Campus-wide'
@@ -195,12 +251,41 @@ def classify_ticket_facts(state: HelpdeskState) -> dict[str, str]:
     replaceable: it gives the graph an explicit specialist step and stable
     trace/facts contract before a later LLM classifier takes over.
     """
-    conversation_text = ' '.join(turn.content for turn in state.get('conversation', []))
-    facts_text = ' '.join(state.get('facts', {}).values())
-    text = f"{state.get('original_question', '')} {conversation_text} {facts_text}".lower()
+    text = _combined_classification_text(state)
 
     return {
         'severity': _classify_severity(text),
         'category': _classify_category(text),
         'impact': _classify_impact(text),
     }
+
+
+def classify_ticket_confidence(state: HelpdeskState) -> float:
+    """Return a deterministic confidence score for keyword classification."""
+    text = _combined_classification_text(state)
+    return _classification_confidence(text, classify_ticket_facts(state))
+
+
+def _positive_int_setting(name: str, default: int) -> int:
+    value = int(getattr(settings, name, default) or default)
+    return max(1, value)
+
+
+def _clarify_confidence_floor() -> float:
+    return float(getattr(settings, 'HELPDESK_AGENT_CLARIFY_CONFIDENCE_FLOOR', 0.75) or 0.75)
+
+
+def _should_try_solution_before_clarifying(state: HelpdeskState) -> bool:
+    return int(state.get('turns_taken', 0)) == 0 and not state.get('proposed_solutions') and int(state.get('tool_attempts', 0)) == 0
+
+
+def _should_clarify_classification(state: HelpdeskState) -> bool:
+    if 'classification_confidence' not in state:
+        return False
+    questions_asked = len(state.get('questions_asked', []))
+    if questions_asked >= _positive_int_setting('HELPDESK_AGENT_MAX_QUESTIONS', 2):
+        return False
+    confidence = float(state.get('classification_confidence') or classify_ticket_confidence(state))
+    if confidence >= _clarify_confidence_floor():
+        return False
+    return not _has_explicit_impact(_clarification_source_text(state))

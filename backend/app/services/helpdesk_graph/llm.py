@@ -17,17 +17,22 @@ from backend.app.services.helpdesk_graph import tools
 from backend.app.services.helpdesk_graph.nodes import (
     SupervisorAction,
     allowed_supervisor_actions,
+    classify_ticket_confidence,
     classify_ticket_facts,
     select_supervisor_action,
     validate_supervisor_action,
 )
-from backend.app.services.helpdesk_graph.prompts import SUPERVISOR_PROMPT
+from backend.app.services.helpdesk_graph.prompts import CLARIFIER_PROMPT, CLASSIFIER_PROMPT, SUPERVISOR_PROMPT
+from backend.app.services.helpdesk_graph.state import AwaitingUserPayload
 from backend.app.services.providers import get_llm_provider
 
 if TYPE_CHECKING:
     from backend.app.services.helpdesk_graph.state import HelpdeskState
 
 logger = logging.getLogger(__name__)
+
+IMPACT_QUESTION = 'Is this affecting only you, your team, or the whole campus?'
+IMPACT_CHOICES = ['Only me', 'My team', 'Campus-wide', 'Not sure']
 
 
 class SupervisorDecision(BaseModel):
@@ -47,6 +52,13 @@ class TicketClassification(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
 
 
+class ClarifyingQuestion(BaseModel):
+    """Structured clarifier output from the live LLM path."""
+
+    question: str = Field(min_length=1)
+    choices: list[str] = Field(default_factory=list)
+
+
 def _state_brief(state: HelpdeskState) -> dict[str, Any]:
     awaiting = state.get('awaiting_user')
     return {
@@ -55,6 +67,7 @@ def _state_brief(state: HelpdeskState) -> dict[str, Any]:
         'awaiting_user': awaiting.model_dump() if awaiting is not None else None,
         'duplicate_candidate_count': len(state.get('duplicate_candidates', [])) if 'duplicate_candidates' in state else None,
         'facts': state.get('facts', {}),
+        'classification_confidence': state.get('classification_confidence'),
         'has_draft': state.get('draft') is not None,
         'turns_taken': state.get('turns_taken', 0),
         'questions_asked': state.get('questions_asked', []),
@@ -151,14 +164,15 @@ async def supervisor_decide(state: HelpdeskState) -> SupervisorDecision:
 async def classify(state: HelpdeskState) -> TicketClassification:
     """Classify ticket facts through the provider, falling back to keywords."""
     fallback = classify_ticket_facts(state)
+    fallback_confidence = classify_ticket_confidence(state)
     provider = get_llm_provider()
     if provider.is_mock:
-        return TicketClassification(**fallback, confidence=1.0)
+        return TicketClassification(**fallback, confidence=fallback_confidence)
 
     prompt = [
         {
             'role': 'system',
-            'content': 'Classify a campus helpdesk ticket. Return only structured severity, category, impact, confidence.',
+            'content': CLASSIFIER_PROMPT,
         },
         {'role': 'user', 'content': json.dumps(_state_brief(state), sort_keys=True)},
     ]
@@ -166,5 +180,46 @@ async def classify(state: HelpdeskState) -> TicketClassification:
         classification = await _structured_invoke(provider.get_llm(), TicketClassification, prompt)
     except Exception as exc:
         logger.warning('Helpdesk classifier failed; using deterministic fallback: %s', exc)
-        return TicketClassification(**fallback, confidence=0.5)
+        return TicketClassification(**fallback, confidence=min(fallback_confidence, 0.5))
     return classification
+
+
+def _default_clarification(state: HelpdeskState) -> AwaitingUserPayload:
+    return AwaitingUserPayload(
+        question_id=f"impact-{state['session_id']}",
+        question=IMPACT_QUESTION,
+        choices=IMPACT_CHOICES,
+    )
+
+
+async def clarify(state: HelpdeskState) -> AwaitingUserPayload:
+    """Build a targeted clarifying question, with deterministic fallback."""
+    fallback = _default_clarification(state)
+    provider = get_llm_provider()
+    if provider.is_mock:
+        return fallback
+
+    prompt = [
+        {'role': 'system', 'content': CLARIFIER_PROMPT},
+        {
+            'role': 'user',
+            'content': (
+                'Return one ClarifyingQuestion JSON object. '
+                'If impact is the missing fact, include these choices exactly: '
+                f'{IMPACT_CHOICES}.\n\n'
+                f'<state>{json.dumps(_state_brief(state), sort_keys=True)}</state>'
+            ),
+        },
+    ]
+    try:
+        question = await _structured_invoke(provider.get_llm(), ClarifyingQuestion, prompt)
+    except Exception as exc:
+        logger.warning('Helpdesk clarifier failed; using deterministic fallback: %s', exc)
+        return fallback
+
+    choices = question.choices or IMPACT_CHOICES
+    return AwaitingUserPayload(
+        question_id=f"impact-{state['session_id']}",
+        question=question.question,
+        choices=choices,
+    )

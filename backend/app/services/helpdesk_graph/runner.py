@@ -6,6 +6,8 @@ import logging
 import re
 import time
 import uuid
+from dataclasses import dataclass
+from threading import Lock
 from typing import TYPE_CHECKING, Any
 
 from fastapi import HTTPException, status
@@ -31,7 +33,7 @@ from backend.app.services.helpdesk_graph.checkpoint import (
     use_langgraph_checkpoint,
 )
 from backend.app.services.helpdesk_graph.graph import HELPDESK_GRAPH, helpdesk_graph_for_request
-from backend.app.services.helpdesk_graph.nodes import classify_ticket_facts
+from backend.app.services.helpdesk_graph.nodes import _should_clarify_classification
 from backend.app.services.helpdesk_graph.prompts import SOLUTION_PROMPT
 from backend.app.services.helpdesk_graph.state import AwaitingUserPayload, GitHubIssue, HelpdeskState, ProposedSolution
 from backend.app.services.helpdesk_graph.tracing import trace_agent_run, trace_agent_tool
@@ -49,6 +51,47 @@ IMPACT_CHOICES = ['Only me', 'My team', 'Campus-wide', 'Not sure']
 SOLUTION_CHOICES = ['Yes, that solved it', "No, doesn't apply", "Tried it, didn't work"]
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class _IdempotencyEntry:
+    turn: AgentTurn
+    expires_at: float
+
+
+class _ConfirmIdempotencyCache:
+    def __init__(self) -> None:
+        self._store: dict[str, _IdempotencyEntry] = {}
+        self._lock = Lock()
+
+    def get(self, key: str) -> AgentTurn | None:
+        with self._lock:
+            entry = self._store.get(key)
+            if entry is None:
+                return None
+            if entry.expires_at < time.time():
+                self._store.pop(key, None)
+                return None
+            return entry.turn
+
+    def put(self, key: str, turn: AgentTurn) -> None:
+        expires_at = time.time() + max(0, int(settings.HELPDESK_DEDUP_WINDOW_SECONDS))
+        with self._lock:
+            self._store[key] = _IdempotencyEntry(turn=turn, expires_at=expires_at)
+            now = time.time()
+            stale = [cache_key for cache_key, entry in self._store.items() if entry.expires_at < now]
+            for cache_key in stale:
+                self._store.pop(cache_key, None)
+
+
+_confirm_idempotency_cache = _ConfirmIdempotencyCache()
+
+
+def _confirm_idempotency_key(user_id: int | str, idempotency_key: str | None) -> str | None:
+    key = (idempotency_key or '').strip()
+    if not key:
+        return None
+    return f'{user_id}:{key}'
 
 
 _PREAMBLE_LINE_RE = re.compile(
@@ -276,11 +319,13 @@ def _new_state(session_id: str, user_id: int | str, question: str, conversation:
 
 
 async def _pause_for_impact(state: HelpdeskState) -> AgentTurn:
-    question_id = f"impact-{state['session_id']}"
-    awaiting = AwaitingUserPayload(question_id=question_id, question=IMPACT_QUESTION, choices=IMPACT_CHOICES)
+    from backend.app.services.helpdesk_graph.llm import clarify
+
+    awaiting = await clarify(state)
+    question_id = awaiting.question_id
     state['awaiting_user'] = awaiting
     state['next_action'] = 'ask_user'
-    state['questions_asked'] = [*state.get('questions_asked', []), IMPACT_QUESTION]
+    state['questions_asked'] = [*state.get('questions_asked', []), awaiting.question]
     state['turns_taken'] = int(state.get('turns_taken', 0)) + 1
     if _budget_exhausted(state):
         return await _budget_exhausted_turn(state, [_trace('clarifier', 'ask_user', 'blocked', question_id)])
@@ -290,8 +335,8 @@ async def _pause_for_impact(state: HelpdeskState) -> AgentTurn:
     return AgentTurn(
         session_id=state['session_id'],
         kind='question',
-        message=IMPACT_QUESTION,
-        choices=IMPACT_CHOICES,
+        message=awaiting.question,
+        choices=awaiting.choices,
         input='radio',
         debug_trace=[_trace('clarifier', 'ask_user', 'waiting', question_id)],
     )
@@ -357,10 +402,33 @@ def _append_user_reply(state: HelpdeskState, answer: str, *, label: str) -> list
     return conversation
 
 
+async def _classify_state(state: HelpdeskState):
+    from backend.app.services.helpdesk_graph.llm import classify
+
+    classification = await classify(state)
+    state['facts'] = {
+        **state.get('facts', {}),
+        'severity': classification.severity,
+        'category': classification.category,
+        'impact': classification.impact,
+    }
+    state['classification_confidence'] = classification.confidence
+    return classification
+
+
 async def _draft_from_state(state: HelpdeskState, *, message: str, trace: list[AgentStep]) -> AgentTurn:
     conversation = state.get('conversation', [])
-    classification = classify_ticket_facts(state)
-    state['facts'] = {**state.get('facts', {}), **classification}
+    facts = state.get('facts', {})
+    if {'severity', 'category', 'impact'} <= set(facts):
+        classification = {
+            'severity': facts['severity'],
+            'category': facts['category'],
+            'impact': facts['impact'],
+            'confidence': float(state.get('classification_confidence', 0.0)),
+        }
+    else:
+        classified = await _classify_state(state)
+        classification = classified.model_dump()
     draft = await draft_ticket(conversation)
     draft = draft.model_copy(
         update={
@@ -375,7 +443,14 @@ async def _draft_from_state(state: HelpdeskState, *, message: str, trace: list[A
     save_checkpoint(state)
     HELPDESK_AGENT_OUTCOME_TOTAL.labels(outcome='draft_ready').inc()
     _record_funnel('draft_ready')
-    classification_summary = '/'.join((classification['severity'], classification['category'], classification['impact']))
+    classification_summary = '/'.join(
+        (
+            classification['severity'],
+            classification['category'],
+            classification['impact'],
+            f"confidence={classification['confidence']:.2f}",
+        )
+    )
     return AgentTurn(
         session_id=state['session_id'],
         kind='draft_ready',
@@ -389,7 +464,7 @@ async def _draft_from_state(state: HelpdeskState, *, message: str, trace: list[A
     )
 
 
-async def _propose_solution_or_draft(state: HelpdeskState, trace: list[AgentStep]) -> AgentTurn:
+async def _propose_solution_or_draft(state: HelpdeskState, trace: list[AgentStep]) -> AgentTurn | None:
     from backend.app.services.rag import RAGService
 
     query = state.get('original_question', '')
@@ -412,11 +487,9 @@ async def _propose_solution_or_draft(state: HelpdeskState, trace: list[AgentStep
         solution = await _solution_from_documents(web_docs, source='web', question=query)
 
     if solution is None:
-        return await _draft_from_state(
-            state,
-            message='I could not find a likely fix, so I prepared a ticket draft. Review it before filing.',
-            trace=trace,
-        )
+        state['_trace_seed'] = trace
+        state['_next'] = 'write_draft'
+        return None
 
     question_id = f"solution-{state['session_id']}"
     state['proposed_solutions'] = [*state.get('proposed_solutions', []), solution]
@@ -533,12 +606,27 @@ async def graph_solution_step(state: HelpdeskState) -> dict[str, Any]:
     awaiting = state.get('awaiting_user')
     answer = state.get('resume_answer') or ''
     question_id = awaiting.question_id if awaiting is not None else ''
-    _append_user_reply(state, answer, label='Impact clarification')
-    state['facts'] = {**state.get('facts', {}), 'impact': answer}
-    state['awaiting_user'] = None
-    trace_seed = [_trace('resume', 'append_user_reply', 'success', question_id)]
+    trace_seed: list[AgentStep] = []
+    if awaiting is not None:
+        _append_user_reply(state, answer, label='Impact clarification')
+        state['facts'] = {**state.get('facts', {}), 'impact': answer}
+        state['awaiting_user'] = None
+        trace_seed.append(_trace('resume', 'append_user_reply', 'success', question_id))
     turn = await _propose_solution_or_draft(state, trace_seed)
+    if turn is None:
+        state['_graph_turn'] = None
+        return state
     state['_graph_turn'] = turn
+    return state
+
+
+async def graph_classifier_step(state: HelpdeskState) -> dict[str, Any]:
+    """Run the classifier specialist before ticket writing or clarification."""
+    await _classify_state(state)
+    if _should_clarify_classification(state):
+        state['_next'] = 'ask_user'
+    else:
+        state['_next'] = 'write_draft'
     return state
 
 
@@ -553,13 +641,18 @@ async def graph_writer_step(state: HelpdeskState) -> dict[str, Any]:
     awaiting = state.get('awaiting_user')
     answer = state.get('resume_answer') or ''
     question_id = awaiting.question_id if awaiting is not None else ''
-    _append_user_reply(state, answer, label='Solution feedback')
-    if _is_solution_rejection(answer):
-        state['rejected_solutions'] = [*state.get('rejected_solutions', []), answer]
+    trace_seed = [*state.get('_trace_seed', [])]
+    if awaiting is not None and awaiting.question_id.startswith('solution-'):
+        _append_user_reply(state, answer, label='Solution feedback')
+        if _is_solution_rejection(answer):
+            state['rejected_solutions'] = [*state.get('rejected_solutions', []), answer]
+        trace_seed.append(_trace('resume', 'solution_feedback', 'rejected', question_id))
     turn = await _draft_from_state(
         state,
-        message='Thanks — I prepared a ticket draft instead. Review it before filing.',
-        trace=[_trace('resume', 'solution_feedback', 'rejected', question_id)],
+        message='Thanks — I prepared a ticket draft instead. Review it before filing.'
+        if awaiting is not None
+        else 'I could not find a likely fix, so I prepared a ticket draft. Review it before filing.',
+        trace=trace_seed,
     )
     state['_graph_turn'] = turn
     return state
@@ -895,11 +988,18 @@ async def confirm_session(
     *,
     user_id: int | str,
     draft: TicketDraft,
+    idempotency_key: str | None = None,
     chat_session_id: int | None = None,
     db: Session | None = None,
 ) -> AgentTurn:
     """File a reviewed agent ticket draft after explicit user confirmation."""
     _require_agent_enabled()
+    cache_key = _confirm_idempotency_key(user_id, idempotency_key)
+    if cache_key is not None:
+        cached = _confirm_idempotency_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
     if use_langgraph_checkpoint():
         async with helpdesk_graph_for_request() as graph:
             state = await _load_langgraph_state(graph, session_id, user_id=user_id, operation='confirm')
@@ -914,13 +1014,16 @@ async def confirm_session(
                 graph=graph,
                 config=_graph_config(session_id),
             )
-            return _persist_and_stamp(
+            turn = _persist_and_stamp(
                 turn,
                 db=db,
                 chat_session_id=chat_session_id,
                 user_id=user_id,
                 state=final_state,
             )
+            if cache_key is not None:
+                _confirm_idempotency_cache.put(cache_key, turn)
+            return turn
 
     state = load_checkpoint(session_id, user_id=user_id)
     if state is None:
@@ -933,13 +1036,16 @@ async def confirm_session(
     state['entry'] = 'confirm'
     state['confirm_draft'] = draft
     turn, final_state = await _run_graph(state, operation='confirm')
-    return _persist_and_stamp(
+    turn = _persist_and_stamp(
         turn,
         db=db,
         chat_session_id=chat_session_id,
         user_id=user_id,
         state=final_state,
     )
+    if cache_key is not None:
+        _confirm_idempotency_cache.put(cache_key, turn)
+    return turn
 
 
 @trace_agent_run('abort')
