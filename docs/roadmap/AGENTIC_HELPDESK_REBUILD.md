@@ -56,18 +56,18 @@ Closed action enum + allow-list, structured outputs everywhere, hard budgets in 
 
 Pure infra. No backend code change. Lays the substrate that Phase 1b depends on.
 
-- **`docker-compose.yml` at repo root.** `postgres:14` (matches the local Homebrew 14.17 and the production target), named volume `pgdata`, healthcheck (`pg_isready -U chatbot -d chatbot_dev`), restart policy `unless-stopped`, env `POSTGRES_USER=chatbot` / `POSTGRES_PASSWORD=chatbot` / `POSTGRES_DB=chatbot_dev` so the repo's existing `DATABASE_URL=postgresql://chatbot:chatbot@localhost:5432/chatbot` in [backend/app/config/default.py](../../backend/app/config/default.py) keeps working unchanged. Expose `5432:5432`.
+- **`docker-compose.yml` at repo root.** `postgres:14` (matches the local Homebrew 14.17 and the production target), named volume `pgdata`, healthcheck (`pg_isready -U chatbot -d chatbot_dev`), restart policy `unless-stopped`, env `POSTGRES_USER=chatbot` / `POSTGRES_PASSWORD=chatbot` / `POSTGRES_DB=chatbot_dev` so the repo's development `DATABASE_URL=postgresql://chatbot:chatbot@127.0.0.1:5432/chatbot_dev` in [.env.example](../../.env.example) and [backend/app/config/development.py](../../backend/app/config/development.py) points at the container unchanged. Expose `5432:5432`.
 - **Init SQL** in `scripts/init-db.sql` (`docker-entrypoint-initdb.d` mount) only for any non-default grants; the env vars alone create the role + DB.
-- **`scripts/run-backend-venv.sh`** gains a one-liner that ensures the `db` service is up before launching uvicorn (`docker compose up -d db` + wait-for healthcheck), with a `SKIP_DOCKER_DB=1` escape hatch for users still on Homebrew Postgres.
+- **`scripts/run-backend-venv.sh`** gains a one-liner that ensures the `db` service is up before launching uvicorn (`docker compose --env-file /dev/null up -d db` + wait-for healthcheck), with a `SKIP_DOCKER_DB=1` escape hatch for users still on Homebrew Postgres.
 - **Cutover steps** (documented in `docs/operations-manual/operations.md`, not enforced by code):
-  1. `pg_dump chatbot_dev > /tmp/chatbot_dev_pre_docker.sql` (optional — preserves the ~1099 chat messages from current dev sessions).
+  1. `pg_dump chatbot_dev > /tmp/chatbot_dev_pre_docker.sql` (optional — preserve local history first; use `chatbot` instead if older sessions still live in the default database).
   2. `brew services stop postgresql@14` (or `pg_ctl stop`) to free port 5432.
-  3. `docker compose up -d db`.
+  3. `docker compose --env-file /dev/null up -d db`.
   4. `alembic upgrade head` against the fresh container.
   5. Optional `psql -h localhost -U chatbot -d chatbot_dev -f /tmp/chatbot_dev_pre_docker.sql` if you want history.
-- **Docs.** Update README Quick Start and `docs/operations-manual/operations.md` so the documented dev setup is `docker compose up -d db` first, `./scripts/run-backend-venv.sh` second. Keep the Homebrew Postgres path in a "Fallback" subsection for one release; remove it in the Phase 1b PR once the Postgres-backed checkpointer is in.
+- **Docs.** Update README Quick Start and `docs/operations-manual/operations.md` so the documented dev setup is `docker compose --env-file /dev/null up -d db` first, `./scripts/run-backend-venv.sh` second. Keep the Homebrew Postgres path in a "Fallback" subsection for one release; remove it in the Phase 1b PR once the Postgres-backed checkpointer is in.
 - **CI parity callout.** No change to GitHub Actions yet (it already uses a Postgres service container), but this makes the local-vs-CI gap visibly smaller for any reviewer reading the diff.
-- Acceptance: `docker compose up -d db && alembic upgrade head && PIP_SYNC=0 ./scripts/run-backend-venv.sh` boots the app cleanly against the container, `/api/health` returns ok, mock-mode chat works end-to-end, existing pytest suite passes. The repo no longer requires Homebrew Postgres to develop.
+- Acceptance: `docker compose --env-file /dev/null up -d db && alembic upgrade head && PIP_SYNC=0 ./scripts/run-backend-venv.sh` boots the app cleanly against the container, `/api/health` returns ok, mock-mode chat works end-to-end, existing pytest suite passes. The repo no longer requires Homebrew Postgres to develop.
 
 ### Phase 0 — Guardrails + truth-in-docs (PR 1)
 

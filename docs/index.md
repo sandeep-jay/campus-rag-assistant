@@ -137,13 +137,13 @@ python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 # set RAG_FORCE_MOCK=true, LLM_PROVIDER=mock, RETRIEVER_PROVIDER=mock
-createdb chatbot_dev
+docker compose --env-file /dev/null up -d db
 alembic upgrade head
 PIP_SYNC=0 ./scripts/run-backend-venv.sh          # http://127.0.0.1:8000
 ./scripts/run-frontend-vue.sh          # http://127.0.0.1:5173
 ```
 
-Register a user and start a chat. Responses use the mock provider unless you configure live AWS/Azure providers.
+Register a user and start a chat. Responses use the mock provider unless you configure live AWS/Azure providers. The backend runner starts and health-checks the Compose `db` service by default; set `SKIP_DOCKER_DB=1` only when using an existing Homebrew/Postgres service. If another Postgres already owns port 5432, stop it before using the Compose database.
 
 ## Origin and Scope
 

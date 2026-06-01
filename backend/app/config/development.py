@@ -32,7 +32,7 @@ class DevelopmentSettings(DefaultSettings):
     These settings override default settings for the development environment.
     """
 
-    DATABASE_URL: str = 'postgresql://chatbot:chatbot@localhost:5432/chatbot_dev'
+    DATABASE_URL: str = 'postgresql://chatbot:chatbot@127.0.0.1:5432/chatbot_dev'
     LOGGING_LEVEL: str = 'DEBUG'
 
     # Development-specific settings

@@ -1,0 +1,4 @@
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+ALTER SCHEMA public OWNER TO chatbot;
+GRANT ALL ON SCHEMA public TO chatbot;
