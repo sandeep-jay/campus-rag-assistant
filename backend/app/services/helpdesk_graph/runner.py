@@ -24,7 +24,8 @@ from backend.app.services.helpdesk.github import create_github_issue
 from backend.app.services.helpdesk.persist import TERMINAL_KINDS, upsert_agent_summary
 from backend.app.services.helpdesk_graph import tools
 from backend.app.services.helpdesk_graph.checkpoint import load_checkpoint, save_checkpoint
-from backend.app.services.helpdesk_graph.nodes import classify_ticket_facts, supervisor_next_action
+from backend.app.services.helpdesk_graph.graph import HELPDESK_GRAPH
+from backend.app.services.helpdesk_graph.nodes import classify_ticket_facts
 from backend.app.services.helpdesk_graph.prompts import SOLUTION_PROMPT
 from backend.app.services.helpdesk_graph.state import AwaitingUserPayload, GitHubIssue, HelpdeskState, ProposedSolution
 from backend.app.services.helpdesk_graph.tracing import trace_agent_run, trace_agent_tool
@@ -479,6 +480,202 @@ def _persist_and_stamp(
     return turn.model_copy(update=updates)
 
 
+async def graph_tool_search_duplicates(state: HelpdeskState) -> list[GitHubIssue]:
+    """Run the duplicate-issue tool, picking mock vs. real per provider.
+
+    Called by the compiled graph's ``tools`` node (the spec's
+    ``ToolNode`` slot in Phase 2). Mock provider returns a sentinel
+    list keyed on the question wording so the demo scenarios stay
+    deterministic.
+    """
+    question = state.get('original_question', '')
+    provider = get_llm_provider()
+    if provider.is_mock:
+        duplicates = _mock_duplicate_candidates(question)
+        HELPDESK_AGENT_TOOL_TOTAL.labels(tool='search_existing_issues', outcome='mock', reason='provider_mock').inc()
+    else:
+        duplicates = await tools.search_existing_issues(question)
+    return duplicates
+
+
+async def graph_clarifier_step(state: HelpdeskState) -> dict[str, Any]:
+    """Graph-node wrapper around :func:`_pause_for_impact`.
+
+    Preserves the original ``start_session`` invariant that
+    ``facts['duplicate_search']`` is set only when the duplicate search
+    actually ran and returned an empty list — the empty-question path
+    (no search at all) leaves the fact unset.
+    """
+    if 'duplicate_candidates' in state and not state['duplicate_candidates']:
+        state['facts'] = {**state.get('facts', {}), 'duplicate_search': 'no matching issue found'}
+    turn = await _pause_for_impact(state)
+    state['_graph_turn'] = turn
+    return state
+
+
+async def graph_solution_step(state: HelpdeskState) -> dict[str, Any]:
+    """Graph-node wrapper around :func:`_propose_solution_or_draft`.
+
+    Only runs on the resume path where the user just answered the
+    impact question. Mirrors the legacy ``resume_session`` branch that
+    appended the user reply, recorded the impact fact, cleared
+    ``awaiting_user``, then handed control to the propose-solution
+    helper with the ``append_user_reply`` trace seed.
+    """
+    awaiting = state.get('awaiting_user')
+    answer = state.get('resume_answer') or ''
+    question_id = awaiting.question_id if awaiting is not None else ''
+    _append_user_reply(state, answer, label='Impact clarification')
+    state['facts'] = {**state.get('facts', {}), 'impact': answer}
+    state['awaiting_user'] = None
+    trace_seed = [_trace('resume', 'append_user_reply', 'success', question_id)]
+    turn = await _propose_solution_or_draft(state, trace_seed)
+    state['_graph_turn'] = turn
+    return state
+
+
+async def graph_writer_step(state: HelpdeskState) -> dict[str, Any]:
+    """Graph-node wrapper around :func:`_draft_from_state`.
+
+    Currently reachable only from the resume path on a rejected
+    solution. The trace seed (``solution_feedback`` step) keeps the
+    pre-graph byte-shape that
+    ``test_agent_solution_rejection_returns_ticket_draft`` asserts.
+    """
+    awaiting = state.get('awaiting_user')
+    answer = state.get('resume_answer') or ''
+    question_id = awaiting.question_id if awaiting is not None else ''
+    _append_user_reply(state, answer, label='Solution feedback')
+    if _is_solution_rejection(answer):
+        state['rejected_solutions'] = [*state.get('rejected_solutions', []), answer]
+    turn = await _draft_from_state(
+        state,
+        message='Thanks — I prepared a ticket draft instead. Review it before filing.',
+        trace=[_trace('resume', 'solution_feedback', 'rejected', question_id)],
+    )
+    state['_graph_turn'] = turn
+    return state
+
+
+async def graph_resolved_step(state: HelpdeskState) -> dict[str, Any]:
+    """Graph-node wrapper for the ``resolved_by_agent`` terminal."""
+    awaiting = state.get('awaiting_user')
+    answer = state.get('resume_answer') or ''
+    question_id = awaiting.question_id if awaiting is not None else ''
+    session_id = state['session_id']
+    _append_user_reply(state, answer, label='Solution feedback')
+    state['awaiting_user'] = None
+    state['outcome'] = 'resolved_by_agent'
+    state['next_action'] = 'resolved_by_agent'
+    save_checkpoint(state)
+    HELPDESK_AGENT_OUTCOME_TOTAL.labels(outcome='resolved_by_agent').inc()
+    _record_funnel('resolved_by_agent')
+    turn = AgentTurn(
+        session_id=session_id,
+        kind='resolved',
+        message='Glad that worked. No ticket needed — reach out again any time if something else comes up.',
+        debug_trace=[_trace('resume', 'solution_feedback', 'accepted', question_id)],
+    )
+    state['_graph_turn'] = turn
+    return state
+
+
+async def graph_link_existing_step(state: HelpdeskState) -> dict[str, Any]:
+    """Graph-node wrapper for the ``link_existing`` terminal."""
+    candidates = state.get('duplicate_candidates') or []
+    candidate = candidates[0]
+    state['outcome'] = 'linked'
+    HELPDESK_AGENT_OUTCOME_TOTAL.labels(outcome='linked').inc()
+    _record_funnel('linked')
+    turn = AgentTurn(
+        session_id=state['session_id'],
+        kind='linked',
+        message=(
+            f'This looks like an existing report ({candidate.title}). '
+            'Following the linked issue should get you status updates without filing a duplicate.'
+        ),
+        linked_issue_url=candidate.url,
+        debug_trace=[
+            _trace('supervisor', 'search_duplicates', 'selected'),
+            _trace('tool', 'search_existing_issues', 'success', f'{len(candidates)} candidate(s)'),
+            _trace('supervisor', 'link_existing', 'selected'),
+        ],
+    )
+    state['_graph_turn'] = turn
+    return state
+
+
+async def graph_file_ticket_step(state: HelpdeskState) -> dict[str, Any]:
+    """Graph-node wrapper for the ``file_new`` (HITL-confirmed) terminal."""
+    session_id = state['session_id']
+    draft = state.get('confirm_draft')
+    if draft is None:
+        # Defensive fallback; the runner's confirm entry point validates
+        # the draft before reaching the graph.
+        exc = HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Helpdesk agent confirm draft missing.')
+        _record_agent_error('confirm', exc)
+        raise exc
+    user_id = state['user_id']
+    issue = await create_github_issue(draft, user_id=user_id)
+    state['draft'] = draft
+    state['awaiting_user'] = None
+    state['outcome'] = 'filed'
+    state['next_action'] = 'file_new'
+    save_checkpoint(state)
+    HELPDESK_AGENT_OUTCOME_TOTAL.labels(outcome='filed').inc()
+    _record_funnel('filed', 'deduplicated' if issue.deduplicated else 'created')
+    if issue.deduplicated:
+        body = f'A matching ticket was already filed earlier and reused. You can follow #{issue.issue_number} for updates.'
+    else:
+        body = f'I filed your ticket as #{issue.issue_number}. The helpdesk team will follow up there; you can track progress via the link above.'
+    turn = AgentTurn(
+        session_id=session_id,
+        kind='filed',
+        message=body,
+        linked_issue_url=issue.issue_url,
+        debug_trace=[_trace('tool', 'file_ticket', 'deduplicated' if issue.deduplicated else 'success', str(issue.issue_number))],
+    )
+    state['_graph_turn'] = turn
+    return state
+
+
+async def graph_aborted_step(state: HelpdeskState) -> dict[str, Any]:
+    """Graph-node wrapper for the ``abort`` terminal."""
+    session_id = state['session_id']
+    state['awaiting_user'] = None
+    state['outcome'] = 'aborted'
+    state['next_action'] = 'abort'
+    save_checkpoint(state)
+    HELPDESK_AGENT_OUTCOME_TOTAL.labels(outcome='aborted').inc()
+    _record_funnel('aborted')
+    turn = AgentTurn(
+        session_id=session_id,
+        kind='aborted',
+        message='No problem — I closed this helpdesk session without filing. You can ask again any time.',
+        debug_trace=[_trace('supervisor', 'abort', 'success')],
+    )
+    state['_graph_turn'] = turn
+    return state
+
+
+async def _run_graph(state: HelpdeskState, *, operation: str) -> tuple[AgentTurn, HelpdeskState]:
+    """Invoke the compiled helpdesk graph and unpack the final turn.
+
+    Returns ``(turn, final_state)`` so the entry point can hand the
+    state to ``_persist_and_stamp``. Falls back to a defensive
+    budget-exhausted draft if a node forgot to populate
+    ``_graph_turn`` — that should never happen in Phase 1a but keeps
+    the API contract intact if a future refactor adds a node without
+    setting the turn.
+    """
+    result = await HELPDESK_GRAPH.ainvoke(state)
+    turn = result.get('_graph_turn')
+    if turn is None:
+        logger.warning('helpdesk graph completed without _graph_turn for operation=%s', operation)
+        turn = await _budget_exhausted_turn(dict(result))
+    return turn, result
+
+
 @trace_agent_run('start')
 async def start_session(
     conversation: list[ConversationTurn],
@@ -488,7 +685,14 @@ async def start_session(
     chat_session_id: int | None = None,
     db: Session | None = None,
 ) -> AgentTurn:
-    """Start a helpdesk-agent session and pause for clarification when needed."""
+    """Start a helpdesk-agent session and pause for clarification when needed.
+
+    Phase 1a wires this entry point through the compiled LangGraph
+    StateGraph in :mod:`backend.app.services.helpdesk_graph.graph`; the
+    runner still owns budget guards, metrics counters, and the
+    chat-history upsert at the persistence layer, but every routing
+    decision now flows through the supervisor → specialist tree.
+    """
     _require_agent_enabled()
     HELPDESK_AGENT_STARTED_TOTAL.labels(trigger=trigger).inc()
     _record_funnel('started', trigger)
@@ -496,7 +700,6 @@ async def start_session(
     session_id = str(uuid.uuid4())
     question = _last_user_text(conversation)
     state = _new_state(session_id, user_id, question, conversation)
-    debug_trace: list[AgentStep] = []
     if _budget_exhausted(state):
         return _persist_and_stamp(
             await _budget_exhausted_turn(state),
@@ -506,54 +709,14 @@ async def start_session(
             state=state,
         )
 
-    if not question:
-        return _persist_and_stamp(
-            await _pause_for_impact(state),
-            db=db,
-            chat_session_id=chat_session_id,
-            user_id=user_id,
-            state=state,
-        )
-
-    action = supervisor_next_action(state)
-    debug_trace.append(_trace('supervisor', action, 'selected'))
-
-    provider = get_llm_provider()
-    if provider.is_mock:
-        duplicate_candidates = _mock_duplicate_candidates(question)
-        HELPDESK_AGENT_TOOL_TOTAL.labels(tool='search_existing_issues', outcome='mock', reason='provider_mock').inc()
-    else:
-        duplicate_candidates = await tools.search_existing_issues(question)
-    state['duplicate_candidates'] = duplicate_candidates
-    debug_trace.append(_trace('tool', 'search_existing_issues', 'success', f'{len(duplicate_candidates)} candidate(s)'))
-
-    action = supervisor_next_action(state)
-    debug_trace.append(_trace('supervisor', action, 'selected'))
-
-    if action == 'link_existing' and duplicate_candidates:
-        candidate = duplicate_candidates[0]
-        state['outcome'] = 'linked'
-        HELPDESK_AGENT_OUTCOME_TOTAL.labels(outcome='linked').inc()
-        _record_funnel('linked')
-        turn = AgentTurn(
-            session_id=session_id,
-            kind='linked',
-            message=(
-                f'This looks like an existing report ({candidate.title}). '
-                'Following the linked issue should get you status updates without filing a duplicate.'
-            ),
-            linked_issue_url=candidate.url,
-            debug_trace=debug_trace,
-        )
-        return _persist_and_stamp(turn, db=db, chat_session_id=chat_session_id, user_id=user_id, state=state)
-
-    state['facts']['duplicate_search'] = 'no matching issue found'
+    state['entry'] = 'start'
+    turn, final_state = await _run_graph(state, operation='start')
     return _persist_and_stamp(
-        await _pause_for_impact(state),
+        turn,
         db=db,
         chat_session_id=chat_session_id,
         user_id=user_id,
-        state=state,
+        state=final_state,
     )
 
 
@@ -612,52 +775,15 @@ async def resume_session(
             state=state,
         )
 
-    if awaiting.question_id.startswith('solution-'):
-        _append_user_reply(state, answer, label='Solution feedback')
-        if _is_solution_acceptance(answer):
-            state['awaiting_user'] = None
-            state['outcome'] = 'resolved_by_agent'
-            state['next_action'] = 'resolved_by_agent'
-            save_checkpoint(state)
-            HELPDESK_AGENT_OUTCOME_TOTAL.labels(outcome='resolved_by_agent').inc()
-            _record_funnel('resolved_by_agent')
-            turn = AgentTurn(
-                session_id=session_id,
-                kind='resolved',
-                message='Glad that worked. No ticket needed — reach out again any time if something else comes up.',
-                debug_trace=[_trace('resume', 'solution_feedback', 'accepted', awaiting.question_id)],
-            )
-            return _persist_and_stamp(turn, db=db, chat_session_id=chat_session_id, user_id=user_id, state=state)
-
-        if _is_solution_rejection(answer):
-            state['rejected_solutions'] = [*state.get('rejected_solutions', []), answer]
-        draft_turn = await _draft_from_state(
-            state,
-            message='Thanks — I prepared a ticket draft instead. Review it before filing.',
-            trace=[_trace('resume', 'solution_feedback', 'rejected', awaiting.question_id)],
-        )
-        return _persist_and_stamp(
-            draft_turn,
-            db=db,
-            chat_session_id=chat_session_id,
-            user_id=user_id,
-            state=state,
-        )
-
-    _append_user_reply(state, answer, label='Impact clarification')
-    state['facts'] = {**state.get('facts', {}), 'impact': answer}
-    state['awaiting_user'] = None
-
-    next_turn = await _propose_solution_or_draft(
-        state,
-        [_trace('resume', 'append_user_reply', 'success', awaiting.question_id)],
-    )
+    state['entry'] = 'resume'
+    state['resume_answer'] = answer
+    turn, final_state = await _run_graph(state, operation='resume')
     return _persist_and_stamp(
-        next_turn,
+        turn,
         db=db,
         chat_session_id=chat_session_id,
         user_id=user_id,
-        state=state,
+        state=final_state,
     )
 
 
@@ -682,27 +808,16 @@ async def confirm_session(
         _record_agent_error('confirm', exc)
         raise exc
 
-    issue = await create_github_issue(draft, user_id=user_id)
-    state['draft'] = draft
-    state['awaiting_user'] = None
-    state['outcome'] = 'filed'
-    state['next_action'] = 'file_new'
-    save_checkpoint(state)
-    HELPDESK_AGENT_OUTCOME_TOTAL.labels(outcome='filed').inc()
-    _record_funnel('filed', 'deduplicated' if issue.deduplicated else 'created')
-
-    if issue.deduplicated:
-        body = f'A matching ticket was already filed earlier and reused. You can follow #{issue.issue_number} for updates.'
-    else:
-        body = f'I filed your ticket as #{issue.issue_number}. The helpdesk team will follow up there; you can track progress via the link above.'
-    turn = AgentTurn(
-        session_id=session_id,
-        kind='filed',
-        message=body,
-        linked_issue_url=issue.issue_url,
-        debug_trace=[_trace('tool', 'file_ticket', 'deduplicated' if issue.deduplicated else 'success', str(issue.issue_number))],
+    state['entry'] = 'confirm'
+    state['confirm_draft'] = draft
+    turn, final_state = await _run_graph(state, operation='confirm')
+    return _persist_and_stamp(
+        turn,
+        db=db,
+        chat_session_id=chat_session_id,
+        user_id=user_id,
+        state=final_state,
     )
-    return _persist_and_stamp(turn, db=db, chat_session_id=chat_session_id, user_id=user_id, state=state)
 
 
 @trace_agent_run('abort')
@@ -721,16 +836,12 @@ async def abort_session(
         _record_agent_error('abort', exc)
         raise exc
 
-    state['awaiting_user'] = None
-    state['outcome'] = 'aborted'
-    state['next_action'] = 'abort'
-    save_checkpoint(state)
-    HELPDESK_AGENT_OUTCOME_TOTAL.labels(outcome='aborted').inc()
-    _record_funnel('aborted')
-    turn = AgentTurn(
-        session_id=session_id,
-        kind='aborted',
-        message='No problem — I closed this helpdesk session without filing. You can ask again any time.',
-        debug_trace=[_trace('supervisor', 'abort', 'success')],
+    state['entry'] = 'abort'
+    turn, final_state = await _run_graph(state, operation='abort')
+    return _persist_and_stamp(
+        turn,
+        db=db,
+        chat_session_id=chat_session_id,
+        user_id=user_id,
+        state=final_state,
     )
-    return _persist_and_stamp(turn, db=db, chat_session_id=chat_session_id, user_id=user_id, state=state)

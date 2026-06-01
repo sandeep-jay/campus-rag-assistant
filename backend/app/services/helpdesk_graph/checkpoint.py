@@ -53,8 +53,20 @@ def _dump_model(value: Any) -> Any:
     return value
 
 
+_TRANSIENT_KEYS: frozenset[str] = frozenset(
+    {
+        'entry',
+        'resume_answer',
+        'confirm_draft',
+        '_next',
+        '_graph_turn',
+    }
+)
+
+
 def _serialize_state(state: HelpdeskState) -> str:
-    return json.dumps(_dump_model(dict(state)), separators=(',', ':'), sort_keys=True)
+    clean = {key: value for key, value in dict(state).items() if key not in _TRANSIENT_KEYS}
+    return json.dumps(_dump_model(clean), separators=(',', ':'), sort_keys=True)
 
 
 def _restore_state(raw: str) -> HelpdeskState:
