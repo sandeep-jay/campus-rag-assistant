@@ -59,7 +59,7 @@ flowchart LR
 | **4** | LangGraph KB graph (`RAG_ENGINE`); per-node traces | **Done** — [DESIGN.md — LangGraph KB path](../DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank) |
 | **6b** | Opt-in web research (`research_mode=web`) | **Done** — [DESIGN.md — Opt-in web research](../DESIGN.md#opt-in-web-research) |
 | **3** | RAGAS baseline + README quality + LangSmith screenshots | **Done (lite)** — [EVALUATION.md](../EVALUATION.md); strict gates on release only |
-| **5** | Retrieval nodes (multi-query, filters, rerank) | **Done** — re-run RAGAS for full gates ([baseline](../eval_baseline_2026-05-19.md)) |
+| **5** | Retrieval nodes (multi-query, filters, rerank) | **Done** — re-run RAGAS for full gates ([baseline](../eval_baseline_v2.md)) |
 | **6** | LangGraph SSE; bounded rewrite loop | **Optional** |
 
 Campus production (Redis HA, tenant budgets, Elastic Beanstalk): [archive/PHASED_IMPROVEMENT_ROADMAP.md](./archive/PHASED_IMPROVEMENT_ROADMAP.md) (separate phase numbering).
@@ -71,7 +71,7 @@ Campus production (Redis HA, tenant budgets, Elastic Beanstalk): [archive/PHASED
 - **Repo:** [campus-rag-assistant](https://github.com/sandeep-jay/campus-rag-assistant); README + screenshots; [docs/assets/README.md](../assets/README.md) demo script.
 - **Platform:** request context, Prometheus, rate limits, Alembic, Vue 3 + Streamlit, k6.
 - **RAG:** provider registry; `RAG_ENGINE=langgraph` with condense → multi_query → retrieve → rerank → generate (KB); web branch with disclaimer.
-- **Eval:** 10-row golden set, [eval_baseline_2026-05-19.md](../eval_baseline_2026-05-19.md), `tox -e eval`, LangSmith trace PNGs in README.
+- **Eval:** 10-row golden set, [eval_baseline_v2.md](../eval_baseline_v2.md), `tox -e eval`, LangSmith trace PNGs in README.
 - **OAuth (local):** API-port OAuth + handoff to Vue — [OPERATIONS.md — OAuth and authentication](../OPERATIONS.md#oauth-and-authentication).
 
 ---
@@ -100,7 +100,7 @@ Explicit RAG pipeline; same `{ message, metadata }` contract as chain. Detail: [
 | Multi-query + RRF fusion | Shipped |
 | Metadata filters | Shipped |
 | Rerank node (FlashRank + keyword) | Shipped |
-| RAGAS tuned run | [eval_baseline_2026-05-19.md](../eval_baseline_2026-05-19.md) — recall passes; faithfulness/precision below gate |
+| RAGAS tuned run | [eval_baseline_v2.md](../eval_baseline_v2.md) — recall passes; faithfulness/precision below gate |
 
 **Optional next:** ingestion/chunking, stricter RAGAS gates, chain vs graph parity run.
 

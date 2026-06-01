@@ -79,7 +79,7 @@ nav:
       - Engineering Spec: roadmap/HELPDESK_AGENT.md
   - Evaluation:
       - Approach: EVALUATION.md
-      - Baseline: eval_baseline_2026-05-19.md
+      - Baseline: eval_baseline_v2.md
   - Operations:
       - Operations: OPERATIONS.md
       - CI/CD: CI.md

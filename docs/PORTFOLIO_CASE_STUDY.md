@@ -54,9 +54,9 @@ Detailed diagrams and request flows: [ARCHITECTURE.md](./ARCHITECTURE.md).
 | **CI without cloud** | Mock providers; `RAG_FORCE_MOCK=true`; no AWS credentials in GitHub Actions |
 | **Load profile** | k6 validates auth, session CRUD, and chat under load — [LOAD_TESTING.md](./LOAD_TESTING.md) |
 | **Observability** | LangSmith per-node spans on LangGraph path; Prometheus `/api/metrics` |
-| **Helpdesk agent eval** | Scenario rig (`backend/tests/eval/test_helpdesk_agent_scenarios.py`) asserts mock-conversation -> expected `next_action`; `chatbot_helpdesk_agent_*` Prometheus metrics surface outcome distribution and tool usage |
+| **Helpdesk agent observability** | `chatbot_helpdesk_agent_*` Prometheus metrics surface outcome distribution and tool usage; trajectory scenario rig planned in [Agentic Rebuild Phase 4](./roadmap/AGENTIC_HELPDESK_REBUILD.md) |
 
-Full score tables: [eval_baseline_2026-05-19.md](./eval_baseline_2026-05-19.md).
+Full score tables: [eval_baseline_v2.md](./eval_baseline_v2.md).
 
 ## Known limits
 
