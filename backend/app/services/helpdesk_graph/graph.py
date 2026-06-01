@@ -1,4 +1,4 @@
-"""Compiled LangGraph StateGraph for the helpdesk agent (Phase 1a).
+"""Compiled LangGraph StateGraph for the helpdesk agent.
 
 This module gives the helpdesk agent a real LangGraph tree (one tree per
 session) so LangSmith shows nested supervisor / tool / specialist spans
@@ -7,10 +7,8 @@ instead of one flat span from the imperative runner.
 User-visible behaviour is unchanged: every node delegates to the helpers
 already living in :mod:`backend.app.services.helpdesk_graph.runner`, so
 ``debug_trace``, ``AgentTurn`` shape, and the ``/api/helpdesk/agent/*``
-contract remain byte-identical. The compiled graph is what Phase 1b
-swaps onto an ``AsyncPostgresSaver`` (replacing the bespoke
-``checkpoint.py``) and Phase 2 extends with a real LLM supervisor and a
-LangGraph ``ToolNode``.
+contract remain byte-identical. Phase 1b compiles this graph with a real
+LangGraph checkpointer and uses ``interrupt()`` for user/HITL pause points.
 
 Routing key. The supervisor writes its choice to ``state['_next']``
 (a transient key stripped before checkpoint save). Using a separate
@@ -21,14 +19,19 @@ and which the confirm endpoint validates against.
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 
 from langgraph.graph import END, START, StateGraph
+from langgraph.types import interrupt
 
+from backend.app.services.helpdesk_graph.checkpoint import checkpointer_context, use_langgraph_checkpoint
 from backend.app.services.helpdesk_graph.nodes import select_supervisor_action
 from backend.app.services.helpdesk_graph.state import HelpdeskState
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
     from langgraph.graph.state import CompiledStateGraph
 
 
@@ -153,20 +156,47 @@ async def _aborted_node(state: HelpdeskState) -> dict[str, Any]:
 async def _await_user_node(state: HelpdeskState) -> dict[str, Any]:
     """Pause point: agent is awaiting a user reply.
 
-    No-op in Phase 1a — the runner persists the awaiting payload via the
-    bespoke checkpoint and returns control to the API. Phase 1b swaps
-    this for ``langgraph.types.interrupt()`` so the resume path becomes
-    ``Command(resume=...)`` instead of a custom dance.
+    With the LangGraph checkpointer enabled, this node interrupts the graph
+    and the API later resumes it with ``Command(resume=...)``. The rollback
+    path leaves it as a no-op so the legacy JSON checkpoint flow can keep
+    returning the already-produced ``AgentTurn``.
     """
-    return {}
+    if not use_langgraph_checkpoint():
+        return {}
+    payload = state.get('awaiting_user')
+    resume_value = interrupt(
+        {
+            'kind': 'await_user',
+            'question_id': payload.question_id if payload is not None else None,
+            'question': payload.question if payload is not None else None,
+            'choices': payload.choices if payload is not None else [],
+        }
+    )
+    if isinstance(resume_value, dict) and resume_value.get('action') == 'abort':
+        return {'entry': 'abort', '_graph_turn': None}
+    return {'entry': 'resume', 'resume_answer': str(resume_value or ''), '_graph_turn': None}
 
 
 async def _await_confirm_node(state: HelpdeskState) -> dict[str, Any]:
     """Pause point: agent is awaiting HITL confirmation of a draft."""
-    return {}
+    if not use_langgraph_checkpoint():
+        return {}
+    resume_value = interrupt(
+        {
+            'kind': 'await_confirm',
+            'draft_ready': state.get('draft') is not None,
+        }
+    )
+    if isinstance(resume_value, dict) and resume_value.get('action') == 'abort':
+        return {'entry': 'abort', '_graph_turn': None}
+
+    from backend.app.schemas.helpdesk import TicketDraft
+
+    draft = resume_value if isinstance(resume_value, TicketDraft) else TicketDraft(**resume_value)
+    return {'entry': 'confirm', 'confirm_draft': draft, '_graph_turn': None}
 
 
-def build_helpdesk_graph() -> CompiledStateGraph:
+def build_helpdesk_graph(*, checkpointer: Any | None = None) -> CompiledStateGraph:
     """Compile the helpdesk agent StateGraph.
 
     The graph is compiled once at import time and reused for every
@@ -198,10 +228,23 @@ def build_helpdesk_graph() -> CompiledStateGraph:
     for specialist in ('clarifier', 'solution', 'writer'):
         graph.add_conditional_edges(specialist, _route_after_specialist)
 
-    for terminal in ('await_user', 'await_confirm', 'link_existing', 'file_ticket', 'resolved', 'aborted'):
+    graph.add_edge('await_user', 'supervisor')
+    graph.add_edge('await_confirm', 'supervisor')
+
+    for terminal in ('link_existing', 'file_ticket', 'resolved', 'aborted'):
         graph.add_edge(terminal, END)
 
-    return graph.compile()
+    return graph.compile(checkpointer=checkpointer)
+
+
+@asynccontextmanager
+async def helpdesk_graph_for_request() -> AsyncIterator[CompiledStateGraph]:
+    """Yield a graph compiled for the configured checkpoint backend."""
+    if not use_langgraph_checkpoint():
+        yield HELPDESK_GRAPH
+        return
+    async with checkpointer_context() as checkpointer:
+        yield build_helpdesk_graph(checkpointer=checkpointer)
 
 
 HELPDESK_GRAPH: CompiledStateGraph = build_helpdesk_graph()

@@ -1,8 +1,16 @@
-"""SQLite checkpoint store for helpdesk agent sessions.
+"""Checkpoint helpers for helpdesk agent sessions.
 
-This is the Phase-B persistence layer. It intentionally keeps a tiny surface
-area so the runner can later swap to LangGraph SqliteSaver without changing
-API behavior.
+Phase 1b makes LangGraph's checkpointers the default persistence layer:
+Postgres for the app and in-memory for tests. A SQLite backend is also
+supported as a zero-infra dev fallback but is opt-in — the
+``langgraph-checkpoint-sqlite`` package is not pinned in ``requirements.txt``
+because the 2.0.x line carries a high-severity advisory and the 3.x line
+requires a LangGraph major-version bump. Install it manually when running
+the SQLite backend locally.
+
+The original JSON SQLite store remains behind
+``HELPDESK_AGENT_USE_LANGGRAPH_CHECKPOINT=false`` for one release as an
+instant rollback path.
 """
 
 from __future__ import annotations
@@ -10,12 +18,71 @@ from __future__ import annotations
 import json
 import sqlite3
 import time
+from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, Literal
+
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from backend.app.core.config_manager import settings
 from backend.app.schemas.helpdesk import ConversationTurn, TicketDraft
 from backend.app.services.helpdesk_graph.state import AwaitingUserPayload, GitHubIssue, HelpdeskState, ProposedSolution
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
+CheckpointBackend = Literal['postgres', 'sqlite', 'memory']
+
+_MEMORY_SAVER = MemorySaver()
+_LAST_GC_AT = 0.0
+
+
+def use_langgraph_checkpoint() -> bool:
+    return bool(getattr(settings, 'HELPDESK_AGENT_USE_LANGGRAPH_CHECKPOINT', True))
+
+
+def checkpoint_backend() -> CheckpointBackend:
+    backend = str(getattr(settings, 'HELPDESK_AGENT_CHECKPOINT_BACKEND', 'postgres') or 'postgres').lower()
+    if backend not in {'postgres', 'sqlite', 'memory'}:
+        raise ValueError(f'Unsupported HELPDESK_AGENT_CHECKPOINT_BACKEND: {backend}')
+    return backend  # type: ignore[return-value]
+
+
+@asynccontextmanager
+async def checkpointer_context() -> AsyncIterator[Any]:
+    """Yield the configured LangGraph checkpointer.
+
+    Postgres schema is owned by Alembic, so this factory intentionally does
+    not call ``AsyncPostgresSaver.setup()``. SQLite's saver initializes its
+    local file lazily because it is a development fallback, not the production
+    schema owner.
+    """
+    backend = checkpoint_backend()
+    if backend == 'memory':
+        yield _MEMORY_SAVER
+        return
+    if backend == 'postgres':
+        async with AsyncPostgresSaver.from_conn_string(settings.DATABASE_URL) as saver:
+            yield saver
+        return
+
+    try:
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+    except ImportError as exc:  # pragma: no cover - optional dev fallback
+        raise RuntimeError(
+            "HELPDESK_AGENT_CHECKPOINT_BACKEND='sqlite' requires the optional "
+            "'langgraph-checkpoint-sqlite' package, which is intentionally not "
+            'pinned in requirements.txt (2.0.x carries GHSA-9rwj-6rc7-p77c; 3.x '
+            'needs LangGraph 1.x). Install it manually if you really want the '
+            'SQLite dev fallback.'
+        ) from exc
+
+    path = _checkpoint_path()
+    if path.parent != Path('.'):
+        path.parent.mkdir(parents=True, exist_ok=True)
+    async with AsyncSqliteSaver.from_conn_string(str(path)) as saver:
+        yield saver
 
 
 def _checkpoint_path() -> Path:
@@ -85,6 +152,8 @@ def _restore_state(raw: str) -> HelpdeskState:
 
 
 def save_checkpoint(state: HelpdeskState) -> None:
+    if use_langgraph_checkpoint():
+        return
     now = time.time()
     ttl = max(0, int(settings.HELPDESK_AGENT_CHECKPOINT_TTL_SECONDS))
     session_id = state['session_id']
@@ -111,6 +180,8 @@ def save_checkpoint(state: HelpdeskState) -> None:
 
 
 def load_checkpoint(session_id: str, *, user_id: int | str) -> HelpdeskState | None:
+    if use_langgraph_checkpoint():
+        raise RuntimeError('load_checkpoint is only available when LangGraph checkpointing is disabled.')
     with _connect() as conn:
         row = conn.execute(
             'SELECT user_id, state_json, expires_at FROM helpdesk_agent_checkpoints WHERE session_id = ?',
@@ -136,3 +207,54 @@ def gc_checkpoints() -> int:
     with _connect() as conn:
         cur = conn.execute('DELETE FROM helpdesk_agent_checkpoints WHERE expires_at < ?', (now,))
         return int(cur.rowcount or 0)
+
+
+async def gc_langgraph_checkpoints() -> int:
+    """Prune expired LangGraph checkpoints for the configured backend."""
+    ttl = max(0, int(settings.HELPDESK_AGENT_CHECKPOINT_TTL_SECONDS))
+    if ttl <= 0 or checkpoint_backend() == 'memory':
+        return 0
+
+    cutoff = time.time() - ttl
+    async with checkpointer_context() as saver:
+        latest_by_thread: dict[str, float] = {}
+        async for item in saver.alist(None):
+            ts = item.checkpoint.get('ts') if isinstance(item.checkpoint, dict) else None
+            if not isinstance(ts, str):
+                continue
+            try:
+                checkpoint_ts = _parse_checkpoint_ts(ts)
+            except ValueError:
+                continue
+            thread_id = item.config.get('configurable', {}).get('thread_id')
+            if thread_id:
+                key = str(thread_id)
+                latest_by_thread[key] = max(checkpoint_ts, latest_by_thread.get(key, 0.0))
+
+        expired_threads = {thread_id for thread_id, latest_ts in latest_by_thread.items() if latest_ts < cutoff}
+        for thread_id in expired_threads:
+            await saver.adelete_thread(thread_id)
+        return len(expired_threads)
+
+
+async def maybe_gc_langgraph_checkpoints() -> int:
+    """Run checkpoint GC periodically from normal agent traffic."""
+    global _LAST_GC_AT
+    if not use_langgraph_checkpoint():
+        return gc_checkpoints()
+
+    now = time.time()
+    ttl = max(0, int(settings.HELPDESK_AGENT_CHECKPOINT_TTL_SECONDS))
+    interval = max(60.0, min(float(ttl or 3600), 3600.0))
+    if now - _LAST_GC_AT < interval:
+        return 0
+    _LAST_GC_AT = now
+    return await gc_langgraph_checkpoints()
+
+
+def _parse_checkpoint_ts(value: str) -> float:
+    # LangGraph stores ISO-8601 UTC timestamps in ``checkpoint["ts"]``.
+    from datetime import datetime
+
+    normalized = value.replace('Z', '+00:00')
+    return datetime.fromisoformat(normalized).timestamp()

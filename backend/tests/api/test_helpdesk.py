@@ -17,11 +17,14 @@ from unittest.mock import patch
 
 import httpx
 import pytest
+from sqlalchemy import text
 from starlette.testclient import TestClient
 
 from backend.app.core.config_manager import settings
 from backend.app.core.metrics import HELPDESK_AGENT_ERROR_TOTAL, HELPDESK_AGENT_FUNNEL_TOTAL
+from backend.app.schemas.helpdesk import ConversationTurn
 from backend.app.services.helpdesk import github as github_module
+from backend.app.services.helpdesk_graph.runner import resume_session, start_session
 
 
 @pytest.fixture()
@@ -36,6 +39,8 @@ def enable_helpdesk(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, 'GITHUB_REPO', 'demo-org/demo-repo')
     monkeypatch.setattr(settings, 'GITHUB_DEFAULT_LABELS', 'it-helpdesk,demo')
     monkeypatch.setattr(settings, 'HELPDESK_DEDUP_WINDOW_SECONDS', 300)
+    monkeypatch.setattr(settings, 'HELPDESK_AGENT_USE_LANGGRAPH_CHECKPOINT', True)
+    monkeypatch.setattr(settings, 'HELPDESK_AGENT_CHECKPOINT_BACKEND', 'memory')
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_CHECKPOINT_PATH', str(tmp_path / 'helpdesk_agent.sqlite'))
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_CHECKPOINT_TTL_SECONDS', 86400)
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_MAX_TURNS', 8)
@@ -49,6 +54,64 @@ def enable_helpdesk(monkeypatch, tmp_path):
 
 def _counter_value(counter, **labels) -> float:
     return counter.labels(**labels)._value.get()
+
+
+def _reset_postgres_checkpoint_schema(engine) -> None:
+    with engine.begin() as conn:
+        conn.execute(text('DROP TABLE IF EXISTS checkpoint_writes'))
+        conn.execute(text('DROP TABLE IF EXISTS checkpoint_blobs'))
+        conn.execute(text('DROP TABLE IF EXISTS checkpoints'))
+        conn.execute(text('DROP TABLE IF EXISTS checkpoint_migrations'))
+        conn.execute(text('CREATE TABLE checkpoint_migrations (v INTEGER PRIMARY KEY)'))
+        conn.execute(
+            text(
+                """
+                CREATE TABLE checkpoints (
+                    thread_id TEXT NOT NULL,
+                    checkpoint_ns TEXT NOT NULL DEFAULT '',
+                    checkpoint_id TEXT NOT NULL,
+                    parent_checkpoint_id TEXT,
+                    type TEXT,
+                    checkpoint JSONB NOT NULL,
+                    metadata JSONB NOT NULL DEFAULT '{}',
+                    PRIMARY KEY (thread_id, checkpoint_ns, checkpoint_id)
+                )
+                """
+            )
+        )
+        conn.execute(
+            text(
+                """
+                CREATE TABLE checkpoint_blobs (
+                    thread_id TEXT NOT NULL,
+                    checkpoint_ns TEXT NOT NULL DEFAULT '',
+                    channel TEXT NOT NULL,
+                    version TEXT NOT NULL,
+                    type TEXT NOT NULL,
+                    blob BYTEA,
+                    PRIMARY KEY (thread_id, checkpoint_ns, channel, version)
+                )
+                """
+            )
+        )
+        conn.execute(
+            text(
+                """
+                CREATE TABLE checkpoint_writes (
+                    thread_id TEXT NOT NULL,
+                    checkpoint_ns TEXT NOT NULL DEFAULT '',
+                    checkpoint_id TEXT NOT NULL,
+                    task_id TEXT NOT NULL,
+                    idx INTEGER NOT NULL,
+                    channel TEXT NOT NULL,
+                    type TEXT,
+                    blob BYTEA NOT NULL,
+                    PRIMARY KEY (thread_id, checkpoint_ns, checkpoint_id, task_id, idx)
+                )
+                """
+            )
+        )
+        conn.execute(text('INSERT INTO checkpoint_migrations (v) VALUES (0), (1), (2), (3), (4), (5), (6), (7), (8)'))
 
 
 class _SecretLike:
@@ -249,6 +312,39 @@ def test_agent_metrics_record_funnel_and_errors(
     assert _counter_value(HELPDESK_AGENT_FUNNEL_TOTAL, stage='started', outcome='api') == started_before + 1
     assert _counter_value(HELPDESK_AGENT_FUNNEL_TOTAL, stage='clarification_requested', outcome='success') == clarify_before + 1
     assert _counter_value(HELPDESK_AGENT_ERROR_TOTAL, operation='resume', reason='http_404') == error_before + 1
+
+
+@pytest.mark.asyncio()
+async def test_agent_postgres_checkpointer_round_trips_pause_resume(
+    engine,
+    enable_helpdesk,
+    monkeypatch,
+):
+    _reset_postgres_checkpoint_schema(engine)
+    monkeypatch.setattr(settings, 'DATABASE_URL', engine.url.render_as_string(hide_password=False))
+    monkeypatch.setattr(settings, 'HELPDESK_AGENT_CHECKPOINT_BACKEND', 'postgres')
+
+    first = await start_session(
+        [ConversationTurn(role='user', content='Oracle Financials 403 error on budget reports')],
+        user_id='postgres-checkpoint-user',
+    )
+    pending_question_id = first.debug_trace[0].message
+
+    resumed = await resume_session(
+        first.session_id,
+        user_id='postgres-checkpoint-user',
+        choice='My team',
+        pending_question_id=pending_question_id,
+    )
+
+    assert first.kind == 'question'
+    assert resumed.kind == 'info'
+    with engine.connect() as conn:
+        checkpoint_count = conn.execute(
+            text('SELECT count(*) FROM checkpoints WHERE thread_id = :thread_id'),
+            {'thread_id': first.session_id},
+        ).scalar_one()
+    assert checkpoint_count > 0
 
 
 def test_agent_always_attempts_solution_even_after_out_of_scope_ask(

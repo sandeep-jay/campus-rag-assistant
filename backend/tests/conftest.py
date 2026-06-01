@@ -41,6 +41,10 @@ if not _ragas_eval:
 elif not os.environ.get('RAG_ENGINE', '').strip():
     os.environ['RAG_ENGINE'] = 'langgraph'
 
+# API tests exercise graph control flow, not durable Postgres checkpointing,
+# unless a test opts into the Postgres integration path explicitly.
+os.environ.setdefault('HELPDESK_AGENT_CHECKPOINT_BACKEND', 'memory')
+
 # tox -e eval sets RAGAS_EVAL=1 — avoid LangSmith + Bedrock stream teardown noise
 if _ragas_eval:
     os.environ['LANGCHAIN_TRACING_V2'] = 'false'

@@ -66,6 +66,8 @@ Rollback one migration:
 alembic downgrade -1
 ```
 
+LangGraph helpdesk checkpoints use the same Alembic workflow. The app does **not** call `AsyncPostgresSaver.setup()` at startup; checkpoint tables (`checkpoints`, `checkpoint_blobs`, `checkpoint_writes`) are created and versioned by migrations so saver-version bumps are explicit schema changes.
+
 ### Deploy order
 
 1. Build artifact/container.
@@ -179,7 +181,10 @@ Load validation: [LOAD_TESTING.md](./load-testing.md). Release promotion: [RELEA
 | `HELPDESK_KB_RESOLVED_MIN_SCORE` | Optional rerank-score floor for `kb_resolved` heuristic |
 | `HELPDESK_DEDUP_WINDOW_SECONDS` | Suppress duplicate filings inside this window |
 | `HELPDESK_SUMMARIZE_MAX_TURNS` | Number of recent chat turns fed into recap/draft |
-| `HELPDESK_AGENT_CHECKPOINT_PATH` | SQLite checkpointer path (`.helpdesk_agent_checkpoints.sqlite` by default) |
+| `HELPDESK_AGENT_USE_LANGGRAPH_CHECKPOINT` | Default `true`; set `false` for the one-release legacy JSON SQLite rollback path |
+| `HELPDESK_AGENT_CHECKPOINT_BACKEND` | `postgres` (default), `sqlite`, or `memory`; production should use `postgres`. The `sqlite` backend is an opt-in dev fallback that requires installing the unpinned `langgraph-checkpoint-sqlite` package (2.0.x carries GHSA-9rwj-6rc7-p77c, 3.x needs a LangGraph 1.x bump) |
+| `HELPDESK_AGENT_CHECKPOINT_PATH` | SQLite checkpointer path for `sqlite` or legacy fallback (`.helpdesk_agent_checkpoints.sqlite` by default) |
+| `HELPDESK_AGENT_CHECKPOINT_TTL_SECONDS` | Checkpoint retention window; normal agent traffic periodically prunes expired checkpoint threads |
 
 Prometheus metrics: `chatbot_helpdesk_recap_*`, `chatbot_helpdesk_draft_ticket_*`, `chatbot_helpdesk_create_issue_total`, `chatbot_helpdesk_kb_resolved_total`, `chatbot_helpdesk_agent_started_total`, `chatbot_helpdesk_agent_tool_total`, `chatbot_helpdesk_agent_outcome_total`, `chatbot_helpdesk_agent_funnel_total`, `chatbot_helpdesk_agent_error_total`. Engineering spec: [HELPDESK_AGENT.md](../roadmap/HELPDESK_AGENT.md).
 
