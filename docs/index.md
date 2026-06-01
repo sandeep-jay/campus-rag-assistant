@@ -33,7 +33,7 @@ LangSmith and Prometheus observability, CI/security gates, redaction, and respon
 | Ownership and product judgment | [Case Study](PORTFOLIO_CASE_STUDY.md) |
 | System design | [Architecture](ARCHITECTURE.md) + [Design Notes](DESIGN.md) |
 | RAG quality | [Evaluation](EVALUATION.md) + [Baseline](eval_baseline_v2.md) |
-| Agentic orchestration | [Helpdesk overview](helpdesk/index.md) + [ADR-005](adr/ADR-005-bounded-helpdesk-agent.md) + [ADR-006](adr/ADR-006-live-llm-supervisor-migration.md) |
+| Agentic orchestration | [Helpdesk overview](helpdesk/index.md) + [ADR-005](adr/ADR-005-bounded-helpdesk-agent.md) + [ADR-006](adr/ADR-006-live-llm-supervisor-migration.md) + [ADR-007](adr/ADR-007-agent-registry-and-router.md) |
 | Operations and security | [Operations Manual](operations-manual/index.md) |
 
 ## What this shows

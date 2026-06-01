@@ -12,6 +12,7 @@ Compact records of significant design choices. Full rationale lives in [DESIGN.m
 | [ADR-004](./ADR-004-eval-gating-policy.md) | RAGAS eval gating policy | Accepted |
 | [ADR-005](./ADR-005-bounded-helpdesk-agent.md) | Bounded helpdesk agent (LangGraph) | Accepted (mixed implementation — see ADR-006) |
 | [ADR-006](./ADR-006-live-llm-supervisor-migration.md) | Live LLM supervisor migration (supersedes unbuilt portions of ADR-005) | Proposed |
+| [ADR-007](./ADR-007-agent-registry-and-router.md) | Agent capability registry and live campus router | Proposed |
 
 ## Template
 

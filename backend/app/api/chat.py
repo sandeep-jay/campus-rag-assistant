@@ -43,6 +43,11 @@ from backend.app.db.database import get_db
 from backend.app.models.user import User
 from backend.app.schemas.chat import ChatMessageCreate, ChatSessionCreate
 from backend.app.schemas.feedback import Feedback, FeedbackCreate
+from backend.app.services.agents.router import (
+    RouterDecision,
+    classify_domain,
+    is_router_enabled,
+)
 from backend.app.services.db import DatabaseService
 from backend.app.services.rag import RAGService
 from backend.app.services.tenant_rag_config import load_tenant_rag_config
@@ -58,7 +63,7 @@ def _stream_status_message(research_mode: str) -> str:
 
 
 def _stream_done_payload(session_id: int, metadata: dict) -> dict:
-    """SSE done event including web disclaimer and helpdesk kb_resolved flag."""
+    """SSE done event including web disclaimer, kb_resolved, and router decision."""
     return {
         'type': 'done',
         'session_id': session_id,
@@ -67,7 +72,32 @@ def _stream_done_payload(session_id: int, metadata: dict) -> dict:
         'source_kind': metadata.get('source_kind', 'kb'),
         'disclaimer': metadata.get('disclaimer'),
         'kb_resolved': metadata.get('kb_resolved'),
+        'router_decision': metadata.get('router_decision'),
     }
+
+
+def _maybe_attach_router_decision(metadata: dict[str, Any] | None, query: str) -> dict[str, Any]:
+    """Annotate ``metadata`` with a campus router decision when enabled.
+
+    Returns a metadata dict that always has a ``router_decision`` key
+    (``None`` when the router is disabled) so downstream consumers can
+    treat the absence uniformly. The router never raises -- failures
+    fall back to a kb_answer decision inside ``classify_domain``.
+    """
+    if metadata is None:
+        metadata = {}
+    if not is_router_enabled():
+        metadata.setdefault('router_decision', None)
+        return metadata
+    decision = classify_domain(query)
+    metadata['router_decision'] = _serialize_router_decision(decision)
+    return metadata
+
+
+def _serialize_router_decision(decision: RouterDecision | None) -> dict[str, Any] | None:
+    if decision is None:
+        return None
+    return decision.model_dump()
 
 
 def _sse_payload(event: dict) -> str:
@@ -296,6 +326,11 @@ async def create_chat_message(
     )
     logger.debug('RAG processing complete, storing assistant message')
 
+    rag_response['metadata'] = _maybe_attach_router_decision(
+        rag_response.get('metadata'),
+        message.content,
+    )
+
     # Create assistant message
     assistant_msg = db_service.create_chat_message(
         session_id=session_id,
@@ -416,6 +451,11 @@ async def chat(
             session_id,
         )
 
+        rag_response['metadata'] = _maybe_attach_router_decision(
+            rag_response.get('metadata'),
+            message.content,
+        )
+
         # Create assistant message
         assistant_msg = db_service.create_chat_message(
             session_id=session_id,
@@ -450,7 +490,7 @@ async def chat(
 
 
 @router.post('/stream', dependencies=[Depends(limit_chat)])
-async def chat_stream(
+async def chat_stream(  # noqa: PLR0915
     message: ChatMessageCreate,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
@@ -507,6 +547,7 @@ async def chat_stream(
                     yield _sse_payload({'type': 'token', 'token': chunk})
                     await asyncio.sleep(chunk_delay_s)
                 metadata = result.get('metadata', {})
+                metadata = _maybe_attach_router_decision(metadata, message.content)
                 assistant_text = rag_service._normalize_answer_formatting(  # noqa: SLF001
                     result['message'],
                     metadata.get('sources', []),
@@ -539,6 +580,7 @@ async def chat_stream(
                         buffered = rag_service.process_query(message.content, chat_history, tenant_config, research_mode=_research_mode)
                         assistant_text = buffered['message']
                         metadata = buffered.get('metadata', metadata)
+                    metadata = _maybe_attach_router_decision(metadata, message.content)
                     assistant_text = rag_service._normalize_answer_formatting(  # noqa: SLF001
                         assistant_text,
                         metadata.get('sources', []),

@@ -98,9 +98,11 @@ nav:
       - ADR-004 — Eval gating policy: adr/ADR-004-eval-gating-policy.md
       - ADR-005 — Bounded helpdesk agent: adr/ADR-005-bounded-helpdesk-agent.md
       - ADR-006 — Live LLM supervisor migration: adr/ADR-006-live-llm-supervisor-migration.md
+      - ADR-007 — Agent registry and router: adr/ADR-007-agent-registry-and-router.md
   - Roadmap:
       - Product Roadmap: roadmap/PRODUCT_ROADMAP.md
       - Agentic Helpdesk Rebuild: roadmap/AGENTIC_HELPDESK_REBUILD.md
+      - Agent Registry Contract: roadmap/AGENT_REGISTRY.md
   - Releases and Changelog:
       - Releases: release-notes/index.md
       - Changelog: changelog.md
