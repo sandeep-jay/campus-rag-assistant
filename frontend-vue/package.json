@@ -111,6 +111,11 @@
     "@rollup/rollup-linux-x64-gnu": "4.60.2",
     "@rollup/rollup-linux-x64-musl": "4.60.2",
     "@rollup/rollup-openbsd-x64": "4.60.2",
-    "@rollup/rollup-openharmony-arm64": "4.60.2"
+    "@rollup/rollup-openharmony-arm64": "4.60.2",
+    "lightningcss-linux-x64-gnu": "1.32.0",
+    "lightningcss-linux-x64-musl": "1.32.0",
+    "lightningcss-linux-arm64-gnu": "1.32.0",
+    "lightningcss-linux-arm64-musl": "1.32.0",
+    "lightningcss-linux-arm-gnueabihf": "1.32.0"
   }
 }

@@ -19,10 +19,18 @@ concurrency:
   group: cd-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   ci:
     name: CI gate
     uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+      pull-requests: read
+    secrets: inherit
 
   build-frontend:
     name: Build Vue SPA
@@ -44,7 +52,7 @@ jobs:
           VITE_API_URL_QA: ${{ vars.VITE_API_URL_QA }}
           VITE_API_URL_RELEASE: ${{ vars.VITE_API_URL_RELEASE }}
         run: |
-          if [ "${{ github.ref }}" = "refs/heads/release" ] || [ "${{ github.event.inputs.target }}" = "release" ]; then
+          if [ "${{ github.ref }}" = "refs/heads/release" ] || { [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.target }}" = "release" ]; }; then
             echo "url=${VITE_API_URL_RELEASE:-https://api.example.com}" >> "$GITHUB_OUTPUT"
           else
             echo "url=${VITE_API_URL_QA:-https://qa-api.example.com}" >> "$GITHUB_OUTPUT"
@@ -71,14 +79,14 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 20
     if: vars.EB_DEPLOY_ENABLED == 'true'
-    environment: ${{ github.ref == 'refs/heads/release' && 'production' || 'qa' }}
+    environment: ${{ (github.ref == 'refs/heads/release' || (github.event_name == 'workflow_dispatch' && inputs.target == 'release')) && 'production' || 'qa' }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Resolve EB environment name
         id: eb_env
         run: |
-          if [ "${{ github.ref }}" = "refs/heads/release" ] || [ "${{ github.event.inputs.target }}" = "release" ]; then
+          if [ "${{ github.ref }}" = "refs/heads/release" ] || { [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.target }}" = "release" ]; }; then
             echo "name=${{ secrets.EB_ENVIRONMENT_NAME_RELEASE }}" >> "$GITHUB_OUTPUT"
           else
             echo "name=${{ secrets.EB_ENVIRONMENT_NAME_QA }}" >> "$GITHUB_OUTPUT"
@@ -116,7 +124,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 45
     if: >-
-      (github.ref == 'refs/heads/release' || github.event.inputs.target == 'release') &&
+      (github.ref == 'refs/heads/release' || (github.event_name == 'workflow_dispatch' && inputs.target == 'release')) &&
       vars.RAGAS_QUALITY_GATE == '1'
     services:
       postgres:
