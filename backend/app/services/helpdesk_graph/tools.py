@@ -45,9 +45,7 @@ def track_helpdesk_tool_latency(tool_name: str):
             try:
                 return await func(*args, **kwargs)
             finally:
-                HELPDESK_AGENT_TOOL_LATENCY_SECONDS.labels(tool=tool_name).observe(
-                    time.perf_counter() - started
-                )
+                HELPDESK_AGENT_TOOL_LATENCY_SECONDS.labels(tool=tool_name).observe(time.perf_counter() - started)
 
         return wrapper
 
@@ -93,9 +91,7 @@ class FileTicketToolArgs(BaseModel):
     title: str = Field(min_length=1, max_length=120)
     description: str = Field(min_length=1)
     severity: str = Field(pattern='^(low|medium|high|critical)$')
-    category: str = Field(
-        pattern='^(network|access|application|hardware|account|other)$'
-    )
+    category: str = Field(pattern='^(network|access|application|hardware|account|other)$')
     impact: str = Field(pattern='^(Single user|Team|Campus-wide)$')
     steps_to_reproduce: str | None = None
 
@@ -116,9 +112,7 @@ def _redacted_query(query: str) -> str:
     return redact_text(query or '')
 
 
-def _cache_get(
-    state: HelpdeskState | None, tool: str, query: str
-) -> list[Document] | None:
+def _cache_get(state: HelpdeskState | None, tool: str, query: str) -> list[Document] | None:
     if state is None:
         return None
     cache = state.setdefault('tool_cache', {})
@@ -128,9 +122,7 @@ def _cache_get(
     return [Document(**doc) if isinstance(doc, dict) else doc for doc in cached]
 
 
-def _cache_put(
-    state: HelpdeskState | None, tool: str, query: str, documents: list[Document]
-) -> None:
+def _cache_put(state: HelpdeskState | None, tool: str, query: str, documents: list[Document]) -> None:
     if state is None:
         return
     cache = state.setdefault('tool_cache', {})
@@ -138,9 +130,7 @@ def _cache_put(
 
 
 def _truncate_documents(documents: list[Document]) -> list[Document]:
-    max_chars = max(
-        1, int(getattr(settings, 'HELPDESK_AGENT_TOOL_OUTPUT_MAX_CHARS', 4000) or 4000)
-    )
+    max_chars = max(1, int(getattr(settings, 'HELPDESK_AGENT_TOOL_OUTPUT_MAX_CHARS', 4000) or 4000))
     truncated: list[Document] = []
     for doc in documents:
         content = (doc.page_content or '')[:max_chars]
@@ -165,14 +155,10 @@ async def retry_kb(  # noqa: PLR0911 - explicit no-op exits keep tool outcomes l
     safe_query = _redacted_query(query)
     cleaned = _normalize_query(safe_query)
     if not settings.HELPDESK_AGENT_TOOL_KB_RETRY:
-        HELPDESK_AGENT_TOOL_TOTAL.labels(
-            tool=tool, outcome='skipped', reason='disabled'
-        ).inc()
+        HELPDESK_AGENT_TOOL_TOTAL.labels(tool=tool, outcome='skipped', reason='disabled').inc()
         return []
     if not cleaned:
-        HELPDESK_AGENT_TOOL_TOTAL.labels(
-            tool=tool, outcome='skipped', reason='empty_query'
-        ).inc()
+        HELPDESK_AGENT_TOOL_TOTAL.labels(tool=tool, outcome='skipped', reason='empty_query').inc()
         return []
 
     cached = _cache_get(state, tool, cleaned)
@@ -181,9 +167,7 @@ async def retry_kb(  # noqa: PLR0911 - explicit no-op exits keep tool outcomes l
         return cached
 
     if getattr(rag_service, 'is_mock', False):
-        HELPDESK_AGENT_TOOL_TOTAL.labels(
-            tool=tool, outcome='mock', reason='provider_mock'
-        ).inc()
+        HELPDESK_AGENT_TOOL_TOTAL.labels(tool=tool, outcome='mock', reason='provider_mock').inc()
         documents = [
             Document(
                 page_content=f'Mock KB retry result for: {safe_query}',
@@ -198,14 +182,10 @@ async def retry_kb(  # noqa: PLR0911 - explicit no-op exits keep tool outcomes l
 
     retriever = getattr(rag_service, 'retriever', None)
     if retriever is None:
-        HELPDESK_AGENT_TOOL_TOTAL.labels(
-            tool=tool, outcome='skipped', reason='missing_retriever'
-        ).inc()
+        HELPDESK_AGENT_TOOL_TOTAL.labels(tool=tool, outcome='skipped', reason='missing_retriever').inc()
         return []
 
-    timeout = float(
-        getattr(settings, 'HELPDESK_AGENT_KB_RETRY_TIMEOUT_SECONDS', 12.0) or 12.0
-    )
+    timeout = float(getattr(settings, 'HELPDESK_AGENT_KB_RETRY_TIMEOUT_SECONDS', 12.0) or 12.0)
 
     def _retrieve() -> list[Document]:
         docs = retrieve_with_queries(retriever, [cleaned])
@@ -215,15 +195,11 @@ async def retry_kb(  # noqa: PLR0911 - explicit no-op exits keep tool outcomes l
     try:
         documents = await _run_with_timeout(_retrieve, timeout=timeout)
     except TimeoutError:
-        HELPDESK_AGENT_TOOL_TOTAL.labels(
-            tool=tool, outcome='timeout', reason='timeout'
-        ).inc()
+        HELPDESK_AGENT_TOOL_TOTAL.labels(tool=tool, outcome='timeout', reason='timeout').inc()
         logger.warning('Helpdesk KB retry timed out')
         return []
     except Exception as exc:
-        HELPDESK_AGENT_TOOL_TOTAL.labels(
-            tool=tool, outcome='error', reason=exc.__class__.__name__
-        ).inc()
+        HELPDESK_AGENT_TOOL_TOTAL.labels(tool=tool, outcome='error', reason=exc.__class__.__name__).inc()
         logger.warning('Helpdesk KB retry failed: %s', exc)
         return []
 
@@ -234,22 +210,16 @@ async def retry_kb(  # noqa: PLR0911 - explicit no-op exits keep tool outcomes l
 
 @trace_agent_tool('helpdesk_agent.web_search')
 @track_helpdesk_tool_latency('web_search')
-async def web_search(
-    query: str, *, state: HelpdeskState | None = None
-) -> list[Document]:
+async def web_search(query: str, *, state: HelpdeskState | None = None) -> list[Document]:
     """Run the configured web-search provider with timeout and in-session cache."""
     tool = 'web_search'
     safe_query = _redacted_query(query)
     cleaned = _normalize_query(safe_query)
     if not settings.HELPDESK_AGENT_TOOL_WEB_SEARCH:
-        HELPDESK_AGENT_TOOL_TOTAL.labels(
-            tool=tool, outcome='skipped', reason='disabled'
-        ).inc()
+        HELPDESK_AGENT_TOOL_TOTAL.labels(tool=tool, outcome='skipped', reason='disabled').inc()
         return []
     if not cleaned:
-        HELPDESK_AGENT_TOOL_TOTAL.labels(
-            tool=tool, outcome='skipped', reason='empty_query'
-        ).inc()
+        HELPDESK_AGENT_TOOL_TOTAL.labels(tool=tool, outcome='skipped', reason='empty_query').inc()
         return []
 
     cached = _cache_get(state, tool, cleaned)
@@ -257,23 +227,15 @@ async def web_search(
         HELPDESK_AGENT_TOOL_TOTAL.labels(tool=tool, outcome='cached', reason='ok').inc()
         return cached
 
-    timeout = float(
-        getattr(settings, 'HELPDESK_AGENT_WEB_SEARCH_TIMEOUT_SECONDS', 10.0) or 10.0
-    )
+    timeout = float(getattr(settings, 'HELPDESK_AGENT_WEB_SEARCH_TIMEOUT_SECONDS', 10.0) or 10.0)
     try:
-        documents = await _run_with_timeout(
-            lambda: _truncate_documents(web_search_documents(cleaned)), timeout=timeout
-        )
+        documents = await _run_with_timeout(lambda: _truncate_documents(web_search_documents(cleaned)), timeout=timeout)
     except TimeoutError:
-        HELPDESK_AGENT_TOOL_TOTAL.labels(
-            tool=tool, outcome='timeout', reason='timeout'
-        ).inc()
+        HELPDESK_AGENT_TOOL_TOTAL.labels(tool=tool, outcome='timeout', reason='timeout').inc()
         logger.warning('Helpdesk web search timed out')
         return []
     except Exception as exc:
-        HELPDESK_AGENT_TOOL_TOTAL.labels(
-            tool=tool, outcome='error', reason=exc.__class__.__name__
-        ).inc()
+        HELPDESK_AGENT_TOOL_TOTAL.labels(tool=tool, outcome='error', reason=exc.__class__.__name__).inc()
         logger.warning('Helpdesk web search failed: %s', exc)
         return []
 
@@ -295,24 +257,18 @@ async def search_existing_issues(
     Failure is non-fatal: the supervisor can still draft a new ticket.
     """
     if not settings.HELPDESK_AGENT_TOOL_GITHUB_SEARCH:
-        HELPDESK_AGENT_TOOL_TOTAL.labels(
-            tool='search_existing_issues', outcome='skipped', reason='disabled'
-        ).inc()
+        HELPDESK_AGENT_TOOL_TOTAL.labels(tool='search_existing_issues', outcome='skipped', reason='disabled').inc()
         return []
 
     config = _github_token_and_repo()
     if config is None:
-        HELPDESK_AGENT_TOOL_TOTAL.labels(
-            tool='search_existing_issues', outcome='skipped', reason='missing_config'
-        ).inc()
+        HELPDESK_AGENT_TOOL_TOTAL.labels(tool='search_existing_issues', outcome='skipped', reason='missing_config').inc()
         return []
 
     token, repo = config
     cleaned = ' '.join(_redacted_query(query).split())[:256]
     if not cleaned:
-        HELPDESK_AGENT_TOOL_TOTAL.labels(
-            tool='search_existing_issues', outcome='skipped', reason='empty_query'
-        ).inc()
+        HELPDESK_AGENT_TOOL_TOTAL.labels(tool='search_existing_issues', outcome='skipped', reason='empty_query').inc()
         return []
 
     params = {'q': f'repo:{repo} is:issue {cleaned}', 'per_page': str(limit)}
@@ -321,15 +277,11 @@ async def search_existing_issues(
         'Accept': 'application/vnd.github.v3+json',
         'User-Agent': 'campus-rag-assistant-helpdesk-agent',
     }
-    timeout = float(
-        getattr(settings, 'HELPDESK_AGENT_GITHUB_SEARCH_TIMEOUT_SECONDS', 8.0) or 8.0
-    )
+    timeout = float(getattr(settings, 'HELPDESK_AGENT_GITHUB_SEARCH_TIMEOUT_SECONDS', 8.0) or 8.0)
 
     try:
         async with httpx.AsyncClient(timeout=timeout, transport=transport) as client:
-            response = await client.get(
-                'https://api.github.com/search/issues', headers=headers, params=params
-            )
+            response = await client.get('https://api.github.com/search/issues', headers=headers, params=params)
     except httpx.HTTPError as exc:
         HELPDESK_AGENT_TOOL_TOTAL.labels(
             tool='search_existing_issues',
@@ -345,9 +297,7 @@ async def search_existing_issues(
             outcome='error',
             reason=f'http_{response.status_code}',
         ).inc()
-        logger.warning(
-            'GitHub duplicate search rejected: status=%s', response.status_code
-        )
+        logger.warning('GitHub duplicate search rejected: status=%s', response.status_code)
         return []
 
     data: dict[str, Any] = response.json()
@@ -363,9 +313,7 @@ async def search_existing_issues(
             )
         )
 
-    HELPDESK_AGENT_TOOL_TOTAL.labels(
-        tool='search_existing_issues', outcome='success', reason='ok'
-    ).inc()
+    HELPDESK_AGENT_TOOL_TOTAL.labels(tool='search_existing_issues', outcome='success', reason='ok').inc()
     return issues
 
 
@@ -373,9 +321,7 @@ async def search_existing_issues(
 @track_helpdesk_tool_latency('file_ticket')
 async def file_ticket(draft: TicketDraft, *, user_id: int | str) -> CreateIssueResponse:
     """HITL-gated issue creation wrapper for future `/agent/confirm`."""
-    HELPDESK_AGENT_TOOL_TOTAL.labels(
-        tool='file_ticket', outcome='started', reason='hitl_confirmed'
-    ).inc()
+    HELPDESK_AGENT_TOOL_TOTAL.labels(tool='file_ticket', outcome='started', reason='hitl_confirmed').inc()
     return await create_github_issue(draft, user_id=user_id)
 
 
@@ -410,9 +356,7 @@ def _web_search_langchain_tool(*, state: HelpdeskState | None) -> BaseTool:
 
 def _search_existing_issues_langchain_tool() -> BaseTool:
     @tool('search_existing_issues', args_schema=SearchExistingIssuesToolArgs)
-    async def search_existing_issues_tool(
-        query: str, limit: int = 3
-    ) -> list[dict[str, Any]]:
+    async def search_existing_issues_tool(query: str, limit: int = 3) -> list[dict[str, Any]]:
         """Search the configured GitHub repository for duplicate tickets."""
         issues = await search_existing_issues(query, limit=limit)
         return [issue.model_dump() for issue in issues]
@@ -467,9 +411,7 @@ def bindable_helpdesk_tools(
     bound_tools: list[BaseTool] = []
 
     if settings.HELPDESK_AGENT_TOOL_KB_RETRY:
-        bound_tools.append(
-            _retry_kb_langchain_tool(state=state, rag_service=rag_service)
-        )
+        bound_tools.append(_retry_kb_langchain_tool(state=state, rag_service=rag_service))
 
     if settings.HELPDESK_AGENT_TOOL_WEB_SEARCH:
         bound_tools.append(_web_search_langchain_tool(state=state))

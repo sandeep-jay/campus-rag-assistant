@@ -74,9 +74,7 @@ def _agent_turn_event(turn: AgentTurn) -> dict:
     return {'type': 'done', 'turn': turn.model_dump(mode='json')}
 
 
-@router.post(
-    '/summarize', response_model=SummarizeResponse, dependencies=[Depends(limit_chat)]
-)
+@router.post('/summarize', response_model=SummarizeResponse, dependencies=[Depends(limit_chat)])
 async def summarize(
     request: SummarizeRequest,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -100,9 +98,7 @@ async def draft_ticket_endpoint(
     return DraftTicketResponse(draft=draft)
 
 
-@router.post(
-    '/agent/start', response_model=AgentTurn, dependencies=[Depends(limit_chat)]
-)
+@router.post('/agent/start', response_model=AgentTurn, dependencies=[Depends(limit_chat)])
 async def start_agent(
     request: AgentStartRequest,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -144,9 +140,7 @@ async def start_agent_stream(
     return StreamingResponse(_events(), media_type='text/event-stream')
 
 
-@router.post(
-    '/agent/resume', response_model=AgentTurn, dependencies=[Depends(limit_chat)]
-)
+@router.post('/agent/resume', response_model=AgentTurn, dependencies=[Depends(limit_chat)])
 async def resume_agent(
     request: AgentResumeRequest,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -190,9 +184,7 @@ async def resume_agent_stream(
     return StreamingResponse(_events(), media_type='text/event-stream')
 
 
-@router.post(
-    '/agent/confirm', response_model=AgentTurn, dependencies=[Depends(limit_chat)]
-)
+@router.post('/agent/confirm', response_model=AgentTurn, dependencies=[Depends(limit_chat)])
 async def confirm_agent(
     request: AgentConfirmRequest,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -210,9 +202,7 @@ async def confirm_agent(
     )
 
 
-@router.post(
-    '/agent/abort', response_model=AgentTurn, dependencies=[Depends(limit_chat)]
-)
+@router.post('/agent/abort', response_model=AgentTurn, dependencies=[Depends(limit_chat)])
 async def abort_agent(
     request: AgentAbortRequest,
     current_user: Annotated[User, Depends(get_current_user)],

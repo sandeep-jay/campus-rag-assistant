@@ -103,11 +103,7 @@ class _ConfirmIdempotencyCache:
         with self._lock:
             self._store[key] = _IdempotencyEntry(turn=turn, expires_at=expires_at)
             now = time.time()
-            stale = [
-                cache_key
-                for cache_key, entry in self._store.items()
-                if entry.expires_at < now
-            ]
+            stale = [cache_key for cache_key, entry in self._store.items() if entry.expires_at < now]
             for cache_key in stale:
                 self._store.pop(cache_key, None)
 
@@ -115,9 +111,7 @@ class _ConfirmIdempotencyCache:
 _confirm_idempotency_cache = _ConfirmIdempotencyCache()
 
 
-def _confirm_idempotency_key(
-    user_id: int | str, idempotency_key: str | None
-) -> str | None:
+def _confirm_idempotency_key(user_id: int | str, idempotency_key: str | None) -> str | None:
     key = (idempotency_key or '').strip()
     if not key:
         return None
@@ -252,9 +246,7 @@ def _record_turn_metrics(turn: AgentTurn, state: HelpdeskState | None) -> None:
     if state is None:
         return
     HELPDESK_AGENT_TOKENS_TOTAL.labels(node='turn').inc(_token_estimate(state))
-    HELPDESK_AGENT_TURNS_TAKEN.labels(outcome=turn.kind).observe(
-        float(state.get('turns_taken', 0) or 0)
-    )
+    HELPDESK_AGENT_TURNS_TAKEN.labels(outcome=turn.kind).observe(float(state.get('turns_taken', 0) or 0))
 
 
 def _last_user_text(conversation: list[ConversationTurn]) -> str:
@@ -266,10 +258,7 @@ def _last_user_text(conversation: list[ConversationTurn]) -> str:
 
 def _mock_duplicate_candidates(question: str) -> list[GitHubIssue]:
     text = question.lower()
-    if not any(
-        marker in text
-        for marker in ('duplicate', 'existing ticket', 'known issue', '#42')
-    ):
+    if not any(marker in text for marker in ('duplicate', 'existing ticket', 'known issue', '#42')):
         return []
     return [
         GitHubIssue(
@@ -282,9 +271,7 @@ def _mock_duplicate_candidates(question: str) -> list[GitHubIssue]:
     ]
 
 
-def _trace(
-    step: str, action: str, outcome: str, message: str | None = None
-) -> AgentStep:
+def _trace(step: str, action: str, outcome: str, message: str | None = None) -> AgentStep:
     return AgentStep(step=step, action=action, outcome=outcome, message=message)
 
 
@@ -311,14 +298,10 @@ def _token_estimate(state: HelpdeskState) -> int:
     text_parts = [state.get('original_question', '')]
     text_parts.extend(turn.content for turn in state.get('conversation', []))
     text_parts.extend(state.get('user_replies', []))
-    text_parts.extend(
-        solution.summary for solution in state.get('proposed_solutions', [])
-    )
+    text_parts.extend(solution.summary for solution in state.get('proposed_solutions', []))
     draft = state.get('draft')
     if draft is not None:
-        text_parts.extend(
-            [draft.title, draft.description, draft.steps_to_reproduce or '']
-        )
+        text_parts.extend([draft.title, draft.description, draft.steps_to_reproduce or ''])
     return sum(max(1, len(part) // 4) for part in text_parts if part)
 
 
@@ -340,9 +323,7 @@ def _tool_budget_exhausted(state: HelpdeskState) -> bool:
     return int(state.get('tool_attempts', 0)) >= max_tool_retries
 
 
-async def _budget_exhausted_turn(
-    state: HelpdeskState, trace: list[AgentStep] | None = None
-) -> AgentTurn:
+async def _budget_exhausted_turn(state: HelpdeskState, trace: list[AgentStep] | None = None) -> AgentTurn:
     return await _draft_from_state(
         state,
         message='I reached the helpdesk agent safety budget, so I prepared a ticket draft for your review.',
@@ -357,9 +338,7 @@ def _new_state(
     conversation: list[ConversationTurn],
 ) -> HelpdeskState:
     now = time.time()
-    deadline_seconds = max(
-        0.1, float(getattr(settings, 'HELPDESK_AGENT_DEADLINE_SECONDS', 60.0) or 60.0)
-    )
+    deadline_seconds = max(0.1, float(getattr(settings, 'HELPDESK_AGENT_DEADLINE_SECONDS', 60.0) or 60.0))
     return {
         'state_version': STATE_VERSION,
         'session_id': session_id,
@@ -391,9 +370,7 @@ async def _pause_for_impact(state: HelpdeskState) -> AgentTurn:
     state['questions_asked'] = [*state.get('questions_asked', []), awaiting.question]
     state['turns_taken'] = int(state.get('turns_taken', 0)) + 1
     if _budget_exhausted(state):
-        return await _budget_exhausted_turn(
-            state, [_trace('clarifier', 'ask_user', 'blocked', question_id)]
-        )
+        return await _budget_exhausted_turn(state, [_trace('clarifier', 'ask_user', 'blocked', question_id)])
     save_checkpoint(state)
     HELPDESK_AGENT_OUTCOME_TOTAL.labels(outcome='question').inc()
     _record_funnel('clarification_requested')
@@ -409,11 +386,7 @@ async def _pause_for_impact(state: HelpdeskState) -> AgentTurn:
 
 def _source_url(doc: Document) -> str | None:
     meta = doc.metadata or {}
-    nested = (
-        meta.get('source_metadata')
-        if isinstance(meta.get('source_metadata'), dict)
-        else {}
-    )
+    nested = meta.get('source_metadata') if isinstance(meta.get('source_metadata'), dict) else {}
     url = nested.get('kb_url') or meta.get('source') or nested.get('source')
     return str(url) if url else None
 
@@ -435,23 +408,13 @@ async def _solution_from_documents(
         return None
     doc = documents[0]
     meta = doc.metadata or {}
-    nested = (
-        meta.get('source_metadata')
-        if isinstance(meta.get('source_metadata'), dict)
-        else {}
-    )
-    title = (
-        nested.get('short_description')
-        or meta.get('title')
-        or f'{source.upper()} suggested fix'
-    )
+    nested = meta.get('source_metadata') if isinstance(meta.get('source_metadata'), dict) else {}
+    title = nested.get('short_description') or meta.get('title') or f'{source.upper()} suggested fix'
 
     summary = (await _generate_solution_summary(question, documents)).strip()
     if not summary:
         return None
-    return ProposedSolution(
-        title=str(title)[:120], summary=summary, source_url=_source_url(doc)
-    )
+    return ProposedSolution(title=str(title)[:120], summary=summary, source_url=_source_url(doc))
 
 
 def _solution_message(solution: ProposedSolution) -> str:
@@ -466,22 +429,15 @@ def _solution_message(solution: ProposedSolution) -> str:
 
 def _is_solution_acceptance(answer: str) -> bool:
     normalized = answer.strip().lower()
-    return (
-        normalized.startswith('yes') or 'solved' in normalized or 'fixed' in normalized
-    )
+    return normalized.startswith('yes') or 'solved' in normalized or 'fixed' in normalized
 
 
 def _is_solution_rejection(answer: str) -> bool:
     normalized = answer.strip().lower()
-    return any(
-        token in normalized
-        for token in ("doesn't", 'does not', 'tried', "didn't", 'did not', 'no')
-    )
+    return any(token in normalized for token in ("doesn't", 'does not', 'tried', "didn't", 'did not', 'no'))
 
 
-def _append_user_reply(
-    state: HelpdeskState, answer: str, *, label: str
-) -> list[ConversationTurn]:
+def _append_user_reply(state: HelpdeskState, answer: str, *, label: str) -> list[ConversationTurn]:
     conversation = [
         *state.get('conversation', []),
         ConversationTurn(role='user', content=f'{label}: {answer}'),
@@ -505,9 +461,7 @@ async def _classify_state(state: HelpdeskState):
     return classification
 
 
-async def _draft_from_state(
-    state: HelpdeskState, *, message: str, trace: list[AgentStep]
-) -> AgentTurn:
+async def _draft_from_state(state: HelpdeskState, *, message: str, trace: list[AgentStep]) -> AgentTurn:
     conversation = state.get('conversation', [])
     facts = state.get('facts', {})
     if {'severity', 'category', 'impact'} <= set(facts):
@@ -555,9 +509,7 @@ async def _draft_from_state(
     )
 
 
-async def _propose_solution_or_draft(
-    state: HelpdeskState, trace: list[AgentStep]
-) -> AgentTurn | None:
+async def _propose_solution_or_draft(state: HelpdeskState, trace: list[AgentStep]) -> AgentTurn | None:
     from backend.app.services.rag import RAGService
 
     query = state.get('original_question', '')
@@ -576,12 +528,8 @@ async def _propose_solution_or_draft(
         state['tool_attempts'] = int(state.get('tool_attempts', 0)) + 1
         web_docs = await tools.web_search(query, state=state)
         state['web_search_results'] = web_docs
-        trace.append(
-            _trace('tool', 'web_search', 'success', f'{len(web_docs)} document(s)')
-        )
-        solution = await _solution_from_documents(
-            web_docs, source='web', question=query
-        )
+        trace.append(_trace('tool', 'web_search', 'success', f'{len(web_docs)} document(s)'))
+        solution = await _solution_from_documents(web_docs, source='web', question=query)
 
     if solution is None:
         state['_trace_seed'] = trace
@@ -685,9 +633,7 @@ async def graph_tool_search_duplicates(state: HelpdeskState) -> list[GitHubIssue
     provider = get_llm_provider()
     if provider.is_mock:
         duplicates = _mock_duplicate_candidates(question)
-        HELPDESK_AGENT_TOOL_TOTAL.labels(
-            tool='search_existing_issues', outcome='mock', reason='provider_mock'
-        ).inc()
+        HELPDESK_AGENT_TOOL_TOTAL.labels(tool='search_existing_issues', outcome='mock', reason='provider_mock').inc()
     else:
         duplicates = await tools.search_existing_issues(question)
     return duplicates
@@ -763,9 +709,7 @@ async def graph_writer_step(state: HelpdeskState) -> dict[str, Any]:
         _append_user_reply(state, answer, label='Solution feedback')
         if _is_solution_rejection(answer):
             state['rejected_solutions'] = [*state.get('rejected_solutions', []), answer]
-        trace_seed.append(
-            _trace('resume', 'solution_feedback', 'rejected', question_id)
-        )
+        trace_seed.append(_trace('resume', 'solution_feedback', 'rejected', question_id))
     turn = await _draft_from_state(
         state,
         message=(
@@ -943,9 +887,7 @@ async def _run_graph(
     result = await active_graph.ainvoke(state_or_command, config=config)
     turn = result.get('_graph_turn')
     if turn is None:
-        logger.warning(
-            'helpdesk graph completed without _graph_turn for operation=%s', operation
-        )
+        logger.warning('helpdesk graph completed without _graph_turn for operation=%s', operation)
         turn = await _budget_exhausted_turn(dict(result))
     return turn, result
 
@@ -1045,20 +987,12 @@ def _step_event_from_graph_event(
     elif event_kind.endswith('_end'):
         started = started_at.pop(run_id, None)
         status_value = 'success'
-        latency_ms = (
-            round((time.perf_counter() - started) * 1000, 2)
-            if started is not None
-            else None
-        )
+        latency_ms = round((time.perf_counter() - started) * 1000, 2) if started is not None else None
         output = _event_output(event)
     elif event_kind.endswith('_error'):
         started = started_at.pop(run_id, None)
         status_value = 'error'
-        latency_ms = (
-            round((time.perf_counter() - started) * 1000, 2)
-            if started is not None
-            else None
-        )
+        latency_ms = round((time.perf_counter() - started) * 1000, 2) if started is not None else None
         output = _event_output(event)
     else:
         return None
@@ -1083,9 +1017,7 @@ async def _stream_graph(  # noqa: C901 - event parsing keeps stream state in one
     started_at: dict[str, float] = {}
     final_state: HelpdeskState | None = None
     final_turn: AgentTurn | None = None
-    async for event in graph.astream_events(
-        state_or_command, config=config, version='v2'
-    ):
+    async for event in graph.astream_events(state_or_command, config=config, version='v2'):
         output = _event_output(event)
         if isinstance(output, dict):
             turn = _turn_from_output(output)
@@ -1233,9 +1165,7 @@ async def stream_start_session(
                 )
                 yield {'type': 'done', 'turn': turn.model_dump(mode='json')}
     else:
-        async for event in _stream_graph(
-            state, operation='start', graph=HELPDESK_GRAPH, config=None
-        ):
+        async for event in _stream_graph(state, operation='start', graph=HELPDESK_GRAPH, config=None):
             if event.get('type') != '_internal_done':
                 yield event
                 continue
@@ -1264,9 +1194,7 @@ async def resume_session(  # noqa: C901 - mirrors legacy and LangGraph checkpoin
     _require_agent_enabled()
     if use_langgraph_checkpoint():
         async with helpdesk_graph_for_request() as graph:
-            state = await _load_langgraph_state(
-                graph, session_id, user_id=user_id, operation='resume'
-            )
+            state = await _load_langgraph_state(graph, session_id, user_id=user_id, operation='resume')
             if _budget_exhausted(state):
                 return _persist_and_stamp(
                     await _budget_exhausted_turn(state),
@@ -1418,9 +1346,7 @@ async def stream_resume_session(  # noqa: C901, PLR0912, PLR0915 - mirrors resum
     _require_agent_enabled()
     if use_langgraph_checkpoint():
         async with helpdesk_graph_for_request() as graph:
-            state = await _load_langgraph_state(
-                graph, session_id, user_id=user_id, operation='resume'
-            )
+            state = await _load_langgraph_state(graph, session_id, user_id=user_id, operation='resume')
             if _budget_exhausted(state):
                 turn = _persist_and_stamp(
                     await _budget_exhausted_turn(state),
@@ -1561,9 +1487,7 @@ async def stream_resume_session(  # noqa: C901, PLR0912, PLR0915 - mirrors resum
 
     state['entry'] = 'resume'
     state['resume_answer'] = answer
-    async for event in _stream_graph(
-        state, operation='resume', graph=HELPDESK_GRAPH, config=None
-    ):
+    async for event in _stream_graph(state, operation='resume', graph=HELPDESK_GRAPH, config=None):
         if event.get('type') != '_internal_done':
             yield event
             continue
@@ -1597,13 +1521,8 @@ async def confirm_session(
 
     if use_langgraph_checkpoint():
         async with helpdesk_graph_for_request() as graph:
-            state = await _load_langgraph_state(
-                graph, session_id, user_id=user_id, operation='confirm'
-            )
-            if (
-                state.get('next_action') != 'await_user_confirm'
-                or state.get('draft') is None
-            ):
+            state = await _load_langgraph_state(graph, session_id, user_id=user_id, operation='confirm')
+            if state.get('next_action') != 'await_user_confirm' or state.get('draft') is None:
                 exc = HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail='Helpdesk agent is not waiting for ticket confirmation.',
@@ -1666,9 +1585,7 @@ async def abort_session(
     _require_agent_enabled()
     if use_langgraph_checkpoint():
         async with helpdesk_graph_for_request() as graph:
-            await _load_langgraph_state(
-                graph, session_id, user_id=user_id, operation='abort'
-            )
+            await _load_langgraph_state(graph, session_id, user_id=user_id, operation='abort')
             turn, final_state = await _run_graph(
                 Command(resume={'action': 'abort'}, update={'entry': 'abort'}),
                 operation='abort',

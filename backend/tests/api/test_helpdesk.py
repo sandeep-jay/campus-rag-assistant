@@ -124,11 +124,7 @@ def _reset_postgres_checkpoint_schema(engine) -> None:
                 """
             )
         )
-        conn.execute(
-            text(
-                'INSERT INTO checkpoint_migrations (v) VALUES (0), (1), (2), (3), (4), (5), (6), (7), (8)'
-            )
-        )
+        conn.execute(text('INSERT INTO checkpoint_migrations (v) VALUES (0), (1), (2), (3), (4), (5), (6), (7), (8)'))
 
 
 class _SecretLike:
@@ -145,9 +141,7 @@ def disable_helpdesk(monkeypatch):
     monkeypatch.setattr(settings, 'HELPDESK_ENABLED', False)
 
 
-def test_summarize_returns_404_when_disabled(
-    client: TestClient, test_user_token: str, disable_helpdesk
-):
+def test_summarize_returns_404_when_disabled(client: TestClient, test_user_token: str, disable_helpdesk):
     response = client.post(
         '/api/helpdesk/summarize',
         json={'conversation': []},
@@ -156,9 +150,7 @@ def test_summarize_returns_404_when_disabled(
     assert response.status_code == 404
 
 
-def test_draft_ticket_returns_404_when_disabled(
-    client: TestClient, test_user_token: str, disable_helpdesk
-):
+def test_draft_ticket_returns_404_when_disabled(client: TestClient, test_user_token: str, disable_helpdesk):
     response = client.post(
         '/api/helpdesk/draft-ticket',
         json={'conversation': []},
@@ -183,9 +175,7 @@ def test_agent_start_requires_auth(client: TestClient, enable_helpdesk):
 
 
 def test_agent_resume_requires_auth(client: TestClient, enable_helpdesk):
-    response = client.post(
-        '/api/helpdesk/agent/resume', json={'session_id': 'missing', 'reply': 'Team'}
-    )
+    response = client.post('/api/helpdesk/agent/resume', json={'session_id': 'missing', 'reply': 'Team'})
     assert response.status_code == 401
 
 
@@ -332,12 +322,8 @@ def test_agent_metrics_record_funnel_and_errors(
     test_user_token: str,
     enable_helpdesk,
 ):
-    started_before = _counter_value(
-        HELPDESK_AGENT_FUNNEL_TOTAL, stage='started', outcome='api'
-    )
-    error_before = _counter_value(
-        HELPDESK_AGENT_ERROR_TOTAL, operation='resume', reason='http_404'
-    )
+    started_before = _counter_value(HELPDESK_AGENT_FUNNEL_TOTAL, stage='started', outcome='api')
+    error_before = _counter_value(HELPDESK_AGENT_ERROR_TOTAL, operation='resume', reason='http_404')
 
     _start_agent_for_oracle_issue(client, test_user_token)
     missing = client.post(
@@ -347,16 +333,8 @@ def test_agent_metrics_record_funnel_and_errors(
     )
 
     assert missing.status_code == 404
-    assert (
-        _counter_value(HELPDESK_AGENT_FUNNEL_TOTAL, stage='started', outcome='api')
-        == started_before + 1
-    )
-    assert (
-        _counter_value(
-            HELPDESK_AGENT_ERROR_TOTAL, operation='resume', reason='http_404'
-        )
-        == error_before + 1
-    )
+    assert _counter_value(HELPDESK_AGENT_FUNNEL_TOTAL, stage='started', outcome='api') == started_before + 1
+    assert _counter_value(HELPDESK_AGENT_ERROR_TOTAL, operation='resume', reason='http_404') == error_before + 1
 
 
 def test_agent_stream_records_decision_and_tool_latency_metrics(
@@ -364,9 +342,7 @@ def test_agent_stream_records_decision_and_tool_latency_metrics(
     test_user_token: str,
     enable_helpdesk,
 ):
-    decision_before = _counter_value(
-        HELPDESK_AGENT_DECISION_TOTAL, next_action='search_duplicates'
-    )
+    decision_before = _counter_value(HELPDESK_AGENT_DECISION_TOTAL, next_action='search_duplicates')
 
     response = client.post(
         '/api/helpdesk/agent/start/stream',
@@ -382,10 +358,7 @@ def test_agent_stream_records_decision_and_tool_latency_metrics(
     )
 
     assert response.status_code == 200, response.text
-    assert (
-        _counter_value(HELPDESK_AGENT_DECISION_TOTAL, next_action='search_duplicates')
-        >= decision_before + 1
-    )
+    assert _counter_value(HELPDESK_AGENT_DECISION_TOTAL, next_action='search_duplicates') >= decision_before + 1
     samples = HELPDESK_AGENT_TOOL_LATENCY_SECONDS.labels(tool='retry_kb')._sum.get()
     assert samples >= 0
 
@@ -397,17 +370,11 @@ async def test_agent_postgres_checkpointer_round_trips_pause_resume(
     monkeypatch,
 ):
     _reset_postgres_checkpoint_schema(engine)
-    monkeypatch.setattr(
-        settings, 'DATABASE_URL', engine.url.render_as_string(hide_password=False)
-    )
+    monkeypatch.setattr(settings, 'DATABASE_URL', engine.url.render_as_string(hide_password=False))
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_CHECKPOINT_BACKEND', 'postgres')
 
     first = await start_session(
-        [
-            ConversationTurn(
-                role='user', content='Oracle Financials 403 error on budget reports'
-            )
-        ],
+        [ConversationTurn(role='user', content='Oracle Financials 403 error on budget reports')],
         user_id='postgres-checkpoint-user',
     )
     pending_question_id = first.debug_trace[-1].message
@@ -506,20 +473,12 @@ def test_agent_asks_clarification_after_help_attempt_when_impact_ambiguous(
         return []
 
     with (
-        patch(
-            'backend.app.services.helpdesk_graph.runner.tools.retry_kb', _no_documents
-        ),
-        patch(
-            'backend.app.services.helpdesk_graph.runner.tools.web_search', _no_documents
-        ),
+        patch('backend.app.services.helpdesk_graph.runner.tools.retry_kb', _no_documents),
+        patch('backend.app.services.helpdesk_graph.runner.tools.web_search', _no_documents),
     ):
         response = client.post(
             '/api/helpdesk/agent/start',
-            json={
-                'conversation': [
-                    {'role': 'user', 'content': 'Canvas assignment upload is broken'}
-                ]
-            },
+            json={'conversation': [{'role': 'user', 'content': 'Canvas assignment upload is broken'}]},
             headers={'Authorization': f'Bearer {test_user_token}'},
         )
 
@@ -699,11 +658,7 @@ def test_agent_confirm_files_reviewed_draft(
     assert filed['count'] == 1
     assert body['kind'] == 'filed'
     assert body['linked_issue_url'].endswith('/77')
-    assert (
-        '#77' in body['message']
-        or '/issues/77' in body['message']
-        or 'filed' in body['message'].lower()
-    )
+    assert '#77' in body['message'] or '/issues/77' in body['message'] or 'filed' in body['message'].lower()
     assert body['debug_trace'][0]['action'] == 'file_ticket'
 
     resume = client.post(
@@ -741,12 +696,8 @@ def test_agent_confirm_idempotency_key_reuses_prior_turn(
         'backend.app.services.helpdesk_graph.runner.create_github_issue',
         _fake_create_github_issue,
     ):
-        first = client.post(
-            '/api/helpdesk/agent/confirm', json=payload, headers=headers
-        )
-        second = client.post(
-            '/api/helpdesk/agent/confirm', json=payload, headers=headers
-        )
+        first = client.post('/api/helpdesk/agent/confirm', json=payload, headers=headers)
+        second = client.post('/api/helpdesk/agent/confirm', json=payload, headers=headers)
 
     assert first.status_code == 200, first.text
     assert second.status_code == 200, second.text
@@ -846,9 +797,7 @@ def test_agent_start_links_existing_mock_duplicate(
     assert body['draft'] is None
 
 
-def test_summarize_returns_mock_recap(
-    client: TestClient, test_user_token: str, enable_helpdesk
-):
+def test_summarize_returns_mock_recap(client: TestClient, test_user_token: str, enable_helpdesk):
     payload = {
         'conversation': [
             {'role': 'user', 'content': 'Oracle Financials 403 on budget reports'},
@@ -872,9 +821,7 @@ def test_summarize_returns_mock_recap(
     assert 'category' not in summary_obj
 
 
-def test_draft_ticket_returns_mock_draft(
-    client: TestClient, test_user_token: str, enable_helpdesk
-):
+def test_draft_ticket_returns_mock_draft(client: TestClient, test_user_token: str, enable_helpdesk):
     payload = {
         'conversation': [
             {'role': 'user', 'content': 'Oracle Financials 403 on budget reports'},
@@ -1002,9 +949,7 @@ def test_summarize_redacts_email_before_calling_llm(
     assert '[REDACTED]' in sent
 
 
-def test_create_issue_calls_github_and_dedups(
-    client: TestClient, test_user_token: str, enable_helpdesk
-):
+def test_create_issue_calls_github_and_dedups(client: TestClient, test_user_token: str, enable_helpdesk):
     calls = {'count': 0}
 
     def _handler(request: httpx.Request) -> httpx.Response:
@@ -1034,9 +979,7 @@ def test_create_issue_calls_github_and_dedups(
     async def _patched_create(draft_obj, *, user_id, transport=None):
         from backend.app.services.helpdesk.github import create_github_issue
 
-        return await create_github_issue(
-            draft_obj, user_id=user_id, transport=transport
-        )
+        return await create_github_issue(draft_obj, user_id=user_id, transport=transport)
 
     with patch(
         'backend.app.api.helpdesk.create_github_issue',
@@ -1061,9 +1004,7 @@ def test_create_issue_calls_github_and_dedups(
     assert calls['count'] == 1
 
 
-def test_create_issue_github_error_returns_502(
-    client: TestClient, test_user_token: str, enable_helpdesk
-):
+def test_create_issue_github_error_returns_502(client: TestClient, test_user_token: str, enable_helpdesk):
     def _handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(403, json={'message': 'Forbidden'})
 
@@ -1072,9 +1013,7 @@ def test_create_issue_github_error_returns_502(
     async def _patched_create(draft_obj, *, user_id, transport=None):
         from backend.app.services.helpdesk.github import create_github_issue
 
-        return await create_github_issue(
-            draft_obj, user_id=user_id, transport=transport
-        )
+        return await create_github_issue(draft_obj, user_id=user_id, transport=transport)
 
     draft = {
         'title': 'GitHub denies us',
@@ -1106,9 +1045,7 @@ def test_create_issue_github_error_returns_502(
 # server-issued row id via ``AgentTurn.chat_message_id``.
 
 
-def _create_chat_session(
-    client: TestClient, token: str, title: str = 'Helpdesk test'
-) -> int:
+def _create_chat_session(client: TestClient, token: str, title: str = 'Helpdesk test') -> int:
     res = client.post(
         '/api/chat/sessions',
         json={'title': title},
@@ -1118,9 +1055,7 @@ def _create_chat_session(
     return int(res.json()['id'])
 
 
-def _session_assistant_messages(
-    client: TestClient, token: str, session_id: int
-) -> list[dict]:
+def _session_assistant_messages(client: TestClient, token: str, session_id: int) -> list[dict]:
     res = client.get(
         f'/api/chat/sessions/{session_id}',
         headers={'Authorization': f'Bearer {token}'},
@@ -1148,17 +1083,12 @@ def test_agent_abort_persists_summary_to_chat_session(
     assert body['kind'] == 'aborted'
     assert isinstance(body['chat_message_id'], int)
 
-    assistant_msgs = _session_assistant_messages(
-        client, test_user_token, chat_session_id
-    )
+    assistant_msgs = _session_assistant_messages(client, test_user_token, chat_session_id)
     assert len(assistant_msgs) == 1
     persisted = assistant_msgs[0]
     assert persisted['id'] == body['chat_message_id']
     assert persisted['metadata']['agent_summary']['kind'] == 'aborted'
-    assert (
-        persisted['metadata']['agent_summary']['agent_session_id']
-        == first['session_id']
-    )
+    assert persisted['metadata']['agent_summary']['agent_session_id'] == first['session_id']
     # Trace is persisted so the reloaded chat row can render the same
     # activity timeline as the live in-memory bubble.
     trace = persisted['metadata']['agent_summary'].get('trace')
@@ -1204,9 +1134,7 @@ def test_agent_confirm_persists_summary_with_issue_link(
     assert body['kind'] == 'filed'
     assert isinstance(body['chat_message_id'], int)
 
-    assistant_msgs = _session_assistant_messages(
-        client, test_user_token, chat_session_id
-    )
+    assistant_msgs = _session_assistant_messages(client, test_user_token, chat_session_id)
     assert len(assistant_msgs) == 1
     persisted = assistant_msgs[0]
     assert persisted['id'] == body['chat_message_id']
@@ -1238,9 +1166,7 @@ def test_agent_terminal_without_chat_session_id_skips_persistence(
     assert response.status_code == 200, response.text
     assert response.json()['chat_message_id'] is None
 
-    assistant_msgs = _session_assistant_messages(
-        client, test_user_token, chat_session_id
-    )
+    assistant_msgs = _session_assistant_messages(client, test_user_token, chat_session_id)
     assert assistant_msgs == []
 
 
@@ -1285,9 +1211,7 @@ def test_agent_start_upserts_question_when_chat_session_id_provided(
     assert body['kind'] == 'info'
     assert isinstance(body['chat_message_id'], int)
 
-    assistant_msgs = _session_assistant_messages(
-        client, test_user_token, chat_session_id
-    )
+    assistant_msgs = _session_assistant_messages(client, test_user_token, chat_session_id)
     assert len(assistant_msgs) == 1
     persisted = assistant_msgs[0]
     assert persisted['id'] == body['chat_message_id']
@@ -1324,15 +1248,11 @@ def test_agent_journey_upserts_same_chat_message_row(
     first_row_id = first['chat_message_id']
     assert isinstance(first_row_id, int)
 
-    proposal = _answer_impact(
-        client, test_user_token, first, chat_session_id=chat_session_id
-    )
+    proposal = _answer_impact(client, test_user_token, first, chat_session_id=chat_session_id)
     assert proposal['chat_message_id'] == first_row_id
     assert proposal['kind'] == 'info'
 
-    assistant_msgs = _session_assistant_messages(
-        client, test_user_token, chat_session_id
-    )
+    assistant_msgs = _session_assistant_messages(client, test_user_token, chat_session_id)
     assert len(assistant_msgs) == 1
     assert assistant_msgs[0]['id'] == first_row_id
     assert assistant_msgs[0]['metadata']['agent_summary']['kind'] == 'info'
@@ -1356,9 +1276,7 @@ def test_agent_journey_upserts_same_chat_message_row(
     assert resolved_body['chat_message_id'] == first_row_id
     assert resolved_body['kind'] == 'resolved'
 
-    assistant_msgs = _session_assistant_messages(
-        client, test_user_token, chat_session_id
-    )
+    assistant_msgs = _session_assistant_messages(client, test_user_token, chat_session_id)
     assert len(assistant_msgs) == 1
     assert assistant_msgs[0]['id'] == first_row_id
     assert assistant_msgs[0]['metadata']['agent_summary']['kind'] == 'resolved'

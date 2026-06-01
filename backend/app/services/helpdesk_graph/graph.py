@@ -98,9 +98,7 @@ async def _supervisor_node(state: HelpdeskState) -> dict[str, Any]:
             from backend.app.services.helpdesk_graph.llm import supervisor_decide
 
             decision = await supervisor_decide(state)
-            action = validate_supervisor_action(
-                state, getattr(decision, 'next_action', None)
-            )
+            action = validate_supervisor_action(state, getattr(decision, 'next_action', None))
             if action is not None:
                 HELPDESK_AGENT_DECISION_TOTAL.labels(next_action=action).inc()
                 return {'_next': action}
@@ -224,11 +222,7 @@ async def _await_confirm_node(state: HelpdeskState) -> dict[str, Any]:
 
     from backend.app.schemas.helpdesk import TicketDraft
 
-    draft = (
-        resume_value
-        if isinstance(resume_value, TicketDraft)
-        else TicketDraft(**resume_value)
-    )
+    draft = resume_value if isinstance(resume_value, TicketDraft) else TicketDraft(**resume_value)
     return {'entry': 'confirm', 'confirm_draft': draft, '_graph_turn': None}
 
 

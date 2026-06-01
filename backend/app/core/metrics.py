@@ -47,9 +47,7 @@ DB_POOL_SIZE = Gauge('chatbot_db_pool_size', 'Configured DB pool size')
 DB_POOL_CHECKED_OUT = Gauge('chatbot_db_pool_checked_out', 'Checked out DB connections')
 DB_POOL_CHECKED_IN = Gauge('chatbot_db_pool_checked_in', 'Checked in DB connections')
 DB_POOL_OVERFLOW = Gauge('chatbot_db_pool_overflow', 'DB pool overflow connections')
-DB_POOL_USAGE_RATIO = Gauge(
-    'chatbot_db_pool_usage_ratio', 'Checked out / max DB connections'
-)
+DB_POOL_USAGE_RATIO = Gauge('chatbot_db_pool_usage_ratio', 'Checked out / max DB connections')
 CHAT_FIRST_TOKEN_LATENCY_SECONDS = Histogram(
     'chatbot_chat_first_token_latency_seconds',
     'Time from SSE stream open to first token event',
@@ -151,15 +149,11 @@ async def metrics_middleware(request: Request, call_next) -> Response:
     except Exception:
         REQUEST_EXCEPTIONS.labels(method=method, path=path).inc()
         REQUEST_COUNT.labels(method=method, path=path, status_code='500').inc()
-        REQUEST_LATENCY_SECONDS.labels(method=method, path=path).observe(
-            time.perf_counter() - started
-        )
+        REQUEST_LATENCY_SECONDS.labels(method=method, path=path).observe(time.perf_counter() - started)
         raise
     status_code = str(response.status_code)
     REQUEST_COUNT.labels(method=method, path=path, status_code=status_code).inc()
-    REQUEST_LATENCY_SECONDS.labels(method=method, path=path).observe(
-        time.perf_counter() - started
-    )
+    REQUEST_LATENCY_SECONDS.labels(method=method, path=path).observe(time.perf_counter() - started)
     return response
 
 
@@ -171,14 +165,10 @@ def track_provider_latency(provider: str, operation: str):
         yield
     except Exception as exc:
         outcome = 'error'
-        PROVIDER_ERRORS.labels(
-            provider=provider, operation=operation, reason=exc.__class__.__name__
-        ).inc()
+        PROVIDER_ERRORS.labels(provider=provider, operation=operation, reason=exc.__class__.__name__).inc()
         raise
     finally:
-        PROVIDER_LATENCY_SECONDS.labels(
-            provider=provider, operation=operation, outcome=outcome
-        ).observe(time.perf_counter() - started)
+        PROVIDER_LATENCY_SECONDS.labels(provider=provider, operation=operation, outcome=outcome).observe(time.perf_counter() - started)
 
 
 def refresh_db_pool_metrics(engine: Engine) -> dict[str, float]:
