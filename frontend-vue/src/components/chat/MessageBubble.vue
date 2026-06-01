@@ -38,8 +38,20 @@ const hasSources = computed(
 const disclaimer = computed(() => getSources(props.message)?.disclaimer ?? null)
 
 const kbResolved = computed(() => getSources(props.message)?.kb_resolved ?? null)
+const routerDecision = computed(() => getSources(props.message)?.router_decision ?? null)
 const agentTurn = computed(() => getSources(props.message)?.agent_turn ?? null)
 const agentSummary = computed(() => getSources(props.message)?.agent_summary ?? null)
+// Phase 5 escalation chip gate: the helpdesk action chip fires when the
+// KB path could not answer OR the campus router classified the turn as
+// 'helpdesk' with confidence at or above the configured floor. The
+// floor mirrors backend ``ROUTER_HELPDESK_FLOOR`` (default 0.6); the
+// backend gates the same way for the SSE/non-SSE responses.
+const ROUTER_HELPDESK_FLOOR = 0.6
+const routerWantsHelpdesk = computed(() => {
+  const decision = routerDecision.value
+  if (!decision || decision.domain !== 'helpdesk') return false
+  return decision.confidence >= ROUTER_HELPDESK_FLOOR
+})
 const terminalKinds: ReadonlyArray<string> = ['filed', 'linked', 'resolved', 'aborted']
 // Derive the badge payload from EITHER the live AgentTurn or the
 // persisted ``agent_summary`` metadata so the badge (and its issue
@@ -73,13 +85,32 @@ const agentTimelineSteps = computed(() => {
 
 // We treat any non-terminal ``agent_turn`` (``question`` / ``info`` /
 // ``draft_ready``) as 'still running' so the last timeline row pulses.
+// Older bubbles in a multi-turn agent session are no longer active, so
+// only the bottom-most bubble can be 'running' — gating by
+// ``isLastMessage`` prevents the spinner/pulse on past turns once the
+// agent has produced a new turn below.
 const isAgentRunning = computed(() => {
   if (!agentTurn.value) return false
+  if (!(props.isLastMessage ?? false)) return false
   return !terminalKinds.includes(String(agentTurn.value.kind))
 })
 
+// Only the bottom-most agent bubble carries an actionable turn; older
+// bubbles in the same agent session keep their text and timeline but
+// must not show clickable pills/radios that the user has already
+// answered. See ``AgentTurnActions.appendAgentTurn`` — each agent reply
+// is appended as a new bubble, so the previous bubble is no longer the
+// last message and its choices freeze into read-only history.
+const showAgentTurnActions = computed(
+  () => Boolean(agentTurn.value) && (props.isLastMessage ?? false),
+)
+
 const showHelpdeskActions = computed(
-  () => isAssistant(props.message) && !agentTurn.value && (props.isLastMessage ?? false) && kbResolved.value === false,
+  () =>
+    isAssistant(props.message) &&
+    !agentTurn.value &&
+    (props.isLastMessage ?? false) &&
+    (kbResolved.value === false || routerWantsHelpdesk.value),
 )
 
 const panelId = computed(() => {
@@ -171,7 +202,7 @@ function formatTime(dateStr: string): string {
           <span>{{ disclaimer }}</span>
         </p>
 
-        <AgentTurnActions v-if="agentTurn && !isStreaming" :turn="agentTurn" />
+        <AgentTurnActions v-if="showAgentTurnActions && !isStreaming" :turn="agentTurn!" />
 
         <span class="text-chat-meta text-muted-foreground px-1">
           {{ formatTime(message.created_at) }}

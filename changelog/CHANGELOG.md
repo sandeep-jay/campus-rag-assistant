@@ -40,6 +40,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Fixed
 
+- **Helpdesk agent multi-turn UI — next question now appears below the user reply.** `frontend-vue/src/components/chat/AgentTurnActions.vue` previously upserted the existing assistant bubble in place when a follow-up turn arrived after a pill/radio click, which left the next question above the just-added user message — once the chat was scrolled to the bottom it read as "nothing happened" after the user picked an option. The button-driven path now matches the free-text reply path (`addAssistantMessage`), so each new agent turn appends a fresh bubble directly under the user's answer. `MessageBubble.vue` gates `<AgentTurnActions>` and the "agent is running" timeline pulse by `isLastMessage`, so older bubbles freeze into read-only history and don't expose stale clickable pills/radios. The `recordAgentTurnIntoChat` upsert is retained for the genuinely-terminal callers that swap a pending bubble for a final result without an intervening user reply (abort-on-mode-change, manual ticket file, helpdesk-escalation chip). New tests: `MessageBubble.test.ts` covers the `isLastMessage` gate (renders on last, hidden otherwise) and `AgentTurnActions.test.ts` asserts the bubble order `[prior agent → user reply → new agent]` after a pill click.
 - **Helpdesk docs truth-in-advertising** — README and helpdesk docs now separate the shipped deterministic runner from the target LLM supervisor / compiled `StateGraph` / `AsyncPostgresSaver` migration tracked in ADR-006.
 
 ### Security
