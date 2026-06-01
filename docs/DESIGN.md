@@ -1,8 +1,8 @@
 # Design and architecture decisions
 
-This document records **why** the system is shaped the way it is. For component diagrams and request flows, see [ARCHITECTURE.md](./ARCHITECTURE.md). For graph node detail, see [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md).
+This document records **why** the system is shaped the way it is. For component diagrams and request flows, see [ARCHITECTURE.md](./ARCHITECTURE.md). For release-by-release summaries, see [release-notes/](./release-notes/index.md).
 
-**Last updated:** 2026-05-19
+**Last updated:** 2026-05-31
 
 ---
 
@@ -113,30 +113,75 @@ retrieve node → Bedrock KB API → OpenSearch Serverless index
 condense → multi_query → retrieve → rerank → generate → format
 ```
 
-| Stage | Purpose |
-|-------|---------|
-| **condense** | Turn follow-up questions into a standalone retrieval query |
-| **multi_query** | Expand queries; fuse results (RRF) for better recall |
-| **retrieve** | Bedrock KB → OpenSearch Serverless or Azure AI Search (vector + keyword/hybrid); optional metadata filters; fetch `RERANK_CANDIDATE_K` docs when reranking |
-| **rerank** | FlashRank or keyword backend to trim noise before generation |
-| **generate** | LLM answer grounded on selected chunks |
-| **format** | Normalize metadata (`sources`, `source_kind`, markdown shape) |
+| Stage | Purpose | Flag(s) |
+|-------|---------|---------|
+| **condense** | Turn follow-up questions into a standalone retrieval query | always on (graph path) |
+| **multi_query** | Expand queries; fuse results (RRF) for better recall | `MULTI_QUERY_ENABLED`, `MULTI_QUERY_COUNT` |
+| **retrieve** | Bedrock KB → OpenSearch Serverless or Azure AI Search (vector + keyword/hybrid); optional metadata filters; fetch `RERANK_CANDIDATE_K` docs when reranking | `METADATA_FILTER_*` |
+| **rerank** | FlashRank or keyword backend to trim noise before generation | `RERANK_ENABLED`, `RERANK_BACKEND` (`flashrank` \| `keyword`), `RERANK_TOP_N`, `RERANK_CANDIDATE_K`, `RERANK_PREFILTER_MAX`, `RERANK_MIN_KEYWORD_OVERLAP` |
+| **generate** | LLM answer grounded on selected chunks | provider-specific (`LLM_PROVIDER`) |
+| **format** | Normalize metadata (`sources`, `source_kind`, markdown shape) | always on |
 
-**Rationale:** Recall and precision are tuned in retrieval, not only in the prompt. Each stage is flag-gated (`MULTI_QUERY_*`, `RERANK_*`, `METADATA_FILTER_*`) so operators can compare profiles (see [eval_baseline_2026-05-19.md](./eval_baseline_2026-05-19.md) and `./scripts/run_eval_phase5.sh`).
+LangChain runs **inside each node** (`llm.invoke`, `retriever.invoke`); the graph orchestrates, the LLM does not pick `next_action`. This is deterministic RAG orchestration — see [helpdesk/index.md](./helpdesk/index.md) for the multi-turn agent that does pick actions, and [ADR-002](./adr/ADR-002-langgraph-vs-chain.md) for the chain-vs-LangGraph tradeoff.
+
+```text
+backend/app/services/graph/
+  state.py
+  nodes.py
+  graph.py
+  runner.py
+backend/app/services/tools/
+  web_search.py
+```
+
+**Streaming.** With `RAG_ENGINE=langgraph` the API emits a `status` SSE event, runs the graph in a worker thread, then streams the buffered answer in paced chunks (not token-level Bedrock streaming). True token streaming (`astream_events` from the chain) is `RAG_ENGINE=chain`. LangGraph-native SSE (Phase 6a) is an optional next step tracked in [PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md).
+
+**Latency (LangSmith on AWS).** Typical run ~4–8s — `generate` dominates; `retrieve` ~0.5s. Tuned profile: `./scripts/run_eval_phase5.sh` (see [eval_baseline_2026-05-19.md](./eval_baseline_2026-05-19.md)).
+
+**Rationale:** Recall and precision are tuned in retrieval, not only in the prompt. Each stage is flag-gated so operators can compare profiles. Each node is a LangSmith span, making A/B comparisons traceable.
 
 **Code:** `backend/app/services/graph/nodes.py`, `backend/app/services/retrieval.py`, `backend/app/services/rerank.py`.
 
-Web path intentionally **skips rerank**: `condense → web_search → generate → format` ([WEB_RESEARCH.md](./roadmap/WEB_RESEARCH.md)).
+Web path intentionally **skips rerank**: `condense → web_search → generate → format` — see the [Opt-in web research](#opt-in-web-research) section below.
 
 ---
 
 ### Opt-in web research
 
-Web search is **per message** (`research_mode=web`), gated by `WEB_RESEARCH_ENABLED`, with a **disclaimer** in the UI and `source_kind=web` in metadata.
+Web search is **per message** (`research_mode=web`), gated by `WEB_RESEARCH_ENABLED`, with a **disclaimer** in the UI and `source_kind=web` in metadata. Users choose KB (default) or web per message — not silent open-web mode.
 
-**Rationale:** Campus KB answers should default to governed corpus content. Open web is a deliberate user choice, not silent fallback when retrieval is weak.
+```mermaid
+flowchart TB
+  START --> Route{research_mode}
+  Route -->|kb| C1[condense] --> MQ[multi_query] --> RET[retrieve_kb] --> RR[rerank]
+  Route -->|web| C2[condense] --> WEB[web_search]
+  RR --> GEN[generate]
+  WEB --> GEN
+  GEN --> FMT[format]
+```
 
-**Code:** `backend/app/services/tools/web_search.py`, graph routing in `nodes.py`, Vue `ChatInput` / stores.
+**API.**
+
+```json
+{ "content": "...", "research_mode": "kb" }
+```
+
+Metadata: `source_kind` (`kb` \| `web`), optional `disclaimer` for web answers.
+
+**Config.**
+
+```bash
+WEB_RESEARCH_ENABLED=false
+WEB_SEARCH_PROVIDER=mock          # mock | tavily
+TAVILY_API_KEY=
+WEB_SEARCH_MAX_RESULTS=5
+```
+
+**Security.** Opt-in only; disclaimer banner shown on every web answer; rate limits apply; no arbitrary URL fetch in v1.
+
+**Rationale:** Campus KB answers should default to governed corpus content. Open web is a deliberate user choice, not silent fallback when retrieval is weak. Decision rationale: [ADR-003](./adr/ADR-003-opt-in-web-research.md).
+
+**Code:** `backend/app/services/tools/web_search.py`, graph routing in `services/graph/nodes.py`, Vue `ChatInput` / stores.
 
 ---
 
@@ -196,8 +241,8 @@ Chat history is capped (`CHAT_HISTORY_MAX_MESSAGES`) to bound prompt size and co
 | Capability | Primary doc | Implementation |
 |------------|-------------|----------------|
 | Chat + SSE | [ARCHITECTURE.md](./ARCHITECTURE.md) | `backend/app/api/chat.py`, `frontend-vue/src/stores/chat.ts` |
-| LangGraph pipeline | [LANGGRAPH.md](./roadmap/LANGGRAPH.md) | `backend/app/services/graph/` |
-| Web research | [WEB_RESEARCH.md](./roadmap/WEB_RESEARCH.md) | `backend/app/services/tools/web_search.py` |
+| LangGraph pipeline | [LangGraph KB path](#langgraph-kb-path-multi-query--retrieve--rerank) (this doc) | `backend/app/services/graph/` |
+| Web research | [Opt-in web research](#opt-in-web-research) (this doc) | `backend/app/services/tools/web_search.py` |
 | Auth / OAuth | [PRODUCTION_TLS.md](./PRODUCTION_TLS.md) | `backend/app/api/auth/` |
 | Evaluation | [EVALUATION.md](./EVALUATION.md) | `backend/tests/eval/`, `scripts/run_eval_phase5.sh` |
 | CI/CD | [CI.md](./CI.md), [RELEASE.md](./RELEASE.md) | `.github/workflows/` |
@@ -222,7 +267,7 @@ Chat history is capped (`CHAT_HISTORY_MAX_MESSAGES`) to bound prompt size and co
 
 Documented in [roadmap/PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md):
 
-- **LangGraph-native SSE** — stream from `astream_events` instead of post-invoke chunking
+- **LangGraph-native SSE** — stream from `astream_events` instead of post-invoke chunking (Phase 6a in [PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md))
 - **Bounded rewrite loop** — `RAG_AGENTIC_ENABLED` (quality retry without open agents)
 - **Campus scale** — Redis rate limits, HA, EB hardening ([archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md))
 

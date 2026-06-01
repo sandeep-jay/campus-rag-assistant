@@ -9,8 +9,8 @@ Delivery phases for Campus RAG Assistant — what is shipped on [`main`](https:/
 | Doc | Purpose |
 |-----|---------|
 | **This file** | Phases, priorities, what’s next |
-| [LANGGRAPH.md](./LANGGRAPH.md) | `RAG_ENGINE`, graph nodes, latency |
-| [WEB_RESEARCH.md](./WEB_RESEARCH.md) | `research_mode=web` (Vue toggle + API) |
+| [DESIGN.md — LangGraph KB path](../DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank) | `RAG_ENGINE`, graph nodes, latency, config flags |
+| [DESIGN.md — Opt-in web research](../DESIGN.md#opt-in-web-research) | `research_mode=web` (Vue toggle + API), Tavily config |
 | [EVALUATION.md](../EVALUATION.md) | RAGAS vs LangSmith |
 | [archive/SPRINT_2026-05-18_LANGGRAPH.md](./archive/SPRINT_2026-05-18_LANGGRAPH.md) | Completed AWS KB validation sprint (log) |
 | [archive/PHASED_IMPROVEMENT_ROADMAP.md](./archive/PHASED_IMPROVEMENT_ROADMAP.md) | Campus / production scale (Redis HA, EB) — optional |
@@ -56,8 +56,8 @@ flowchart LR
 | Phase | Focus | Status |
 |-------|--------|--------|
 | **0–2** | Publish repo, platform + providers + tox | **Done** |
-| **4** | LangGraph KB graph (`RAG_ENGINE`); per-node traces | **Done** — [LANGGRAPH.md](./LANGGRAPH.md) |
-| **6b** | Opt-in web research (`research_mode=web`) | **Done** — [WEB_RESEARCH.md](./WEB_RESEARCH.md) |
+| **4** | LangGraph KB graph (`RAG_ENGINE`); per-node traces | **Done** — [DESIGN.md — LangGraph KB path](../DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank) |
+| **6b** | Opt-in web research (`research_mode=web`) | **Done** — [DESIGN.md — Opt-in web research](../DESIGN.md#opt-in-web-research) |
 | **3** | RAGAS baseline + README quality + LangSmith screenshots | **Done (lite)** — [EVALUATION.md](../EVALUATION.md); strict gates on release only |
 | **5** | Retrieval nodes (multi-query, filters, rerank) | **Done** — re-run RAGAS for full gates ([baseline](../eval_baseline_2026-05-19.md)) |
 | **6** | LangGraph SSE; bounded rewrite loop | **Optional** |
@@ -89,7 +89,7 @@ Detail: [EVALUATION.md](../EVALUATION.md).
 
 ## Phase 4 — LangGraph (done)
 
-Explicit RAG pipeline; same `{ message, metadata }` contract as chain. Detail: [LANGGRAPH.md](./LANGGRAPH.md). Sprint log: [archive/SPRINT_2026-05-18_LANGGRAPH.md](./archive/SPRINT_2026-05-18_LANGGRAPH.md).
+Explicit RAG pipeline; same `{ message, metadata }` contract as chain. Detail: [DESIGN.md — LangGraph KB path](../DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank). Sprint log: [archive/SPRINT_2026-05-18_LANGGRAPH.md](./archive/SPRINT_2026-05-18_LANGGRAPH.md).
 
 ---
 
@@ -108,7 +108,7 @@ Explicit RAG pipeline; same `{ message, metadata }` contract as chain. Detail: [
 
 ## Phase 6b — Web research (done)
 
-Opt-in `research_mode=web`, Tavily optional, disclaimer UI. [WEB_RESEARCH.md](./WEB_RESEARCH.md).
+Opt-in `research_mode=web`, Tavily optional, disclaimer UI. [DESIGN.md — Opt-in web research](../DESIGN.md#opt-in-web-research).
 
 ---
 

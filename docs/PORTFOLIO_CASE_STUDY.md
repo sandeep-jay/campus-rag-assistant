@@ -8,6 +8,10 @@ A production-style RAG platform for governed institutional knowledge, built to d
 
 Campus knowledge is scattered across LMS guides, ServiceNow articles, and policy documents. Staff and students need fast answers they can verify—not another generic chatbot that guesses from the open web.
 
+## What changed in v3 (2026-05-31)
+
+`v3.0.0` adds the **bounded helpdesk agent** end-to-end (backend LangGraph + Vue Ask/Agent mode + HITL ticket filing to a private GitHub demo repo), versioned architecture diagrams and product screenshots (`docs/assets/{architecture,product,auth}/{v1,v2,v3}/`), and the [Agentic Helpdesk Rebuild](./roadmap/AGENTIC_HELPDESK_REBUILD.md) roadmap that migrates the deterministic supervisor to a real LLM supervisor with structured-output specialists, `AsyncPostgresSaver`, enforced budgets, real-event SSE, trajectory eval, and a live campus router. Row-by-row shipped-vs-target reference: [helpdesk/index.md](./helpdesk/index.md#today-vs-target-state). Decision records: [ADR-005](./adr/ADR-005-bounded-helpdesk-agent.md) (original commitment) and [ADR-006](./adr/ADR-006-live-llm-supervisor-migration.md) (LLM supervisor migration). Full release-by-release summary: [release-notes/](./release-notes/index.md).
+
 ## My role
 
 I owned the platform transformation work represented in this repository: the Vue product UI, provider registry, AWS / Azure / mock execution modes, LangGraph orchestration, RAGAS evaluation harness, LangSmith observability, CI/CD, load testing, and operational documentation.
@@ -72,6 +76,7 @@ Full score tables: [eval_baseline_2026-05-19.md](./eval_baseline_2026-05-19.md).
 ## Related
 
 - [README](../README.md) — quick start and portfolio highlights
+- [release-notes/](./release-notes/index.md) — what shipped in v1.0 / v2.0 / v3.0.0
 - [DESIGN.md](./DESIGN.md) — goals, boundaries, tradeoffs
 - [PRODUCTION_HARDENING.md](./PRODUCTION_HARDENING.md) — scale and ops backlog
-- [docs/adr/](./adr/) — architecture decision records
+- [docs/adr/](./adr/) — architecture decision records (incl. ADR-006 for the agentic rebuild)

@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://github.com/sandeep-jay/campus-rag-assistant/blob/main/pyproject.toml)
 [![Node](https://img.shields.io/badge/node-20%2B-green.svg)](https://github.com/sandeep-jay/campus-rag-assistant/blob/main/frontend-vue/.nvmrc)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688.svg)](https://github.com/sandeep-jay/campus-rag-assistant/blob/main/backend/app/main.py)
-[![LangGraph](https://img.shields.io/badge/RAG-LangGraph-purple.svg)](roadmap/LANGGRAPH.md)
+[![LangGraph](https://img.shields.io/badge/RAG-LangGraph-purple.svg)](DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank)
 [![RAGAS](https://img.shields.io/badge/eval-RAGAS-yellow.svg)](EVALUATION.md)
 
 **Production-style enterprise RAG platform for governed campus knowledge.**
@@ -126,9 +126,13 @@ Design detail: [Architecture](ARCHITECTURE.md) and [Design Notes](DESIGN.md).
 
 ### Helpdesk agent (v3)
 
-![Agent mode — chat overview](assets/product/v3/chat-overview.png)
+![Agent mode — proposed solution](assets/product/v3/agent-proposed-solution.png)
+
+![HITL clarifying question](assets/product/v3/agent-hitl-impact-question.png)
 
 ![HITL ticket review modal](assets/product/v3/agent-ticket-draft.png)
+
+![Filed GitHub Issue](assets/product/v3/github-issues-created.png)
 
 More assets: [screenshots catalog](assets/README.md).
 

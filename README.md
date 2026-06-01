@@ -6,7 +6,7 @@
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 [![Node](https://img.shields.io/badge/node-20%2B-green.svg)](frontend-vue/.nvmrc)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688.svg)](backend/app/main.py)
-[![LangGraph](https://img.shields.io/badge/RAG-LangGraph-purple.svg)](docs/roadmap/LANGGRAPH.md)
+[![LangGraph](https://img.shields.io/badge/RAG-LangGraph-purple.svg)](docs/DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank)
 [![RAGAS](https://img.shields.io/badge/eval-RAGAS-yellow.svg)](docs/EVALUATION.md)
 
 **Production-style enterprise RAG platform for governed campus knowledge.**
@@ -237,7 +237,7 @@ Enable `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, and `LANGCHAIN_PROJECT` in `
 | **CI/CD**             | GitHub Actions — tox suite, gitleaks, dependency review, no tool attribution, docs build, and optional CD ([docs/CI.md](docs/CI.md))          |
 | **Load tests**        | k6 ([docs/LOAD_TESTING.md](docs/LOAD_TESTING.md))                                                         |
 
-Local demos: `RAG_FORCE_MOCK=true` with no cloud credentials. Design detail: [docs/roadmap/LANGGRAPH.md](docs/roadmap/LANGGRAPH.md), [docs/roadmap/WEB_RESEARCH.md](docs/roadmap/WEB_RESEARCH.md).
+Local demos: `RAG_FORCE_MOCK=true` with no cloud credentials. Design detail: [DESIGN.md — LangGraph KB path](docs/DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank), [DESIGN.md — Opt-in web research](docs/DESIGN.md#opt-in-web-research).
 
 ## Feature availability
 

@@ -24,7 +24,7 @@ Priority: **P1** (before multi-tenant production) · **P2** (scale / cost) · **
 | **Async ingestion / KB sync cadence** | P2 | Stale corpus; recall drops | Scheduled sync jobs; invalidation hooks for cache | AWS-managed via Bedrock KB connectors |
 | **Queueing for long RAG paths** | P2 | Timeouts under load | Background worker for eval/heavy retrieve; SSE keep-alive | Not started |
 | **Postgres DR / backup posture** | P2 | Data loss on failure | Automated backups, restore drill, RPO/RTO doc | Operator-dependent |
-| **LangGraph-native SSE** (Phase 6a) | P3 | Higher TTFT on graph path | `astream_events` from graph; same SSE contract as chain | Optional — [LANGGRAPH.md](./roadmap/LANGGRAPH.md) |
+| **LangGraph-native SSE** (Phase 6a) | P3 | Higher TTFT on graph path | `astream_events` from graph; same SSE contract as chain | Optional — [DESIGN.md — LangGraph KB path](./DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank) |
 | **Expand RAGAS golden set** (10 → 30–50) | P3 | Thin regression signal | Bootstrap + manual curation; tag by topic/difficulty | 10 rows today |
 | **Expand helpdesk-agent eval set** | P3 | Thin agent-decision regression signal | Add scenarios under `backend/tests/eval/test_helpdesk_agent_scenarios.py` (clarify, retry-kb, web, file/link branches) | Initial scenarios shipped — [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md) |
 | **RAG service lifecycle** (singleton vs per-request) | P3 | Latency / connection churn | Document tradeoff; optional app-state singleton with config refresh | Per-request construction today |
