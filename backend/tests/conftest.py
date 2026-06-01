@@ -72,8 +72,16 @@ from backend.app.services.rag import RAGService
 
 @pytest.fixture(scope='session')
 def engine():
-    # Get PostgreSQL connection details from environment
-    postgres_host = os.environ.get('POSTGRES_HOST', 'localhost')
+    # Get PostgreSQL connection details from environment. We force IPv4
+    # 127.0.0.1 instead of the resolver-default ``localhost`` because on
+    # macOS ``localhost`` resolves to ``::1`` first and Docker Desktop's
+    # published 5432 listener only answers on IPv4 — the IPv6 TCP
+    # handshake completes through vpnkit but no Postgres ever sees the
+    # startup packet, so ``psql -lqt`` / ``createdb`` block in
+    # ``os.waitpid`` forever (and pytest's main thread with it).
+    postgres_host = os.environ.get('POSTGRES_HOST', '127.0.0.1')
+    if postgres_host == 'localhost':
+        postgres_host = '127.0.0.1'
     postgres_port = os.environ.get('POSTGRES_PORT', '5432')
     postgres_user = os.environ.get('POSTGRES_USER', 'chatbot')
     postgres_password = os.environ.get('POSTGRES_PASSWORD', 'chatbot')
@@ -82,23 +90,43 @@ def engine():
     # Use PostgreSQL for tests with 'chatbot_test' database
     test_db_url = f'postgresql://{postgres_user}:{postgres_password}@{postgres_host}:{postgres_port}/{postgres_db}'
 
+    # Subprocess env: pass the password via PGPASSWORD so libpq does not
+    # prompt the (closed) child stdin and hang. ``-w`` then asserts
+    # "never prompt"; libpq fails fast with an error instead of waiting
+    # if PGPASSWORD is missing or wrong. ``PGCONNECT_TIMEOUT`` caps the
+    # TCP/auth handshake so a misconfigured Docker port mapping turns
+    # into a clear timeout instead of an open-ended stall.
+    pg_env = {
+        **os.environ,
+        'PGPASSWORD': postgres_password,
+        'PGCONNECT_TIMEOUT': os.environ.get('PGCONNECT_TIMEOUT', '5'),
+    }
+
+    def _psql_args(extra: list[str]) -> list[str]:
+        return [
+            'psql',
+            '-w',
+            '-U',
+            postgres_user,
+            '-h',
+            postgres_host,
+            '-p',
+            postgres_port,
+            *extra,
+        ]
+
     # Create test database if it doesn't exist
     try:
-        # Check if database exists
+        # Check if database exists. A hard wall-clock cap prevents a
+        # silent libpq retry loop from ever blocking pytest startup
+        # again — fail loud with the actual stderr instead.
         result = subprocess.run(
-            [
-                'psql',
-                '-U',
-                postgres_user,
-                '-h',
-                postgres_host,
-                '-p',
-                postgres_port,
-                '-lqt',
-            ],
+            _psql_args(['-lqt']),
             capture_output=True,
             text=True,
             check=False,
+            env=pg_env,
+            timeout=30,
         )
         existing_dbs = result.stdout.strip()
         if f' {postgres_db} ' not in existing_dbs:
@@ -106,6 +134,7 @@ def engine():
             subprocess.run(
                 [
                     'createdb',
+                    '-w',
                     '-U',
                     postgres_user,
                     '-h',
@@ -115,8 +144,19 @@ def engine():
                     postgres_db,
                 ],
                 check=True,
+                env=pg_env,
+                timeout=30,
             )
             print(f'Created test database: {postgres_db}')
+    except subprocess.TimeoutExpired as e:
+        # Re-raise as a fixture error so pytest surfaces it cleanly
+        # instead of inheriting an unhealthy session-scoped engine.
+        raise RuntimeError(
+            f'Postgres bootstrap timed out talking to {postgres_host}:{postgres_port}. '
+            f'On macOS this usually means localhost resolved to IPv6 and Docker only '
+            f'publishes 5432 on IPv4 — set POSTGRES_HOST=127.0.0.1 in .env.test or '
+            f'verify the db container is running ("docker compose ps").',
+        ) from e
     except Exception as e:
         print(f'Warning: Failed to check/create database: {e}')
 

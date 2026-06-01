@@ -24,7 +24,11 @@ watch(
 
 function appendAgentTurn(turn: AgentTurn): void {
   helpdesk.recordAgentTurn(turn)
-  chat.recordAgentTurnIntoChat(turn.message, turn)
+  // Append a NEW assistant bubble below the user's reply (mirrors the
+  // free-text reply path in ChatView). Upserting the existing bubble in
+  // place would render the next question above the user's reply, which
+  // reads as 'nothing happened' once the chat is scrolled to the bottom.
+  chat.addAssistantMessage(turn.message, { agent_turn: turn })
   if (turn.draft) {
     helpdesk.openModal()
   }

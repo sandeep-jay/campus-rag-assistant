@@ -30,6 +30,14 @@ export interface DocContent {
   metadata: Source
 }
 
+export type RouterDomain = 'helpdesk' | 'kb_answer'
+
+export interface RouterDecision {
+  domain: RouterDomain
+  confidence: number
+  reason?: string
+}
+
 export interface ChatMessage {
   id: number
   content: string
@@ -40,6 +48,12 @@ export interface ChatMessage {
     source_kind?: ResearchMode
     disclaimer?: string | null
     kb_resolved?: boolean | null
+    // Campus router decision (Phase 5). Present only when
+    // ``CAMPUS_ROUTER_ENABLED`` is true on the backend; UI promotes the
+    // escalation chip when ``domain === 'helpdesk'`` and
+    // ``confidence >= ROUTER_HELPDESK_FLOOR`` even when
+    // ``kb_resolved`` is true.
+    router_decision?: RouterDecision | null
     agent_turn?: AgentTurn
     // Server-persisted recap of a terminal helpdesk-agent run. Present
     // on chat_messages rows written by Option A persistence
@@ -138,6 +152,7 @@ export type StreamEvent =
       source_kind?: ResearchMode
       disclaimer?: string | null
       kb_resolved?: boolean | null
+      router_decision?: RouterDecision | null
     }
   | { type: 'error'; message: string }
 

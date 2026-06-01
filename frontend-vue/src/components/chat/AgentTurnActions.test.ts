@@ -75,6 +75,31 @@ describe('AgentTurnActions', () => {
     expect(chat.messages.some((m) => m.role === 'assistant' && m.content.includes('resolved'))).toBe(true)
   })
 
+  it('appends the new agent bubble BELOW the user reply (not upserted in place)', async () => {
+    // Repro: the original bug was that the next agent turn replaced the
+    // existing bubble at its old position (above the user's just-added
+    // reply), making the new question invisible at the bottom of the
+    // scroll. We assert order: prior agent bubble → user reply → new
+    // agent bubble, so the user sees the next question right after their
+    // answer.
+    renderWithProviders(AgentTurnActions, { props: { turn } })
+    const chat = useChatStore()
+    chat.addAssistantMessage('Did this solve the issue?', { agent_turn: turn })
+    expect(chat.messages).toHaveLength(1)
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /yes, that solved it/i }))
+
+    await waitFor(() => expect(chat.messages).toHaveLength(3))
+    const [priorAgent, userReply, newAgent] = chat.messages
+    expect(priorAgent.role).toBe('assistant')
+    expect(priorAgent.content).toBe('Did this solve the issue?')
+    expect(userReply.role).toBe('user')
+    expect(userReply.content).toBe('Yes, that solved it')
+    expect(newAgent.role).toBe('assistant')
+    expect(newAgent.content).toContain('resolved')
+  })
+
   it('renders an AskCard + radio group for radio input and submits on click', async () => {
     const api = await import('@/api/helpdesk')
     const radioTurn = {

@@ -214,6 +214,16 @@ class DefaultSettings(BaseSettings):
     HELPDESK_AGENT_WEB_SEARCH_TIMEOUT_SECONDS: float = 10.0
     HELPDESK_AGENT_GITHUB_SEARCH_TIMEOUT_SECONDS: float = 8.0
 
+    # Campus router (Phase 5 — capability registry + LLM domain router).
+    # Off by default so PR CI and the deterministic chat path are unchanged;
+    # demo mode enables it to route escalations to helpdesk and surface the
+    # router decision alongside ``kb_resolved`` in chat metadata. The
+    # ``ROUTER_HELPDESK_FLOOR`` is the minimum confidence at which a
+    # router-classified ``helpdesk`` turn promotes the escalation chip even
+    # when ``kb_resolved`` is true. See ADR-007.
+    CAMPUS_ROUTER_ENABLED: bool = False
+    ROUTER_HELPDESK_FLOOR: float = 0.6
+
     # Auth cookies (set AUTH_COOKIE_SECURE=true in production HTTPS)
     AUTH_COOKIE_SECURE: bool = False
     AUTH_COOKIE_SAMESITE: str = 'lax'

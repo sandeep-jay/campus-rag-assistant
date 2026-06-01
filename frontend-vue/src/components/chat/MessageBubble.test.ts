@@ -189,8 +189,83 @@ describe('MessageBubble', () => {
     expect(screen.queryByTestId('helpdesk-actions')).not.toBeInTheDocument()
   })
 
+  it('shows helpdesk actions when router classifies turn as helpdesk above floor', () => {
+    const routerEscalated: ChatMessage = {
+      id: 9,
+      content: 'Here is general info...',
+      role: 'assistant',
+      metadata: {
+        kb_resolved: true,
+        sources: [],
+        document_contents: [],
+        router_decision: { domain: 'helpdesk', confidence: 0.85, reason: 'router' },
+      },
+      created_at: '',
+    }
+    renderWithProviders(MessageBubble, {
+      props: { message: routerEscalated, isLastMessage: true },
+    })
+    expect(screen.getByTestId('helpdesk-actions')).toBeInTheDocument()
+  })
+
+  it('hides helpdesk actions when router classifies helpdesk below floor', () => {
+    const routerWeak: ChatMessage = {
+      id: 10,
+      content: 'Here is general info...',
+      role: 'assistant',
+      metadata: {
+        kb_resolved: true,
+        sources: [],
+        document_contents: [],
+        router_decision: { domain: 'helpdesk', confidence: 0.4, reason: 'low' },
+      },
+      created_at: '',
+    }
+    renderWithProviders(MessageBubble, {
+      props: { message: routerWeak, isLastMessage: true },
+    })
+    expect(screen.queryByTestId('helpdesk-actions')).not.toBeInTheDocument()
+  })
+
   it('does NOT show feedback buttons for user messages', () => {
     renderWithProviders(MessageBubble, { props: { message: userMessage } })
     expect(screen.queryByRole('button', { name: /mark as helpful/i })).not.toBeInTheDocument()
+  })
+
+  // Multi-turn helpdesk-agent bubbles: only the bottom-most agent bubble is
+  // the active turn. Older bubbles in the same agent session keep their
+  // question text and timeline but must not re-render the interactive
+  // pills/radios that the user has already answered — otherwise scrolling
+  // up shows ghost buttons that can fire stale resume calls.
+  const agentQuestionTurn = {
+    session_id: 'agent-1',
+    kind: 'question' as const,
+    message: 'Did this solve the issue?',
+    choices: ['Yes, that solved it', "No, doesn't apply", "Tried it, didn't work"],
+    input: 'pills' as const,
+    draft: null,
+    linked_issue_url: null,
+    debug_trace: [{ step: 'supervisor', action: 'propose_solution', outcome: 'waiting', message: 'solution-agent-1' }],
+  }
+  const agentBubble: ChatMessage = {
+    id: 11,
+    content: 'Did this solve the issue?',
+    role: 'assistant',
+    metadata: { agent_turn: agentQuestionTurn, sources: [], document_contents: [] },
+    created_at: '2024-01-01T10:00:00Z',
+  }
+
+  it('renders AgentTurnActions on the bottom-most agent bubble (isLastMessage)', () => {
+    renderWithProviders(MessageBubble, {
+      props: { message: agentBubble, isLastMessage: true },
+    })
+    expect(screen.getByTestId('agent-turn-actions')).toBeInTheDocument()
+  })
+
+  it('hides AgentTurnActions on older agent bubbles (not isLastMessage)', () => {
+    renderWithProviders(MessageBubble, {
+      props: { message: agentBubble, isLastMessage: false },
+    })
+    expect(screen.queryByTestId('agent-turn-actions')).not.toBeInTheDocument()
   })
 })

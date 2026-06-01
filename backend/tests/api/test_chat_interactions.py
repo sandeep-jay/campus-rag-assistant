@@ -109,6 +109,54 @@ def test_chat_with_mock_rag(mock_get_rag_service, client: TestClient, test_user_
     assert data['assistant_message']['content'] == 'This is a mock response'
 
 
+@patch('backend.app.api.chat.get_rag_service')
+def test_chat_metadata_omits_router_decision_when_disabled(mock_get_rag_service, client: TestClient, test_user_token: str) -> None:
+    """When ``CAMPUS_ROUTER_ENABLED`` is false, metadata.router_decision is None."""
+    mock_rag_service = mock_get_rag_service.return_value
+    mock_rag_service.process_query.return_value = {
+        'message': 'mock answer',
+        'metadata': {'sources': [], 'document_contents': [], 'kb_resolved': True},
+    }
+    with patch.multiple(
+        'backend.app.core.config_manager.settings',
+        CAMPUS_ROUTER_ENABLED=False,
+    ):
+        response = client.post(
+            '/api/chat/chat',
+            json={'content': 'How do I submit an assignment?'},
+            headers={'Authorization': f'Bearer {test_user_token}'},
+        )
+    assert response.status_code == status.HTTP_200_OK
+    metadata = response.json()['assistant_message']['metadata']
+    assert metadata.get('router_decision') is None
+
+
+@patch('backend.app.api.chat.get_rag_service')
+def test_chat_metadata_includes_router_decision_when_enabled(mock_get_rag_service, client: TestClient, test_user_token: str) -> None:
+    """When the router is enabled, metadata carries a structured ``router_decision``."""
+    mock_rag_service = mock_get_rag_service.return_value
+    mock_rag_service.process_query.return_value = {
+        'message': 'mock answer',
+        'metadata': {'sources': [], 'document_contents': [], 'kb_resolved': True},
+    }
+    with patch.multiple(
+        'backend.app.core.config_manager.settings',
+        CAMPUS_ROUTER_ENABLED=True,
+        LLM_PROVIDER='mock',
+        RAG_FORCE_MOCK=True,
+    ):
+        response = client.post(
+            '/api/chat/chat',
+            json={'content': 'Oracle Financials 403 error, please fix'},
+            headers={'Authorization': f'Bearer {test_user_token}'},
+        )
+    assert response.status_code == status.HTTP_200_OK
+    decision = response.json()['assistant_message']['metadata']['router_decision']
+    assert decision is not None
+    assert decision['domain'] == 'helpdesk'
+    assert 0.0 <= decision['confidence'] <= 1.0
+
+
 def test_submit_feedback(client: TestClient, test_user_token: str) -> None:
     """Test submitting feedback for a message."""
     # First create a session and send a message

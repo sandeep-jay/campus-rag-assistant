@@ -73,7 +73,7 @@ The shipped helpdesk loop is real, observable, multi-turn, and HITL-gated, but t
 | Trajectory eval (`test_helpdesk_agent_scenarios.py`) | Scenario rig as designed | Phase 4 — mock-CI gate + live-nightly comparison |
 | Campus router (`classify_domain`) | Not built | Phase 5 — LLM domain router with capability registry |
 
-Roadmap source of truth: [docs/roadmap/AGENTIC_HELPDESK_REBUILD.md](../roadmap/AGENTIC_HELPDESK_REBUILD.md). Decision record: [ADR-005](../adr/ADR-005-bounded-helpdesk-agent.md) (original commitment) and [ADR-006](../adr/ADR-006-live-llm-supervisor-migration.md) (rebuild supersession).
+Roadmap source of truth: [docs/roadmap/AGENTIC_HELPDESK_REBUILD.md](../roadmap/AGENTIC_HELPDESK_REBUILD.md). Decision records: [ADR-005](../adr/ADR-005-bounded-helpdesk-agent.md) (original commitment), [ADR-006](../adr/ADR-006-live-llm-supervisor-migration.md) (rebuild supersession), and [ADR-007](../adr/ADR-007-agent-registry-and-router.md) (agent registry + campus router seam). Registry contract: [AGENT_REGISTRY.md](../roadmap/AGENT_REGISTRY.md).
 
 ## Where to read more
 

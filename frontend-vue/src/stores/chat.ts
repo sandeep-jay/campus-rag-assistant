@@ -151,6 +151,7 @@ export const useChatStore = defineStore('chat', () => {
                   source_kind: doneEvent.source_kind,
                   disclaimer: doneEvent.disclaimer ?? null,
                   kb_resolved: doneEvent.kb_resolved ?? null,
+                  router_decision: doneEvent.router_decision ?? null,
                 },
                 created_at: new Date().toISOString(),
               },
