@@ -39,7 +39,7 @@ Detailed diagrams and request flows: [ARCHITECTURE.md](./ARCHITECTURE.md).
 | **Opt-in web research** | Governed KB-first; open web is explicit per message with disclaimer | [ADR-003](./adr/ADR-003-opt-in-web-research.md) |
 | **RAGAS gates as release controls** | Honest baselines on PR CI; strict gates on release milestones only | [ADR-004](./adr/ADR-004-eval-gating-policy.md) |
 | **Bedrock KB API** (not direct OpenSearch) | Managed sync, retrieve, and citation metadata; simpler ops | [DESIGN.md](./DESIGN.md#bedrock-knowledge-base-with-opensearch-aws) |
-| **Bounded helpdesk agent** | Real agentic loop (LLM-chosen tools, multi-turn checkpointing, HITL gate) without unbounded autonomy; original one-shot endpoints kept as fallbacks | [ADR-005](./adr/ADR-005-bounded-helpdesk-agent.md), [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md) |
+| **Bounded helpdesk agent** | Real agentic loop (LLM-chosen tools, multi-turn checkpointing, HITL gate) without unbounded autonomy; original one-shot endpoints kept as fallbacks | [ADR-005](./adr/ADR-005-bounded-helpdesk-agent.md) + [ADR-006](./adr/ADR-006-live-llm-supervisor-migration.md), [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md) |
 
 ## Measured outcomes
 

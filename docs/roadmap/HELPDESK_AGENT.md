@@ -4,7 +4,9 @@ Multi-turn, multi-agent helpdesk capability that sits inside the chatbot's
 AGENT mode. Product-level shape (modes, intent routing, UX) lives in
 [CONVERSATION_FLOW.md](./CONVERSATION_FLOW.md).
 
-**Status (2026-05-27):** Implemented on `main` (PRs #37–#43). This document remains the engineering spec; see [ARCHITECTURE.md](../ARCHITECTURE.md) for the live API surface.
+**Status (2026-05-31):** **Mixed.** Topology, tools, budgets-as-data, HITL gate, multi-turn pause/resume, and four-outcome termination are shipped on `main` (PRs #37–#43, tagged `v3.0.0`). The LLM supervisor + structured-output specialists, compiled `StateGraph`, `AsyncPostgresSaver`, enforced budgets, trajectory eval, and campus router described below are the **target** state, delivered by [AGENTIC_HELPDESK_REBUILD.md](./AGENTIC_HELPDESK_REBUILD.md). Per-section shipped/target labels are in the [Today vs target table](../helpdesk/index.md#today-vs-target-state). This document is the engineering reference for both the shipped surface and the rebuild target.
+
+> **Reading this doc as a reviewer.** Treat anything below as the target unless it is also listed under "Shipped" in the table above. The `live API surface` at [ARCHITECTURE.md](../ARCHITECTURE.md#helpdesk-capabilities-post-rag) is the source of truth for the current `/api/helpdesk/agent/*` endpoints and `AgentTurn` schema.
 
 ---
 
@@ -131,17 +133,15 @@ question.
 
 ## Multi-turn mechanics
 
-LangGraph's checkpointer pattern:
+> **Shipped today:** a custom JSON-on-SQLite checkpoint at `${PROJECT_ROOT}/.helpdesk_agent_checkpoints.sqlite` (gitignored) keyed by `chat_session_id`, with pause/resume driven by an `awaiting_user` flag and a custom resume call. **Target (Phase 1b of the rebuild):** `AsyncPostgresSaver` from `langgraph-checkpoint-postgres`, schema owned by Alembic (not `AsyncPostgresSaver.setup()`), TTL sweep on `HELPDESK_AGENT_CHECKPOINT_TTL_SECONDS` (default 86400), pause/resume via LangGraph `interrupt()` + `Command(resume=...)`.
 
-- **Checkpointer**: `SqliteSaver` keyed by `thread_id = chat_session_id`.
-- **DB file**: `${PROJECT_ROOT}/.helpdesk_agent_checkpoints.sqlite`, gitignored.
-- **Pause**: when supervisor picks `ask_user`, the graph routes to a
-  terminal `await_user` node that sets `awaiting_user` and returns. The
-  checkpointer persists state.
-- **Resume**: `POST /agent/resume` loads the checkpoint by `session_id`,
-  appends the reply to state, re-enters the supervisor.
-- **TTL**: checkpoints older than 24h are GC'd by a startup task. Stale
-  cross-day state is worse than no state.
+LangGraph's checkpointer pattern (target):
+
+- **Checkpointer**: `AsyncPostgresSaver` keyed by `thread_id = chat_session_id`. SQLite saver retained as a dev fallback (`HELPDESK_AGENT_CHECKPOINT_BACKEND=sqlite`); `memory` used in tests.
+- **Schema**: `checkpoints`, `checkpoint_blobs`, `checkpoint_writes` created by an Alembic migration, not by `setup()` at app startup.
+- **Pause**: when supervisor picks `ask_user`, the graph hits an `interrupt()` inside `await_user` / `await_confirm`. The checkpointer persists state.
+- **Resume**: `POST /agent/resume` loads the checkpoint by `session_id` and feeds the reply via `Command(resume=...)`; `/agent/confirm` does the same for the HITL gate.
+- **TTL**: checkpoints older than the TTL are GC'd by a periodic sweep. Stale cross-day state is worse than no state.
 
 ---
 
@@ -682,10 +682,12 @@ frontend-vue/src/components/chat/EscalationChips.vue
 
 ---
 
-## Phasing inside this branch
+## Phasing (historical — supersded by AGENTIC_HELPDESK_REBUILD)
 
-Phases #37–#43 landed on `main`. Use feature branches for follow-up work. Commit-disciplined so we can
-cherry-split into separate PRs at the end if reviewers prefer.
+The original Phases A–D landed on `main` (PRs #37, #41, #42, #43, tagged `v3.0.0`). The live forward-looking plan is now [AGENTIC_HELPDESK_REBUILD.md](./AGENTIC_HELPDESK_REBUILD.md), which delivers the LLM supervisor, compiled `StateGraph`, `AsyncPostgresSaver`, enforced budgets, trajectory eval, and campus router that the original phasing referred to as "in scope" but did not actually wire in code. See [ADR-006](../adr/ADR-006-live-llm-supervisor-migration.md) for the supersession record.
+
+<details>
+<summary>Original Phase A–D outline (kept for reference)</summary>
 
 ### Phase A — Agentic skeleton
 
@@ -721,8 +723,7 @@ cherry-split into separate PRs at the end if reviewers prefer.
 - Tests: streaming events emitted in correct order; classifier picks
   expected severity on calibration cases.
 
-Phases A and B together = multi-turn agent shipped. C adds the "actually
-solves problems" capability. D is polish + the product-level mode toggle.
+</details>
 
 ---
 
@@ -819,13 +820,12 @@ phrase pattern (Layer 3) or rides the free-form `/agent/resume` path.
 
 ## Decisions locked
 
-1. **Checkpointer: `SqliteSaver`** at `./.helpdesk_agent_checkpoints.sqlite` (gitignored).
-2. **HITL gate**: agent never files without explicit "File it" click.
-3. **Existing endpoints stay**: `/summarize`, `/draft-ticket`, `/create-issue`
-   are the cheap fallbacks and the tools the agent calls internally.
-4. **Mock mode parity**: deterministic scripted plan for the sentinel query.
-5. **All P0 + all P1 in scope.** P2 is future work.
-6. **Phases A+B+C+D land on this branch.** PR splitting decided at the end.
+1. **HITL gate** — agent never files without explicit `/agent/confirm`. Invariant in shipped code and in the rebuild target.
+2. **Existing endpoints stay** — `/summarize`, `/draft-ticket`, `/create-issue` are the cheap fallbacks and the tools the agent calls internally. Both shipped and target.
+3. **Mock mode parity** — deterministic scripted plan for the sentinel query (`Oracle Financials 403 error on budget reports`). Shipped.
+4. **Closed `NextAction` enum + allow-list** — supervisor cannot return out-of-enum actions; invalid output falls back to the deterministic supervisor. Target — Phase 2 of the rebuild.
+5. **Checkpointer: `AsyncPostgresSaver`** keyed by `chat_session_id`, schema owned by Alembic. Target — Phase 1b. **Shipped today:** custom JSON-on-SQLite at `./.helpdesk_agent_checkpoints.sqlite`.
+6. **Phasing supersession** — the original Phases A–D landed on `main` (PRs #37–#43); the live forward-looking plan is [AGENTIC_HELPDESK_REBUILD.md](./AGENTIC_HELPDESK_REBUILD.md), tracked in [ADR-006](../adr/ADR-006-live-llm-supervisor-migration.md).
 
 ---
 

@@ -36,7 +36,7 @@ Campus RAG Assistant demonstrates how institutional knowledge can be served thro
 | Evaluating ownership and judgment | [Case Study](PORTFOLIO_CASE_STUDY.md) |
 | Reviewing architecture | [Architecture](ARCHITECTURE.md) + [Design Notes](DESIGN.md) |
 | Reviewing AI quality | [Evaluation](EVALUATION.md) + [Baseline](eval_baseline_2026-05-19.md) |
-| Reviewing agentic orchestration | [Helpdesk Agent overview](helpdesk/index.md) -> [Conversation Flow](roadmap/CONVERSATION_FLOW.md) (product spec) + [Engineering Spec](roadmap/HELPDESK_AGENT.md) + [ADR-005](adr/ADR-005-bounded-helpdesk-agent.md) |
+| Reviewing agentic orchestration | [Helpdesk Agent overview](helpdesk/index.md) -> [Conversation Flow](roadmap/CONVERSATION_FLOW.md) (product spec) + [Engineering Spec](roadmap/HELPDESK_AGENT.md) + [ADR-005](adr/ADR-005-bounded-helpdesk-agent.md) + [ADR-006](adr/ADR-006-live-llm-supervisor-migration.md) + [Agentic Rebuild plan](roadmap/AGENTIC_HELPDESK_REBUILD.md) |
 | Reviewing production maturity | [CI/CD](CI.md) + [Operations](OPERATIONS.md) + [Security](SECURITY.md) |
 
 ## Senior engineering signals
@@ -98,7 +98,7 @@ Design detail: [Architecture](ARCHITECTURE.md) and [Design Notes](DESIGN.md).
 | New here | This page |
 | Hiring / portfolio reviewer | [Case Study](PORTFOLIO_CASE_STUDY.md) |
 | Architecture reviewer | [Architecture](ARCHITECTURE.md), [Design Notes](DESIGN.md), [ADRs](adr/README.md) |
-| Agentic orchestration reviewer | [Helpdesk Agent overview](helpdesk/index.md), [Conversation Flow](roadmap/CONVERSATION_FLOW.md), [Engineering Spec](roadmap/HELPDESK_AGENT.md), [ADR-005](adr/ADR-005-bounded-helpdesk-agent.md) |
+| Agentic orchestration reviewer | [Helpdesk Agent overview](helpdesk/index.md), [Conversation Flow](roadmap/CONVERSATION_FLOW.md), [Engineering Spec](roadmap/HELPDESK_AGENT.md), [ADR-005](adr/ADR-005-bounded-helpdesk-agent.md), [ADR-006](adr/ADR-006-live-llm-supervisor-migration.md) |
 | Evaluation reviewer | [Evaluation Approach](EVALUATION.md), [Evaluation Baseline](eval_baseline_2026-05-19.md) |
 | Operations reviewer | [Operations](OPERATIONS.md), [CI/CD](CI.md), [Release](RELEASE.md), [Security](SECURITY.md) |
 | Product demo reviewer | [Screenshots and demo script](assets/README.md) |

@@ -1,7 +1,8 @@
 # ADR-005: Bounded helpdesk agent (LangGraph) over open multi-agent autonomy
 
-**Status:** Accepted
+**Status:** Accepted (see implementation status below)
 **Date:** 2026-05-27
+**Implementation status (2026-05-31):** **Mixed.** Topology, tools, HITL gate, multi-turn pause/resume, four-outcome termination, and the original-endpoint fallback are shipped on `main` (PRs #37–#43, tagged `v3.0.0`). The LLM supervisor + structured-output specialists, compiled `StateGraph`, `AsyncPostgresSaver` (with Alembic-owned schema), enforced budgets, scenario-based trajectory eval, and campus router are the target state, captured under [ADR-006](./ADR-006-live-llm-supervisor-migration.md) and delivered by the [Agentic Helpdesk Rebuild](../roadmap/AGENTIC_HELPDESK_REBUILD.md). The shipped-vs-target row table lives at [helpdesk/index.md](../helpdesk/index.md#today-vs-target-state).
 
 ## Context
 
@@ -73,4 +74,5 @@ Concretely:
 - Live API surface: [docs/ARCHITECTURE.md](../ARCHITECTURE.md#helpdesk-capabilities-post-rag)
 - Privacy / redaction / kill switch: [docs/SECURITY.md](../SECURITY.md)
 - Scenario evaluation: [docs/EVALUATION.md](../EVALUATION.md#helpdesk-agent-evaluation)
-- Implementation: PRs #37, #41, #42, #43 on `main`
+- Implementation (shipped slice): PRs #37, #41, #42, #43 on `main` (tagged `v3.0.0`)
+- Implementation (target slice): [ADR-006 — Live LLM supervisor migration](./ADR-006-live-llm-supervisor-migration.md) and [docs/roadmap/AGENTIC_HELPDESK_REBUILD.md](../roadmap/AGENTIC_HELPDESK_REBUILD.md)
