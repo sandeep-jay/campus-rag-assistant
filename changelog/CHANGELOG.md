@@ -21,26 +21,32 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Added
 
-- **Docs — releases hub** — consolidated `docs/release-notes/index.md` (v1.0 / v2.0 / v3.0.0); dropped duplicate `docs/README.md` ([#50](https://github.com/sandeep-jay/campus-rag-assistant/pull/50)).
-- **Docs — ADR-006** — [ADR-006](../docs/adr/ADR-006-live-llm-supervisor-migration.md) records the LLM supervisor migration plan; [helpdesk/index.md](../docs/helpdesk/index.md) gains a shipped-vs-target row table ([#51](https://github.com/sandeep-jay/campus-rag-assistant/pull/51)).
-
 ### Changed
 
-- **Docs — reviewer introductions** — aligned README, docs landing, Reviewer Guide, Case Study, and Architecture around one product introduction; reordered first-visit sections around product features and architecture; added Azure retrieval parity in Architecture/Design; and extended docs-auditor checks to prevent future drift.
-- **Docs — first-visit polish** — moved operational runbooks into `docs/operations-manual/`, added an operations-manual landing page, and tightened the repo README, docs landing page, Reviewer Guide, and Case Study so first-time reviewers see crisp portfolio value before release history or deep reference material.
-- **Docs cleanup arc (PRs #50–#54)** — six-PR documentation consolidation: releases hub; helpdesk shipped-vs-target labels + ADR-006; ARCHITECTURE + DESIGN refresh with LANGGRAPH/WEB_RESEARCH folded into DESIGN; operations surface consolidated (PERFORMANCE, PRODUCTION_TLS, E2E, TENANT_CONFIG absorbed); `eval_baseline_2026-05-19` renamed to [eval_baseline_v2.md](../docs/eval_baseline_v2.md); SECURITY dependency floor + PRODUCT_ROADMAP Phase 6d shipped status refreshed.
-- **Docs — OPERATIONS.md** — absorbs local OAuth, production HTTPS/HTTP/2, Playwright E2E, campus Phase 0 performance guardrails.
-- **Docs — DESIGN.md** — absorbs tenant config and LangGraph KB path + opt-in web research sections.
-- **Docs — EVALUATION.md** — helpdesk eval distinguishes shipped metrics from planned trajectory scenario rig (Agentic Rebuild Phase 4).
-- **Docs — PRODUCT_ROADMAP.md** — Phase 6d marked **shipped** (`v3.0.0`); Agentic Helpdesk Rebuild is the live forward track.
-
 ### Fixed
-
-- **Docs drift** — helpdesk spec and ADR-005 no longer overstate LLM supervisor, compiled StateGraph, enforced budgets, and trajectory eval as shipped.
 
 ### Security
 
 ## [v3.0.0] — 2026-05-31
+
+### Added (docs refresh pass — PRs #50, #51)
+
+- **Docs — releases hub** — consolidated `docs/release-notes/index.md` (v1.0 / v2.0 / v3.0.0); dropped duplicate `docs/README.md` ([#50](https://github.com/sandeep-jay/campus-rag-assistant/pull/50)).
+- **Docs — ADR-006** — [ADR-006](../docs/adr/ADR-006-live-llm-supervisor-migration.md) records the LLM supervisor migration plan; [helpdesk/index.md](../docs/helpdesk/index.md) gains a shipped-vs-target row table ([#51](https://github.com/sandeep-jay/campus-rag-assistant/pull/51)).
+
+### Changed (docs refresh pass — PRs #52–#57)
+
+- **Docs — reviewer introductions** ([#57](https://github.com/sandeep-jay/campus-rag-assistant/pull/57)) — aligned README, docs landing, Reviewer Guide, Case Study, and Architecture around one canonical product introduction; reordered first-visit sections around product features and architecture; added Azure retrieval parity in Architecture/Design; extended `scripts/check_docs.py` to enforce intro + capability rows.
+- **Docs — first-visit polish** ([#56](https://github.com/sandeep-jay/campus-rag-assistant/pull/56)) — moved operational runbooks into `docs/operations-manual/`, added an operations-manual landing page, and tightened the root README, docs landing, Reviewer Guide, and Case Study so first-time reviewers see crisp portfolio value before release history or deep reference material; collapsible primary nav on the docs site.
+- **Docs cleanup arc** ([#50](https://github.com/sandeep-jay/campus-rag-assistant/pull/50)–[#54](https://github.com/sandeep-jay/campus-rag-assistant/pull/54)) — six-PR documentation consolidation: releases hub; helpdesk shipped-vs-target labels + ADR-006; ARCHITECTURE + DESIGN refresh with LANGGRAPH/WEB_RESEARCH folded into DESIGN; operations surface consolidated (PERFORMANCE, PRODUCTION_TLS, E2E, TENANT_CONFIG absorbed); `eval_baseline_2026-05-19` renamed to [eval_baseline_v2.md](../docs/eval_baseline_v2.md); SECURITY dependency floor + PRODUCT_ROADMAP Phase 6d shipped status refreshed.
+- **Docs — OPERATIONS.md** ([#53](https://github.com/sandeep-jay/campus-rag-assistant/pull/53)) — absorbs local OAuth, production HTTPS/HTTP/2, Playwright E2E, campus Phase 0 performance guardrails.
+- **Docs — DESIGN.md** ([#52](https://github.com/sandeep-jay/campus-rag-assistant/pull/52)) — absorbs tenant config and LangGraph KB path + opt-in web research sections; documents Azure AI Search retrieval in parity with AWS Bedrock KB.
+- **Docs — EVALUATION.md** ([#54](https://github.com/sandeep-jay/campus-rag-assistant/pull/54)) — helpdesk eval distinguishes shipped metrics from planned trajectory scenario rig (Agentic Rebuild Phase 4).
+- **Docs — PRODUCT_ROADMAP.md** ([#55](https://github.com/sandeep-jay/campus-rag-assistant/pull/55)) — Phase 6d marked **shipped** (`v3.0.0`); Agentic Helpdesk Rebuild is the live forward track.
+
+### Fixed (docs refresh pass)
+
+- **Docs drift** — helpdesk spec and ADR-005 no longer overstate LLM supervisor, compiled StateGraph, enforced budgets, and trajectory eval as shipped.
 
 
 ### Added
