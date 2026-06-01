@@ -119,6 +119,21 @@ Included metrics:
 2. Reduce worker count or per-worker concurrency to lower connection demand.
 3. Increase DB max connections and corresponding app pool settings.
 
+
+## Shipped performance guardrails (campus Phase 0)
+
+These items are **shipped on `main`** — they bound latency, cost, and connection pressure without requiring Redis or a response cache. Unbuilt campus-scale items (Redis HA, exact/semantic cache, idempotency) live in [PRODUCTION_HARDENING.md](./PRODUCTION_HARDENING.md).
+
+| Change | Config / code | Notes |
+|--------|----------------|-------|
+| Chat history window | `CHAT_HISTORY_MAX_MESSAGES` | Caps prompt size on long sessions |
+| Optional stream demo delay | `STREAM_ARTIFICIAL_DELAY_MS` (default `0`) | Local demo pacing only |
+| SQLAlchemy pool | `SQLALCHEMY_POOL_SIZE`, `SQLALCHEMY_MAX_OVERFLOW` | Tune with worker count |
+| Multi-worker API (EB) | `API_WORKERS` in [run_services.sh](../run_services.sh) | `2 * cores` starting point |
+| SSE first-token metric | `chatbot_chat_first_token_latency_seconds` | Dominated by condense + retrieve on live providers |
+
+Load validation: [LOAD_TESTING.md](./LOAD_TESTING.md). Release promotion: [RELEASE.md](./RELEASE.md), [release-notes/](./release-notes/index.md).
+
 ## Helpdesk agent runtime
 
 | Flag / variable | Purpose |
@@ -136,10 +151,114 @@ Included metrics:
 
 Prometheus metrics: `chatbot_helpdesk_recap_*`, `chatbot_helpdesk_draft_ticket_*`, `chatbot_helpdesk_create_issue_total`, `chatbot_helpdesk_kb_resolved_total`, `chatbot_helpdesk_agent_started_total`, `chatbot_helpdesk_agent_tool_total`, `chatbot_helpdesk_agent_outcome_total`, `chatbot_helpdesk_agent_funnel_total`, `chatbot_helpdesk_agent_error_total`. Engineering spec: [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md).
 
-## OAuth and local development
+## OAuth and authentication
 
-- Enable providers in `.env`: `OAUTH_ENABLED_PROVIDERS=github` (or `google,github`) plus client ID/secret vars (see `.env.example`).
-- **Local dev:** OAuth runs on the API (`OAUTH_REDIRECT_BASE_URL=http://127.0.0.1:8000`); Vue uses `VITE_OAUTH_API_URL` and `/oauth/handoff`. Full checklist: [PRODUCTION_TLS.md — Local OAuth](./PRODUCTION_TLS.md#local-oauth-development-vite--github).
-- Verify setup: `./scripts/verify_oauth.py` (repo root, venv active).
-- Production HTTPS, redirect URIs, and `AUTH_COOKIE_SECURE`: [PRODUCTION_TLS.md](./PRODUCTION_TLS.md).
+Enable providers in `.env`: `OAUTH_ENABLED_PROVIDERS=github` (or `google,github`) plus client ID/secret vars (see `.env.example`). Verify setup: `./scripts/verify_oauth.py` (repo root, venv active).
+
+### Local OAuth (Vite + GitHub)
+
+OAuth `state` is stored in a **session cookie on the API host**. Vite's dev proxy does not reliably forward that cookie, so local GitHub login uses the **API origin** for the OAuth redirect, then a **one-time handoff** back to Vue.
+
+| Item | Local example |
+|------|----------------|
+| Browser (chat UI) | `http://127.0.0.1:5173` |
+| `FRONTEND_URL` | `http://127.0.0.1:5173` |
+| `OAUTH_REDIRECT_BASE_URL` | `http://127.0.0.1:8000` (API, **not** `:5173`) |
+| `frontend-vue/.env.local` | `VITE_OAUTH_API_URL=http://127.0.0.1:8000` |
+| GitHub OAuth app callback | `http://127.0.0.1:8000/api/auth/oauth/github/callback` |
+
+Flow: user clicks GitHub on Vue → browser hits `:8000` for OAuth → GitHub callback on `:8000` → API redirects to `http://127.0.0.1:5173/oauth/handoff?code=...` → Vue exchanges code for JWT cookies.
+
+`localhost` and `127.0.0.1` are different hosts for cookies. Use **`127.0.0.1` everywhere** if Vite binds to it (see [`scripts/run-frontend-vue.sh`](../scripts/run-frontend-vue.sh)). Restart the API after changing `.env`. Start a **new** OAuth flow after an error (do not refresh the callback URL).
+
+| Symptom | Likely cause | Fix |
+|---------|----------------|-----|
+| `MismatchingStateError` / `mismatching_state` | Mixed `localhost` / `127.0.0.1`, or callback on wrong port | Align checklist above; callback on **:8000** |
+| Same error on refresh | OAuth `code`/`state` already used or session missing | Open `/login` and try GitHub again once |
+| 503 on `/api/auth/oauth/github` | Missing `OAUTH_*` credentials | Set client id/secret in `.env` and restart API |
+
+### Production HTTPS and HTTP/2
+
+TLS termination and HTTP/2 for browsers are handled **outside this application** by infrastructure provisioned with **Terraform** (not in this repo).
+
+```text
+Browser --HTTPS (HTTP/2 or HTTP/1.1)--> ALB (ACM certificate)
+       --HTTP/1.1--> Nginx on EB instance (port 80)
+       --HTTP/1.1--> Uvicorn / FastAPI (127.0.0.1:8000)
+```
+
+| Resource | Purpose |
+|----------|---------|
+| **ACM** | TLS certificate for the public hostname (same region as the ALB) |
+| **Route 53** | `A` / `AAAA` alias to the Elastic Beanstalk environment load balancer |
+| **ALB** | HTTPS listener on **443** with the ACM cert; optional HTTP **80** → redirect to **443** |
+| **EB environment** | App deploy target; set env vars below |
+
+Application configuration on EB:
+
+| Variable | Example | Notes |
+|----------|---------|--------|
+| `AUTH_COOKIE_SECURE` | `true` | Required so `access_token` cookies are `Secure` over HTTPS |
+| `AUTH_COOKIE_SAMESITE` | `lax` | Default; adjust if cross-site frontend |
+| `OAUTH_REDIRECT_BASE_URL` | `https://api.example.com` | OAuth callback host (API, not SPA) |
+| `FRONTEND_URL` | `https://app.example.com` | CORS and post-login redirect |
+
+Register OAuth redirect URIs against your **public HTTPS** API host:
+
+- `https://<api-host>/api/auth/oauth/google/callback`
+- `https://<api-host>/api/auth/oauth/github/callback`
+
+Verification:
+
+```bash
+curl -I --http2 https://<api-host>/api/health
+curl -I --http1.1 https://<api-host>/api/health
+```
+
+Optional instance Nginx tweaks (if cookies show `http` incorrectly or SSE streams stall): forward `X-Forwarded-Proto` from the ALB; `proxy_buffering off` on `/api/` for streaming. See [`.ebextensions/00_ami.config`](../.ebextensions/00_ami.config).
+
+---
+
+## Playwright E2E (frontend-vue)
+
+Playwright lives under [`frontend-vue/e2e/`](../frontend-vue/e2e/). Tests assume:
+
+1. **API** is running and reachable at **`http://127.0.0.1:8000`** (default).
+2. **Vite dev server** is started by Playwright (`webServer` in `playwright.config.ts`), unless `CI` reuse rules apply.
+
+**Prerequisites:** PostgreSQL available; migrations applied (`alembic upgrade head`); backend serving `/api/health` and `/api/auth/register`.
+
+**Via tox** (after the API is up):
+
+```bash
+tox -e e2e
+```
+
+**Manual:**
+
+```bash
+# Terminal 1
+PIP_SYNC=0 ./scripts/run-backend-venv.sh
+
+# Terminal 2
+cd frontend-vue && npm run e2e
+```
+
+[`frontend-vue/e2e/global-setup.ts`](../frontend-vue/e2e/global-setup.ts) waits for **`GET /api/health`** before registering a throwaway user and saving cookie state to `e2e/.auth/user.json`.
+
+| Variable | Purpose |
+|----------|---------|
+| `PLAYWRIGHT_API_BASE_URL` | API base URL (default `http://127.0.0.1:8000`) |
+
+For CI, run Postgres + migrations + backend **before** `npm run e2e`. Playwright global setup uses email/password register today — not OAuth.
+
+---
+
+## Related
+
+- [SECURITY.md](./SECURITY.md) — dependency audit, production notes
+- [LOAD_TESTING.md](./LOAD_TESTING.md) — k6 profiles and latency SLOs
+- [RELEASE.md](./RELEASE.md) — promotion ladder and tagging
+- [release-notes/](./release-notes/index.md) — high-level summaries per tag
+- [PRODUCTION_HARDENING.md](./PRODUCTION_HARDENING.md) — campus-scale backlog (Redis HA, cache, idempotency)
 

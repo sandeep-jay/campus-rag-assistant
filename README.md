@@ -209,7 +209,7 @@ Enable `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, and `LANGCHAIN_PROJECT` in `
 - **SSE streaming** — `POST /api/chat/stream` with buffered fallback to `POST /api/chat/chat`
 - **Sessions** — multi-turn history; sidebar to create, switch, and delete chats
 - **Feedback** — thumbs up/down on assistant messages
-- **Auth** — email/password or **GitHub OAuth** (Google-ready); JWT in HTTP-only cookies; local dev uses API-port OAuth + handoff to Vue ([docs/PRODUCTION_TLS.md](docs/PRODUCTION_TLS.md))
+- **Auth** — email/password or **GitHub OAuth** (Google-ready); JWT in HTTP-only cookies; local dev uses API-port OAuth + handoff to Vue ([docs/OPERATIONS.md — OAuth](docs/OPERATIONS.md#oauth-and-authentication))
 - **UI** — dark/light mode, mobile-friendly layout, copy answer
 - **Ops** — rate limiting, `X-Request-ID`, Alembic migrations, optional Streamlit client on the same API
 
@@ -273,7 +273,7 @@ alembic upgrade head
 PIP_SYNC=0 ./scripts/run-backend-venv.sh          # terminal 1 — http://127.0.0.1:8000
 cp frontend-vue/.env.example frontend-vue/.env.local
 # VITE_API_URL=http://127.0.0.1:8000
-# GitHub OAuth: VITE_OAUTH_API_URL=http://127.0.0.1:8000 — see docs/PRODUCTION_TLS.md
+# GitHub OAuth: VITE_OAUTH_API_URL=http://127.0.0.1:8000 — see docs/OPERATIONS.md#oauth-and-authentication
 ./scripts/run-frontend-vue.sh          # terminal 2 — http://127.0.0.1:5173
 ```
 

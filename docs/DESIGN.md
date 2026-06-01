@@ -202,7 +202,7 @@ GitHub OAuth callback runs on the **API origin** (`OAUTH_REDIRECT_BASE_URL`, typ
 
 **Rationale:** OAuth `state` and cookies stay on one origin during the provider round-trip; avoids `state_mismatch` when the browser hits both Vite (`:5173`) and the API during login.
 
-**Code:** `backend/app/api/auth/oauth_handoff.py` (or equivalent), [PRODUCTION_TLS.md](./PRODUCTION_TLS.md).
+**Code:** `backend/app/api/auth/oauth_handoff.py` (or equivalent), [OPERATIONS.md — Local OAuth](./OPERATIONS.md#local-oauth-vite--github).
 
 ---
 
@@ -220,15 +220,43 @@ When KB retrieval cannot resolve a question (`metadata.kb_resolved=false`), the 
 
 ### Tenant-hydrated prompts
 
-Per-tenant `tenant.rag_config` in Postgres can override topics, prompts, and related RAG settings.
+Prompts and topic guardrails are **generic by default** and **hydrated per tenant** from environment variables and optional `tenant.rag_config` (JSONB in Postgres).
 
-**Rationale:** One deployment serving multiple logical tenants or campuses without separate builds. See [TENANT_CONFIG.md](./TENANT_CONFIG.md).
+**Resolution order**
+
+1. **`tenant.rag_config`** (database) — per-tenant overrides when the user has `tenant_id`
+2. **Environment / settings** — `ASSISTANT_NAME`, `SUPPORTED_TOPICS`, `OUT_OF_SCOPE_MESSAGE` in `.env`
+3. **Template files** — `backend/app/templates/prompt_prefix.txt` uses `{{assistant_name}}`, `{{supported_topics}}`, `{{out_of_scope_message}}`
+
+**`tenant.rag_config` JSON shape**
+
+```json
+{
+  "assistant_name": "Acme LMS Support",
+  "supported_topics": "Acme LMS, video hosting, accessibility tools",
+  "out_of_scope_message": "I can only answer questions about Acme LMS and related tools.",
+  "few_shot_examples": [
+    {
+      "input": "How do I enroll?",
+      "output": ["1. Sign in.", "2. Open Courses.", "3. Click Enroll."]
+    }
+  ]
+}
+```
+
+Apply after migration `0002`: `alembic upgrade head`. Example campus sample (optional): [samples/acme-university/tenant_rag_config.json](../samples/acme-university/tenant_rag_config.json) — generic campus profile (Canvas LMS, LTI, accessibility, inclusive teaching). Copy into a tenant's `rag_config` or use as a seed; not loaded automatically.
+
+Live answers come from your **Bedrock Knowledge Base** (vectors in **OpenSearch Serverless**) or **Azure AI Search** index — point provider env vars at your corpus; prompts do not embed institution-specific articles in the repo.
+
+**Rationale:** One deployment serving multiple logical tenants or campuses without separate builds. Isolation guarantees (enforce `tenant_id` on all queries) are tracked in [PRODUCTION_HARDENING.md](./PRODUCTION_HARDENING.md).
+
+**Code:** `backend/app/services/tenant_config.py` (or equivalent resolver), Alembic migration `0002`.
 
 ---
 
 ### History and performance guardrails
 
-Chat history is capped (`CHAT_HISTORY_MAX_MESSAGES`) to bound prompt size and cost. Prometheus exposes pool and first-token style metrics ([PERFORMANCE.md](./PERFORMANCE.md)).
+Chat history is capped (`CHAT_HISTORY_MAX_MESSAGES`) to bound prompt size and cost. Prometheus exposes pool and first-token style metrics — see [OPERATIONS.md — Shipped performance guardrails](./OPERATIONS.md#shipped-performance-guardrails-campus-phase-0).
 
 **Rationale:** Long sessions should not silently blow context windows or latency SLOs.
 
@@ -243,7 +271,7 @@ Chat history is capped (`CHAT_HISTORY_MAX_MESSAGES`) to bound prompt size and co
 | Chat + SSE | [ARCHITECTURE.md](./ARCHITECTURE.md) | `backend/app/api/chat.py`, `frontend-vue/src/stores/chat.ts` |
 | LangGraph pipeline | [LangGraph KB path](#langgraph-kb-path-multi-query--retrieve--rerank) (this doc) | `backend/app/services/graph/` |
 | Web research | [Opt-in web research](#opt-in-web-research) (this doc) | `backend/app/services/tools/web_search.py` |
-| Auth / OAuth | [PRODUCTION_TLS.md](./PRODUCTION_TLS.md) | `backend/app/api/auth/` |
+| Auth / OAuth | [OPERATIONS.md — OAuth and authentication](./OPERATIONS.md#oauth-and-authentication) | `backend/app/api/auth/` |
 | Evaluation | [EVALUATION.md](./EVALUATION.md) | `backend/tests/eval/`, `scripts/run_eval_phase5.sh` |
 | CI/CD | [CI.md](./CI.md), [RELEASE.md](./RELEASE.md) | `.github/workflows/` |
 | Operations | [OPERATIONS.md](./OPERATIONS.md) | Alembic, metrics, run scripts |
