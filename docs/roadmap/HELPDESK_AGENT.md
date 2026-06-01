@@ -4,7 +4,7 @@ Multi-turn, multi-agent helpdesk capability that sits inside the chatbot's
 AGENT mode. Product-level shape (modes, intent routing, UX) lives in
 [CONVERSATION_FLOW.md](./CONVERSATION_FLOW.md).
 
-**Status (2026-05-31):** **Mixed.** Topology, tools, budgets-as-data, HITL gate, multi-turn pause/resume, and four-outcome termination are shipped on `main` (PRs #37–#43, tagged `v3.0.0`). The LLM supervisor + structured-output specialists, compiled `StateGraph`, `AsyncPostgresSaver`, enforced budgets, trajectory eval, and campus router described below are the **target** state, delivered by [AGENTIC_HELPDESK_REBUILD.md](./AGENTIC_HELPDESK_REBUILD.md). Per-section shipped/target labels are in the [Today vs target table](../helpdesk/index.md#today-vs-target-state). This document is the engineering reference for both the shipped surface and the rebuild target.
+**Status (2026-05-31):** The shipped surface is bounded, observable, multi-turn, and HITL-gated. The LLM supervisor, structured-output specialists, compiled `StateGraph`, `AsyncPostgresSaver`, enforced budgets, trajectory eval, and campus router below are the [Agentic Helpdesk Rebuild](./AGENTIC_HELPDESK_REBUILD.md) target; the row-by-row shipped/target table lives in [helpdesk/index.md](../helpdesk/index.md#today-vs-target-state).
 
 > **Reading this doc as a reviewer.** Treat anything below as the target unless it is also listed under "Shipped" in the table above. The `live API surface` at [ARCHITECTURE.md](../ARCHITECTURE.md#helpdesk-capabilities-post-rag) is the source of truth for the current `/api/helpdesk/agent/*` endpoints and `AgentTurn` schema.
 
@@ -531,7 +531,7 @@ One helpdesk-agent dashboard, rows:
 
 ### Runbook
 
-(Linked from `docs/OPERATIONS.md`.)
+(Linked from `docs/operations-manual/operations.md`.)
 
 - **Agent looping / stuck:** find session id from logs;
   `scripts/helpdesk_admin.py abort --session-id ...` force-terminates;

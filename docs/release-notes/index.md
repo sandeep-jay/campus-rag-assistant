@@ -1,6 +1,6 @@
 # Releases
 
-Campus RAG Assistant follows a `main` → `qa` → `release` promotion ladder with annotated tags and GitHub Releases on the `release` branch tip. See [RELEASE.md](../RELEASE.md) for the promotion process; [CHANGELOG.md](../../changelog/CHANGELOG.md) for fine-grained per-PR detail.
+Campus RAG Assistant follows a `main` → `qa` → `release` promotion ladder with annotated tags and GitHub Releases on the `release` branch tip. See [RELEASE.md](../operations-manual/release.md) for the promotion process; [CHANGELOG.md](../../changelog/CHANGELOG.md) for fine-grained per-PR detail.
 
 | Tag | Date | Highlights |
 |---|---|---|

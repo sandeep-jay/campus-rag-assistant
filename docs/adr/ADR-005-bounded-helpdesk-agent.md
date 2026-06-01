@@ -72,7 +72,7 @@ Concretely:
 - Engineering spec: [docs/roadmap/HELPDESK_AGENT.md](../roadmap/HELPDESK_AGENT.md)
 - Product / UX contract: [docs/roadmap/CONVERSATION_FLOW.md](../roadmap/CONVERSATION_FLOW.md)
 - Live API surface: [docs/ARCHITECTURE.md](../ARCHITECTURE.md#helpdesk-capabilities-post-rag)
-- Privacy / redaction / kill switch: [docs/SECURITY.md](../SECURITY.md)
+- Privacy / redaction / kill switch: [docs/operations-manual/security.md](../operations-manual/security.md)
 - Scenario evaluation: [docs/EVALUATION.md](../EVALUATION.md#helpdesk-agent-evaluation)
 - Implementation (shipped slice): PRs #37, #41, #42, #43 on `main` (tagged `v3.0.0`)
 - Implementation (target slice): [ADR-006 — Live LLM supervisor migration](./ADR-006-live-llm-supervisor-migration.md) and [docs/roadmap/AGENTIC_HELPDESK_REBUILD.md](../roadmap/AGENTIC_HELPDESK_REBUILD.md)

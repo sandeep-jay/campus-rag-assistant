@@ -64,7 +64,7 @@ find . -name '*.log' -not -path './venv/*' -not -path './node_modules/*' -delete
 
 ## Security
 
-See [SECURITY.md](./SECURITY.md) for `pip-audit`, bandit, and production hardening.
+See [SECURITY.md](./security.md) for `pip-audit`, bandit, and production hardening.
 
 ## Metrics baseline
 
@@ -85,7 +85,7 @@ Included metrics:
 
 - API availability: `>= 99.9%` monthly (`5xx` responses considered failures).
 - **Auth / session API** (no LLM): `p95 < 1.2s`, `p99 < 2.5s` at steady load.
-- **Chat with RAG** (live LLM + retrieval): use phase-aware targets — see [LOAD_TESTING.md](./LOAD_TESTING.md) (`K6_LATENCY_PROFILE=live` allows chat `p95` up to ~45s under ramp; `mock` profile targets sub-second HTTP).
+- **Chat with RAG** (live LLM + retrieval): use phase-aware targets — see [LOAD_TESTING.md](./load-testing.md) (`K6_LATENCY_PROFILE=live` allows chat `p95` up to ~45s under ramp; `mock` profile targets sub-second HTTP).
 - **SSE time-to-first-token**: track `chatbot_chat_first_token_latency_seconds` (lower is better; dominated by condense + retrieve on live providers).
 - Error budget: `<= 0.1%` failed requests over 30 days.
 
@@ -122,17 +122,17 @@ Included metrics:
 
 ## Shipped performance guardrails (campus Phase 0)
 
-These items are **shipped on `main`** — they bound latency, cost, and connection pressure without requiring Redis or a response cache. Unbuilt campus-scale items (Redis HA, exact/semantic cache, idempotency) live in [PRODUCTION_HARDENING.md](./PRODUCTION_HARDENING.md).
+These items are **shipped on `main`** — they bound latency, cost, and connection pressure without requiring Redis or a response cache. Unbuilt campus-scale items (Redis HA, exact/semantic cache, idempotency) live in [PRODUCTION_HARDENING.md](./production-hardening.md).
 
 | Change | Config / code | Notes |
 |--------|----------------|-------|
 | Chat history window | `CHAT_HISTORY_MAX_MESSAGES` | Caps prompt size on long sessions |
 | Optional stream demo delay | `STREAM_ARTIFICIAL_DELAY_MS` (default `0`) | Local demo pacing only |
 | SQLAlchemy pool | `SQLALCHEMY_POOL_SIZE`, `SQLALCHEMY_MAX_OVERFLOW` | Tune with worker count |
-| Multi-worker API (EB) | `API_WORKERS` in [run_services.sh](../run_services.sh) | `2 * cores` starting point |
+| Multi-worker API (EB) | `API_WORKERS` in [run_services.sh](../../run_services.sh) | `2 * cores` starting point |
 | SSE first-token metric | `chatbot_chat_first_token_latency_seconds` | Dominated by condense + retrieve on live providers |
 
-Load validation: [LOAD_TESTING.md](./LOAD_TESTING.md). Release promotion: [RELEASE.md](./RELEASE.md), [release-notes/](./release-notes/index.md).
+Load validation: [LOAD_TESTING.md](./load-testing.md). Release promotion: [RELEASE.md](./release.md), [release-notes/](../release-notes/index.md).
 
 ## Helpdesk agent runtime
 
@@ -149,7 +149,7 @@ Load validation: [LOAD_TESTING.md](./LOAD_TESTING.md). Release promotion: [RELEA
 | `HELPDESK_SUMMARIZE_MAX_TURNS` | Number of recent chat turns fed into recap/draft |
 | `HELPDESK_AGENT_CHECKPOINT_PATH` | SQLite checkpointer path (`.helpdesk_agent_checkpoints.sqlite` by default) |
 
-Prometheus metrics: `chatbot_helpdesk_recap_*`, `chatbot_helpdesk_draft_ticket_*`, `chatbot_helpdesk_create_issue_total`, `chatbot_helpdesk_kb_resolved_total`, `chatbot_helpdesk_agent_started_total`, `chatbot_helpdesk_agent_tool_total`, `chatbot_helpdesk_agent_outcome_total`, `chatbot_helpdesk_agent_funnel_total`, `chatbot_helpdesk_agent_error_total`. Engineering spec: [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md).
+Prometheus metrics: `chatbot_helpdesk_recap_*`, `chatbot_helpdesk_draft_ticket_*`, `chatbot_helpdesk_create_issue_total`, `chatbot_helpdesk_kb_resolved_total`, `chatbot_helpdesk_agent_started_total`, `chatbot_helpdesk_agent_tool_total`, `chatbot_helpdesk_agent_outcome_total`, `chatbot_helpdesk_agent_funnel_total`, `chatbot_helpdesk_agent_error_total`. Engineering spec: [HELPDESK_AGENT.md](../roadmap/HELPDESK_AGENT.md).
 
 ## OAuth and authentication
 
@@ -169,7 +169,7 @@ OAuth `state` is stored in a **session cookie on the API host**. Vite's dev prox
 
 Flow: user clicks GitHub on Vue → browser hits `:8000` for OAuth → GitHub callback on `:8000` → API redirects to `http://127.0.0.1:5173/oauth/handoff?code=...` → Vue exchanges code for JWT cookies.
 
-`localhost` and `127.0.0.1` are different hosts for cookies. Use **`127.0.0.1` everywhere** if Vite binds to it (see [`scripts/run-frontend-vue.sh`](../scripts/run-frontend-vue.sh)). Restart the API after changing `.env`. Start a **new** OAuth flow after an error (do not refresh the callback URL).
+`localhost` and `127.0.0.1` are different hosts for cookies. Use **`127.0.0.1` everywhere** if Vite binds to it (see [`scripts/run-frontend-vue.sh`](../../scripts/run-frontend-vue.sh)). Restart the API after changing `.env`. Start a **new** OAuth flow after an error (do not refresh the callback URL).
 
 | Symptom | Likely cause | Fix |
 |---------|----------------|-----|
@@ -215,13 +215,13 @@ curl -I --http2 https://<api-host>/api/health
 curl -I --http1.1 https://<api-host>/api/health
 ```
 
-Optional instance Nginx tweaks (if cookies show `http` incorrectly or SSE streams stall): forward `X-Forwarded-Proto` from the ALB; `proxy_buffering off` on `/api/` for streaming. See [`.ebextensions/00_ami.config`](../.ebextensions/00_ami.config).
+Optional instance Nginx tweaks (if cookies show `http` incorrectly or SSE streams stall): forward `X-Forwarded-Proto` from the ALB; `proxy_buffering off` on `/api/` for streaming. See [`.ebextensions/00_ami.config`](../../.ebextensions/00_ami.config).
 
 ---
 
 ## Playwright E2E (frontend-vue)
 
-Playwright lives under [`frontend-vue/e2e/`](../frontend-vue/e2e/). Tests assume:
+Playwright lives under [`frontend-vue/e2e/`](../../frontend-vue/e2e/). Tests assume:
 
 1. **API** is running and reachable at **`http://127.0.0.1:8000`** (default).
 2. **Vite dev server** is started by Playwright (`webServer` in `playwright.config.ts`), unless `CI` reuse rules apply.
@@ -244,7 +244,7 @@ PIP_SYNC=0 ./scripts/run-backend-venv.sh
 cd frontend-vue && npm run e2e
 ```
 
-[`frontend-vue/e2e/global-setup.ts`](../frontend-vue/e2e/global-setup.ts) waits for **`GET /api/health`** before registering a throwaway user and saving cookie state to `e2e/.auth/user.json`.
+[`frontend-vue/e2e/global-setup.ts`](../../frontend-vue/e2e/global-setup.ts) waits for **`GET /api/health`** before registering a throwaway user and saving cookie state to `e2e/.auth/user.json`.
 
 | Variable | Purpose |
 |----------|---------|
@@ -256,9 +256,9 @@ For CI, run Postgres + migrations + backend **before** `npm run e2e`. Playwright
 
 ## Related
 
-- [SECURITY.md](./SECURITY.md) — dependency audit, production notes
-- [LOAD_TESTING.md](./LOAD_TESTING.md) — k6 profiles and latency SLOs
-- [RELEASE.md](./RELEASE.md) — promotion ladder and tagging
-- [release-notes/](./release-notes/index.md) — high-level summaries per tag
-- [PRODUCTION_HARDENING.md](./PRODUCTION_HARDENING.md) — campus-scale backlog (Redis HA, cache, idempotency)
+- [SECURITY.md](./security.md) — dependency audit, production notes
+- [LOAD_TESTING.md](./load-testing.md) — k6 profiles and latency SLOs
+- [RELEASE.md](./release.md) — promotion ladder and tagging
+- [release-notes/](../release-notes/index.md) — high-level summaries per tag
+- [PRODUCTION_HARDENING.md](./production-hardening.md) — campus-scale backlog (Redis HA, cache, idempotency)
 

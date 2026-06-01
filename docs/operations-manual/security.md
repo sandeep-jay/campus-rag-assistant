@@ -31,7 +31,7 @@ sudo apt-get install gitleaks # Debian / Ubuntu
 | `SECRET_KEY` | sentinel `change-me-in-production` (SecretStr) | Strong random secret via env or `secrets_dir` |
 | `BACKEND_CORS_ORIGINS` | `['*']` | Explicit frontend origin(s) only |
 | `.env` | Local secrets (gitignored) | Use secrets manager / EB env / mounted file |
-| OAuth | `127.0.0.1` alignment | HTTPS + registered callbacks — [OPERATIONS.md — Production HTTPS](./OPERATIONS.md#production-https-and-http2) |
+| OAuth | `127.0.0.1` alignment | HTTPS + registered callbacks — [OPERATIONS.md — Production HTTPS](./operations.md#production-https-and-http2) |
 | `WEB_RESEARCH_ENABLED` | `false` | Enable only with Tavily key and policy review |
 
 ## Secret-leak defense in depth
@@ -44,10 +44,10 @@ they make accidental disclosure vanishingly unlikely.
 |---|---|---|---|
 | 1 | **`.gitignore` catch-all** | `.gitignore` | `.env*` (with `.env.example` / `.env.test` whitelisted) plus pattern blocks for TLS/SSH keys, AWS/GCP/Azure credentials, `secrets/`, `credentials/`, `*.tfvars`, etc. |
 | 2 | **CI guard for env template** | `backend/tests/core/test_env_template.py` | Every `Settings` field must appear in `.env.example`; no `SecretStr` field may carry a real-looking uncommented value. Fails `tox -e backend`. |
-| 3 | **Local `pre-push` gitleaks hook** | `.githooks/pre-push` | Blocks `git push` if `gitleaks detect` finds a credential in the commits being uploaded. Wired by `./scripts/install-hooks.sh` (and `--global` for every repo on the workstation). |
+| 3 | **Local `pre-push` gitleaks hook** | `../../.githooks/pre-push` | Blocks `git push` if `gitleaks detect` finds a credential in the commits being uploaded. Wired by `../../scripts/install-hooks.sh` (and `--global` for every repo on the workstation). |
 | 4 | **CI gitleaks job** | `.github/workflows/ci.yml` (job `gitleaks (history + diff)`) + `tox -e secrets` | Runs `gitleaks detect --log-opts="--all --reflog --no-merges"` on every PR and push to `main`. Fails the build on any finding. |
 | 5 | **GitHub Push Protection** | repo Settings → Code security & analysis | Even `git push --no-verify` is rejected by GitHub if the push contains a known-provider credential pattern (AWS, Google, Slack, Stripe, GitHub PATs, …). Secret Scanning, Push Protection, and Dependabot **alerts** are enabled on this repo. Dependabot **security updates** (auto-PRs that bump versions) are intentionally left **off** — they were observed to break the build mid-sprint, so vulnerabilities are triaged manually from the alert queue instead. |
-| 6 | **Tool attribution guard** | `.githooks/tool_attribution_guard.py`, `.githooks/commit-msg`, `.github/workflows/no-tool-attribution.yml` | Strips AI-tool authorship lines from commit messages locally; PR workflow runs `--check` on title, body, and commit messages. Required status check: `no tool attribution` on `Protect main`. |
+| 6 | **Tool attribution guard** | `../../.githooks/tool_attribution_guard.py`, `../../.githooks/commit-msg`, `.github/workflows/no-tool-attribution.yml` | Strips AI-tool authorship lines from commit messages locally; PR workflow runs `--check` on title, body, and commit messages. Required status check: `no tool attribution` on `Protect main`. |
 
 ### How to run gitleaks locally
 
@@ -117,7 +117,7 @@ cleartext is only read at the boundary that needs it via
 - Keep `.env.example` placeholder-only. Two CI guards enforce this:
   `backend/tests/core/test_env_template.py` (no real-looking values for any
   `SecretStr` field, every field documented) and the `gitleaks (history + diff)` job
-  (gitleaks on full history). The local `.githooks/pre-push` hook runs the
+  (gitleaks on full history). The local `../../.githooks/pre-push` hook runs the
   same gitleaks scan before a push leaves your machine.
 - The pydantic settings model uses `extra='ignore'`, so typos in env var names
   are dropped instead of silently attached. In CI/prod you can switch to
@@ -186,10 +186,10 @@ Pinned floors in `requirements.txt` / `frontend-vue/package.json` as of `v3.0.0`
 | Package | Floor | Notes |
 |---------|-------|-------|
 | **vite / esbuild / vitest** | bumped in v3.0.0 (PR #44) | Dev-tool CVE remediation |
-| **@rollup/rollup-linux-x64-gnu** | optionalDependency pin | GHA Linux tox parity — see [CI.md](./CI.md) |
+| **@rollup/rollup-linux-x64-gnu** | optionalDependency pin | GHA Linux tox parity — see [CI.md](./ci-cd.md) |
 
 Dev-only packages may still appear in `npm audit` / `pip-audit` output; track separately from the API runtime floor above.
 
 ## Reporting
 
-Open a GitHub security advisory or contact the maintainer in [README](../README.md).
+Open a GitHub security advisory or contact the maintainer in [README](../../README.md).

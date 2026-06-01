@@ -46,5 +46,5 @@ Both paths share the provider registry and the same API response contract.
 
 - [ADR-001 — Provider registry](./ADR-001-provider-registry.md)
 - [DESIGN.md — Dual RAG engines](../DESIGN.md#dual-rag-engines-chain-vs-langgraph)
-- [DESIGN.md — LangGraph KB path](../DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank)
+- [DESIGN.md — LangGraph KB path](../DESIGN.md#langgraph-kb-path-multi-query-retrieve-rerank)
 - `backend/app/services/rag.py`, `backend/app/services/graph/`

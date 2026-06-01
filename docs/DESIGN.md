@@ -202,7 +202,7 @@ GitHub OAuth callback runs on the **API origin** (`OAUTH_REDIRECT_BASE_URL`, typ
 
 **Rationale:** OAuth `state` and cookies stay on one origin during the provider round-trip; avoids `state_mismatch` when the browser hits both Vite (`:5173`) and the API during login.
 
-**Code:** `backend/app/api/auth/oauth_handoff.py` (or equivalent), [OPERATIONS.md — Local OAuth](./OPERATIONS.md#local-oauth-vite--github).
+**Code:** `backend/app/api/auth/oauth_handoff.py` (or equivalent), [OPERATIONS.md — Local OAuth](operations-manual/operations.md#local-oauth-vite-github).
 
 ---
 
@@ -248,7 +248,7 @@ Apply after migration `0002`: `alembic upgrade head`. Example campus sample (opt
 
 Live answers come from your **Bedrock Knowledge Base** (vectors in **OpenSearch Serverless**) or **Azure AI Search** index — point provider env vars at your corpus; prompts do not embed institution-specific articles in the repo.
 
-**Rationale:** One deployment serving multiple logical tenants or campuses without separate builds. Isolation guarantees (enforce `tenant_id` on all queries) are tracked in [PRODUCTION_HARDENING.md](./PRODUCTION_HARDENING.md).
+**Rationale:** One deployment serving multiple logical tenants or campuses without separate builds. Isolation guarantees (enforce `tenant_id` on all queries) are tracked in [PRODUCTION_HARDENING.md](operations-manual/production-hardening.md).
 
 **Code:** `backend/app/services/tenant_config.py` (or equivalent resolver), Alembic migration `0002`.
 
@@ -256,7 +256,7 @@ Live answers come from your **Bedrock Knowledge Base** (vectors in **OpenSearch 
 
 ### History and performance guardrails
 
-Chat history is capped (`CHAT_HISTORY_MAX_MESSAGES`) to bound prompt size and cost. Prometheus exposes pool and first-token style metrics — see [OPERATIONS.md — Shipped performance guardrails](./OPERATIONS.md#shipped-performance-guardrails-campus-phase-0).
+Chat history is capped (`CHAT_HISTORY_MAX_MESSAGES`) to bound prompt size and cost. Prometheus exposes pool and first-token style metrics — see [OPERATIONS.md — Shipped performance guardrails](operations-manual/operations.md#shipped-performance-guardrails-campus-phase-0).
 
 **Rationale:** Long sessions should not silently blow context windows or latency SLOs.
 
@@ -269,12 +269,12 @@ Chat history is capped (`CHAT_HISTORY_MAX_MESSAGES`) to bound prompt size and co
 | Capability | Primary doc | Implementation |
 |------------|-------------|----------------|
 | Chat + SSE | [ARCHITECTURE.md](./ARCHITECTURE.md) | `backend/app/api/chat.py`, `frontend-vue/src/stores/chat.ts` |
-| LangGraph pipeline | [LangGraph KB path](#langgraph-kb-path-multi-query--retrieve--rerank) (this doc) | `backend/app/services/graph/` |
+| LangGraph pipeline | [LangGraph KB path](#langgraph-kb-path-multi-query-retrieve-rerank) (this doc) | `backend/app/services/graph/` |
 | Web research | [Opt-in web research](#opt-in-web-research) (this doc) | `backend/app/services/tools/web_search.py` |
-| Auth / OAuth | [OPERATIONS.md — OAuth and authentication](./OPERATIONS.md#oauth-and-authentication) | `backend/app/api/auth/` |
+| Auth / OAuth | [OPERATIONS.md — OAuth and authentication](operations-manual/operations.md#oauth-and-authentication) | `backend/app/api/auth/` |
 | Evaluation | [EVALUATION.md](./EVALUATION.md) | `backend/tests/eval/`, `scripts/run_eval_phase5.sh` |
-| CI/CD | [CI.md](./CI.md), [RELEASE.md](./RELEASE.md) | `.github/workflows/` |
-| Operations | [OPERATIONS.md](./OPERATIONS.md) | Alembic, metrics, run scripts |
+| CI/CD | [CI.md](operations-manual/ci-cd.md), [RELEASE.md](operations-manual/release.md) | `.github/workflows/` |
+| Operations | [OPERATIONS.md](operations-manual/operations.md) | Alembic, metrics, run scripts |
 | Delivery phases | [roadmap/PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md) | Shipped vs optional work |
 
 ---

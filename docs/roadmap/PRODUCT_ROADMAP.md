@@ -9,7 +9,7 @@ Delivery phases for Campus RAG Assistant — what is shipped on [`main`](https:/
 | Doc | Purpose |
 |-----|---------|
 | **This file** | Phases, priorities, what’s next |
-| [DESIGN.md — LangGraph KB path](../DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank) | `RAG_ENGINE`, graph nodes, latency, config flags |
+| [DESIGN.md — LangGraph KB path](../DESIGN.md#langgraph-kb-path-multi-query-retrieve-rerank) | `RAG_ENGINE`, graph nodes, latency, config flags |
 | [DESIGN.md — Opt-in web research](../DESIGN.md#opt-in-web-research) | `research_mode=web` (Vue toggle + API), Tavily config |
 | [EVALUATION.md](../EVALUATION.md) | RAGAS vs LangSmith |
 | [archive/SPRINT_2026-05-18_LANGGRAPH.md](./archive/SPRINT_2026-05-18_LANGGRAPH.md) | Completed AWS KB validation sprint (log) |
@@ -24,7 +24,7 @@ PIP_SYNC=0 ./scripts/run-backend-venv.sh
 ./scripts/run-frontend-vue.sh
 ```
 
-CI: GitHub Actions on push/PR to `main` ([docs/CI.md](../CI.md)). Live AWS / LangGraph: set `RAG_ENGINE=langgraph` in local `.env` only (not required for tox).
+CI: GitHub Actions on push/PR to `main` ([docs/operations-manual/ci-cd.md](../operations-manual/ci-cd.md)). Live AWS / LangGraph: set `RAG_ENGINE=langgraph` in local `.env` only (not required for tox).
 
 ---
 
@@ -57,7 +57,7 @@ flowchart LR
 | Phase | Focus | Status |
 |-------|--------|--------|
 | **0–2** | Publish repo, platform + providers + tox | **Done** |
-| **4** | LangGraph KB graph (`RAG_ENGINE`); per-node traces | **Done** — [DESIGN.md — LangGraph KB path](../DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank) |
+| **4** | LangGraph KB graph (`RAG_ENGINE`); per-node traces | **Done** — [DESIGN.md — LangGraph KB path](../DESIGN.md#langgraph-kb-path-multi-query-retrieve-rerank) |
 | **6b** | Opt-in web research (`research_mode=web`) | **Done** — [DESIGN.md — Opt-in web research](../DESIGN.md#opt-in-web-research) |
 | **3** | RAGAS baseline + README quality + LangSmith screenshots | **Done (lite)** — [EVALUATION.md](../EVALUATION.md); strict gates on release only |
 | **5** | Retrieval nodes (multi-query, filters, rerank) | **Done** — re-run RAGAS for full gates ([baseline](../eval_baseline_v2.md)) |
@@ -74,9 +74,9 @@ Campus production (Redis HA, tenant budgets, Elastic Beanstalk): [archive/PHASED
 - **Platform:** request context, Prometheus, rate limits, Alembic, Vue 3 + Streamlit, k6.
 - **RAG:** provider registry; `RAG_ENGINE=langgraph` with condense → multi_query → retrieve → rerank → generate (KB); web branch with disclaimer.
 - **Eval:** 10-row golden set, [eval_baseline_v2.md](../eval_baseline_v2.md), `tox -e eval`, LangSmith trace PNGs in README.
-- **OAuth (local):** API-port OAuth + handoff to Vue — [OPERATIONS.md — OAuth and authentication](../OPERATIONS.md#oauth-and-authentication).
+- **OAuth (local):** API-port OAuth + handoff to Vue — [OPERATIONS.md — OAuth and authentication](../operations-manual/operations.md#oauth-and-authentication).
 - **Helpdesk agent (v3.0.0):** bounded loop with Ask/Agent mode, HITL ticket filing — [helpdesk/index.md](../helpdesk/index.md); Agentic Rebuild is the live forward track — [AGENTIC_HELPDESK_REBUILD.md](./AGENTIC_HELPDESK_REBUILD.md).
-- **Docs:** consolidated releases hub ([release-notes/](../release-notes/index.md)); operations + tenant + LangGraph/web research folded into [OPERATIONS.md](../OPERATIONS.md) and [DESIGN.md](../DESIGN.md); ADR-006 records helpdesk shipped-vs-target gap.
+- **Docs:** consolidated releases hub ([release-notes/](../release-notes/index.md)); operations + tenant + LangGraph/web research folded into [OPERATIONS.md](../operations-manual/operations.md) and [DESIGN.md](../DESIGN.md); ADR-006 records helpdesk shipped-vs-target gap.
 
 ---
 
@@ -93,7 +93,7 @@ Detail: [EVALUATION.md](../EVALUATION.md).
 
 ## Phase 4 — LangGraph (done)
 
-Explicit RAG pipeline; same `{ message, metadata }` contract as chain. Detail: [DESIGN.md — LangGraph KB path](../DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank). Sprint log: [archive/SPRINT_2026-05-18_LANGGRAPH.md](./archive/SPRINT_2026-05-18_LANGGRAPH.md).
+Explicit RAG pipeline; same `{ message, metadata }` contract as chain. Detail: [DESIGN.md — LangGraph KB path](../DESIGN.md#langgraph-kb-path-multi-query-retrieve-rerank). Sprint log: [archive/SPRINT_2026-05-18_LANGGRAPH.md](./archive/SPRINT_2026-05-18_LANGGRAPH.md).
 
 ---
 
@@ -159,5 +159,5 @@ Specs: [CONVERSATION_FLOW.md](./CONVERSATION_FLOW.md), [HELPDESK_AGENT.md](./HEL
 ## Related docs
 
 - [README.md](../../README.md) — quick start
-- [OPERATIONS.md — Shipped performance guardrails](../OPERATIONS.md#shipped-performance-guardrails-campus-phase-0) — campus Phase 0 shipped
+- [OPERATIONS.md — Shipped performance guardrails](../operations-manual/operations.md#shipped-performance-guardrails-campus-phase-0) — campus Phase 0 shipped
 - [changelog/CHANGELOG.md](../../changelog/CHANGELOG.md)

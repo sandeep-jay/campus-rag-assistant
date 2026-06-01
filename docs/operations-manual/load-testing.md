@@ -24,7 +24,7 @@ Do these steps **every time** you use a fresh `chatbot_test` database or hit **4
 
    Expect `"status":"ok"` and **`"app_env":"test"`**. If `app_env` is not `test`, k6 aborts unless you set `K6_ALLOW_NON_TEST_BACKEND=1`.
 
-3. **Seed accounts** from [`load-tests/users.json`](../load-tests/users.json) (idempotent — safe to re-run):
+3. **Seed accounts** from [`load-tests/users.json`](../../load-tests/users.json) (idempotent — safe to re-run):
 
    ```bash
    BASE_URL=http://127.0.0.1:8000 python3 load-tests/seed_users.py
@@ -44,10 +44,10 @@ Do these steps **every time** you use a fresh `chatbot_test` database or hit **4
 
 ## Tooling
 
-- Smoke: [`load-tests/k6-smoke.js`](../load-tests/k6-smoke.js)
-- Full ramp: [`load-tests/k6-auth-chat-session.js`](../load-tests/k6-auth-chat-session.js)
-- User fixture: [`load-tests/users.json`](../load-tests/users.json)
-- Seed: [`load-tests/seed_users.py`](../load-tests/seed_users.py)
+- Smoke: [`load-tests/k6-smoke.js`](../../load-tests/k6-smoke.js)
+- Full ramp: [`load-tests/k6-auth-chat-session.js`](../../load-tests/k6-auth-chat-session.js)
+- User fixture: [`load-tests/users.json`](../../load-tests/users.json)
+- Seed: [`load-tests/seed_users.py`](../../load-tests/seed_users.py)
 
 ## Prerequisites (reference)
 
@@ -89,16 +89,16 @@ If you need CI smoke with **sub-second chat p95**, run against **mock/minimal LL
 Before the ~12 minute ramp:
 
 1. **Azure capacity**: Confirm quota / TPM–RPM for the OpenAI deployment and Search tier referenced from `.env.test`. Concurrent chat produces **429 Too Many Requests**; SDK retries inflate tail latency.
-2. **Backend process**: Run [`scripts/run-backend-loadtest.sh`](../scripts/run-backend-loadtest.sh) with default **`UVICORN_WORKERS`** (multi-worker UVicorn, **no `--reload`**). Use `UVICORN_WORKERS=1` only for short debugging runs.
-3. **Accounts**: Run [`load-tests/seed_users.py`](../load-tests/seed_users.py) so every username in [`users.json`](../load-tests/users.json) exists (missing rows → **401** on login-json).
-4. **Smoke first**: [`k6-smoke.js`](../load-tests/k6-smoke.js) should be green against the same `BASE_URL`.
+2. **Backend process**: Run [`scripts/run-backend-loadtest.sh`](../../scripts/run-backend-loadtest.sh) with default **`UVICORN_WORKERS`** (multi-worker UVicorn, **no `--reload`**). Use `UVICORN_WORKERS=1` only for short debugging runs.
+3. **Accounts**: Run [`load-tests/seed_users.py`](../../load-tests/seed_users.py) so every username in [`users.json`](../../load-tests/users.json) exists (missing rows → **401** on login-json).
+4. **Smoke first**: [`k6-smoke.js`](../../load-tests/k6-smoke.js) should be green against the same `BASE_URL`.
 5. **During the run**:
    - Tail logs for **`429`**, **`Too Many Requests`**, or **`Retrying request`** on `/chat/completions` (or equivalent provider lines).
    - Ensure Postgres **`max_connections`** comfortably exceeds **`SQLALCHEMY_POOL_SIZE` × worker count** plus admin / migration connections.
 
 ### Stress latency profile (`K6_LATENCY_PROFILE`)
 
-[`k6-auth-chat-session.js`](../load-tests/k6-auth-chat-session.js) chooses thresholds from `K6_LATENCY_PROFILE`:
+[`k6-auth-chat-session.js`](../../load-tests/k6-auth-chat-session.js) chooses thresholds from `K6_LATENCY_PROFILE`:
 
 | Profile | Use case | Latency gates |
 |---------|-----------|----------------|
@@ -122,7 +122,7 @@ For repeatable CI-style runs without cloud variance, configure the **load-test**
 - `RETRIEVER_PROVIDER=mock`
 - Optionally `RAG_FORCE_MOCK=true`
 
-See [`.env.example`](../.env.example) for field names. Then run stress with **`K6_LATENCY_PROFILE=mock`** (commands under **Stress latency profile** above) so k6’s strict thresholds match the fast stack.
+See [`.env.example`](../../.env.example) for field names. Then run stress with **`K6_LATENCY_PROFILE=mock`** (commands under **Stress latency profile** above) so k6’s strict thresholds match the fast stack.
 ## Expected output signals (summary)
 
 | Profile | What to watch |
@@ -133,7 +133,7 @@ See [`.env.example`](../.env.example) for field names. Then run stress with **`K
 
 ## Tuning guidance from results
 
-- If CPU saturated and DB usage low: increase uvicorn **`UVICORN_WORKERS`** in [`scripts/run-backend-loadtest.sh`](../scripts/run-backend-loadtest.sh) moderately.
+- If CPU saturated and DB usage low: increase uvicorn **`UVICORN_WORKERS`** in [`scripts/run-backend-loadtest.sh`](../../scripts/run-backend-loadtest.sh) moderately.
 - If DB pool usage ratio > 0.85: increase `SQLALCHEMY_POOL_SIZE` and DB max connections, or reduce workers.
 - If provider latency dominates: tune `PROVIDER_TIMEOUT_SECONDS`, retries, and circuit breaker settings; ensure quotas fit the ramp.
 - If long-tail latency spikes: lower `CHAT_HISTORY_MAX_MESSAGES` and reduce per-request payload size.

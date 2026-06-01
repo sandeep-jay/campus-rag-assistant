@@ -1,6 +1,6 @@
 # Helpdesk Agent
 
-A bounded **multi-turn helpdesk capability** that picks up where RAG cannot. Implemented on `main` (PRs #37–#43, tagged `v3.0.0`) and exposed in the Vue UI as **AGENT mode**.
+A bounded **multi-turn helpdesk capability** that picks up where RAG cannot, exposed in the Vue UI as **AGENT mode** on top of the same FastAPI backend and RAG provider stack.
 
 > **Why this section exists separately.** The helpdesk capability is a deliberate piece of agentic engineering, not a roadmap item. The two specs below — product UX contract and engineering spec — are the canonical references. The summary on this page is the entry point.
 
@@ -83,8 +83,8 @@ flowchart LR
 | Engineering detail (graph, supervisor, tools, specialists, budgets, eval rig) | [Helpdesk Agent — engineering spec](../roadmap/HELPDESK_AGENT.md) |
 | Live API surface | [Architecture — Helpdesk capabilities (post-RAG)](../ARCHITECTURE.md#helpdesk-capabilities-post-rag) |
 | Architecture decision and tradeoffs | [ADR-005 — Bounded helpdesk agent](../adr/ADR-005-bounded-helpdesk-agent.md) |
-| Privacy / kill switch / redaction | [Security](../SECURITY.md) |
-| Runtime flags and metrics | [Operations](../OPERATIONS.md) |
+| Privacy / kill switch / redaction | [Security](../operations-manual/security.md) |
+| Runtime flags and metrics | [Operations](../operations-manual/operations.md) |
 | Scenario-based evaluation | [Evaluation — Helpdesk agent evaluation](../EVALUATION.md#helpdesk-agent-evaluation) |
 
 ## Try it without cloud credentials

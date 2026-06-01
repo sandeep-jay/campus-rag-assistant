@@ -26,6 +26,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
+- **Docs — first-visit polish** — moved operational runbooks into `docs/operations-manual/`, added an operations-manual landing page, and tightened the repo README, docs landing page, Reviewer Guide, and Case Study so first-time reviewers see crisp portfolio value before release history or deep reference material.
 - **Docs cleanup arc (PRs #50–#54)** — six-PR documentation consolidation: releases hub; helpdesk shipped-vs-target labels + ADR-006; ARCHITECTURE + DESIGN refresh with LANGGRAPH/WEB_RESEARCH folded into DESIGN; operations surface consolidated (PERFORMANCE, PRODUCTION_TLS, E2E, TENANT_CONFIG absorbed); `eval_baseline_2026-05-19` renamed to [eval_baseline_v2.md](../docs/eval_baseline_v2.md); SECURITY dependency floor + PRODUCT_ROADMAP Phase 6d shipped status refreshed.
 - **Docs — OPERATIONS.md** — absorbs local OAuth, production HTTPS/HTTP/2, Playwright E2E, campus Phase 0 performance guardrails.
 - **Docs — DESIGN.md** — absorbs tenant config and LangGraph KB path + opt-in web research sections.
@@ -86,7 +87,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 - **PR #45** — PR template trimmed to **Summary** and **Test plan** only (no Notes section).
 - Patched frontend test-tooling transitive `js-cookie` advisory (`GHSA-qjx8-664m-686j`) by refreshing the lockfile to `js-cookie` `3.0.7`; `npm ci` now reports zero frontend vulnerabilities.
 - Redaction pass before summarization/issue filing (emails, JWT-like tokens, AWS keys, GitHub tokens, bearer tokens, and keyed secrets).
-- GitHub issue creation targets a separate private demo repo (`GITHUB_REPO`); documented in `.env.example` and `docs/SECURITY.md`.
+- GitHub issue creation targets a separate private demo repo (`GITHUB_REPO`); documented in `.env.example` and `docs/operations-manual/security.md`.
 - **Frontend dev-tool CVEs remediated** — upgraded `frontend-vue` test/build tooling so `npm audit --audit-level=moderate` is clean: `vite` `6.4.2`, `esbuild` `0.25.0`, `vitest` / `@vitest/coverage-v8` `4.1.7`, plus lockfile transitive fixes for `ws` `8.20.1` and `brace-expansion` `5.0.6`. Verified with `npm run typecheck`, `npm test -- --run` (130 tests), `npm run build`, and `npm audit --audit-level=moderate`. `langgraph` / `langgraph-checkpoint` alerts remain deferred because patched checkpoint/LangGraph combinations require `langchain-core` 1.x and conflict with the current LangChain 0.3 stack.
 - **Vulnerable Python pins bumped to patched releases** (closes 7 Dependabot alerts on `main`):
   - `authlib==1.3.2` → `1.6.12` — patches 1 **CRITICAL** JWS injection (`GHSA-9ggr-2464-2j32`) and 5 HIGH advisories (OIDC bypass, padding oracle, DoS, account takeover).
@@ -110,7 +111,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 - **Secret hardening (Pydantic `SecretStr`)** — `SECRET_KEY`, `AWS_SECRET_ACCESS_KEY`, `AZURE_OPENAI_API_KEY`, `AZURE_SEARCH_KEY`, `OAUTH_GOOGLE_CLIENT_SECRET`, `OAUTH_GITHUB_CLIENT_SECRET`, `LANGCHAIN_API_KEY`, and `TAVILY_API_KEY` in `backend/app/config/default.py` are now typed `SecretStr`, so they redact in `repr`, logs, exceptions, and `model_dump_json`. Cleartext is read only at the boundary (JWT codec, OAuth client, Azure SDK, Tavily, LangSmith). `simple_tracer.py` no longer logs the LangSmith key in env-var dumps.
 - **Pydantic settings tightening** — `DefaultSettings.model_config` switched from `extra='allow'` to `extra='ignore'` with explicit `SettingsConfigDict` (case-sensitive, UTF-8, optional `secrets_dir` for Docker/K8s secret mounts). Previously-undeclared `AZURE_SEARCH_VECTOR_FIELD` now declared (`text_vector` default) and documented in `.env.example`.
 - **CI guard for env template** — `backend/tests/core/test_env_template.py` asserts every `DefaultSettings` field is documented in `.env.example` (per-field for `SecretStr` fields) and that no `SecretStr` field carries a non-placeholder uncommented value.
-- **Secrets management doc** — `docs/SECURITY.md` now describes the load precedence, the list of `SecretStr` fields, a production checklist (secret stores, instance roles, rotation), and the leak-response runbook.
+- **Secrets management doc** — `docs/operations-manual/security.md` now describes the load precedence, the list of `SecretStr` fields, a production checklist (secret stores, instance roles, rotation), and the leak-response runbook.
 
 ### Changed
 
@@ -131,11 +132,11 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
-- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, role alignment, highlights, upstream delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/PRODUCTION_HARDENING.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
+- **Docs (portfolio polish)** — README restructured for progressive disclosure (pitch, role alignment, highlights, upstream delta, quality baseline); added [PORTFOLIO_CASE_STUDY.md](../docs/PORTFOLIO_CASE_STUDY.md), [docs/adr/](../docs/adr/) (4 ADRs), [PRODUCTION_HARDENING.md](../docs/operations-manual/production-hardening.md); reframed [EVALUATION.md](../docs/EVALUATION.md) baseline paragraph; updated [docs/README.md](../docs/README.md) index.
 - **README** — Overview without `<details>` collapsibles (full architecture, design, screenshots, LangSmith traces visible); CI status badge.
 - **Eval** — expanded [eval_baseline_2026-05-19.md](../docs/eval_baseline_2026-05-19.md) (retained AWS scores, Azure sweep table, findings); eval respects LangGraph when `RAGAS_EVAL=1`; Phase 5 script precision-balanced profile; `RAGAS_DO_NOT_TRACK` in tox eval.
 - **Logging** — `RequestIdFilter` on handlers; redact JWT payloads and chat queries at INFO; cap vendor loggers; optional `LOG_JSON`; access log via `app.access`; single idempotent `initialize_logger()`.
-- **Docs** — documentation cohesion: [DESIGN.md](../docs/DESIGN.md) (product boundaries, decisions); README problem/quality sections; rename [PRODUCT_ROADMAP.md](../docs/roadmap/PRODUCT_ROADMAP.md); de-portfolio language; generic campus/Canvas LMS framing; document Bedrock KB + OpenSearch Serverless alongside Azure Search; expanded [docs/README.md](../docs/README.md) index; [ARCHITECTURE.md](../docs/ARCHITECTURE.md) LangGraph/OAuth/research_mode; [WEB_RESEARCH.md](../docs/roadmap/WEB_RESEARCH.md) KB path diagram; [CI.md](../docs/CI.md) portfolio quick tox note; [E2E.md](../docs/E2E.md) OAuth note; [RELEASE.md](../docs/RELEASE.md) tag message; deduped CHANGELOG `[Unreleased]`.
+- **Docs** — documentation cohesion: [DESIGN.md](../docs/DESIGN.md) (product boundaries, decisions); README problem/quality sections; rename [PRODUCT_ROADMAP.md](../docs/roadmap/PRODUCT_ROADMAP.md); de-portfolio language; generic campus/Canvas LMS framing; document Bedrock KB + OpenSearch Serverless alongside Azure Search; expanded [docs/README.md](../docs/README.md) index; [ARCHITECTURE.md](../docs/ARCHITECTURE.md) LangGraph/OAuth/research_mode; [WEB_RESEARCH.md](../docs/roadmap/WEB_RESEARCH.md) KB path diagram; [CI.md](../docs/operations-manual/ci-cd.md) portfolio quick tox note; [E2E.md](../docs/E2E.md) OAuth note; [RELEASE.md](../docs/operations-manual/release.md) tag message; deduped CHANGELOG `[Unreleased]`.
 
 ---
 
@@ -163,7 +164,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Added
 
-- **CI/CD** — GitHub Actions: [`ci.yml`](../.github/workflows/ci.yml) (tox on `main` + PRs), [`cd.yml`](../.github/workflows/cd.yml) (Vue build + optional EB deploy on `qa`/`release`); [docs/CI.md](../docs/CI.md). Removed `.travis.yml`.
+- **CI/CD** — GitHub Actions: [`ci.yml`](../.github/workflows/ci.yml) (tox on `main` + PRs), [`cd.yml`](../.github/workflows/cd.yml) (Vue build + optional EB deploy on `qa`/`release`); [docs/operations-manual/ci-cd.md](../docs/operations-manual/ci-cd.md). Removed `.travis.yml`.
 
 ### Fixed
 
@@ -188,7 +189,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Added
 
-- **[docs/SECURITY.md](../docs/SECURITY.md)** — audit commands, production hardening checklist, dependency policy.
+- **[docs/operations-manual/security.md](../docs/operations-manual/security.md)** — audit commands, production hardening checklist, dependency policy.
 
 ---
 
@@ -270,7 +271,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 - **Chat API:** `_load_chat_history()` caps messages passed to LangChain.
 - **DB:** SQLAlchemy engine uses configured pool + `pool_pre_ping`.
 - **`run_services.sh`:** multi-worker uvicorn via `API_WORKERS` / `UVICORN_WORKERS` (default 2).
-- **`docs/OPERATIONS.md`:** SLOs split for auth/session vs live RAG; first-token alert hint.
+- **`docs/operations-manual/operations.md`:** SLOs split for auth/session vs live RAG; first-token alert hint.
 - **`docs/roadmap/PHASED_IMPROVEMENT_ROADMAP.md`:** Phase 0 perf shipped note; FlashRank marked Phase 2 / not in `rag.py` yet.
 
 ---

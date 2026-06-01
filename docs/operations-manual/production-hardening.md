@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-05-31
 
-Optional work to move from source-reviewable reference architecture to campus-scale production. Shipped product phases: [roadmap/PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md). Campus-scale detail: [roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md).
+Optional work to move from source-reviewable reference architecture to campus-scale production. Shipped product phases: [roadmap/PRODUCT_ROADMAP.md](../roadmap/PRODUCT_ROADMAP.md). Campus-scale detail: [roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md](../roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md).
 
 Priority: **P1** (before multi-tenant production) · **P2** (scale / cost) · **P3** (maturity / polish)
 
@@ -12,10 +12,10 @@ Priority: **P1** (before multi-tenant production) · **P2** (scale / cost) · **
 
 | Item | Priority | Risk if deferred | Mitigation | Status |
 |------|----------|----------------|------------|--------|
-| **Managed Redis HA** + distributed rate limits | P1 | Single-node rate limits; no shared session/cache at scale | Deploy ElastiCache / Azure Cache; wire `REDIS_URL`; extend rate-limit middleware | Planned — [PHASED_IMPROVEMENT_ROADMAP](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md) |
+| **Managed Redis HA** + distributed rate limits | P1 | Single-node rate limits; no shared session/cache at scale | Deploy ElastiCache / Azure Cache; wire `REDIS_URL`; extend rate-limit middleware | Planned — [PHASED_IMPROVEMENT_ROADMAP](../roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md) |
 | **Secrets management** (SSM / Key Vault vs `.env` on EB) | P1 | Credential leakage, rotation pain | Move secrets to parameter store; document rotation runbook | Partial — `.env` + EB today |
-| **Tenant isolation guarantees** | P1 | Cross-tenant data bleed in shared DB | Enforce `tenant_id` on all queries; audit routes; optional schema-per-tenant | Logical isolation today — [DESIGN.md — Tenant-hydrated prompts](./DESIGN.md#tenant-hydrated-prompts) |
-| **Threat model + abuse controls** | P1 | Auth brute-force, chat spam, cost blowout | Document threat model in [SECURITY.md](./SECURITY.md); per-user quotas beyond IP rate limit | Partial — rate limits, HTTP-only cookies |
+| **Tenant isolation guarantees** | P1 | Cross-tenant data bleed in shared DB | Enforce `tenant_id` on all queries; audit routes; optional schema-per-tenant | Logical isolation today — [DESIGN.md — Tenant-hydrated prompts](../DESIGN.md#tenant-hydrated-prompts) |
+| **Threat model + abuse controls** | P1 | Auth brute-force, chat spam, cost blowout | Document threat model in [SECURITY.md](./security.md); per-user quotas beyond IP rate limit | Partial — rate limits, HTTP-only cookies |
 | **PII policy + log redaction audit** | P1 | Compliance exposure in logs/traces | Formal PII classification; verify redaction on chat/JWT fields; LangSmith data retention policy | Partial — redaction shipped in logging pass |
 | **Observability dashboards + alerts** | P2 | Slow incident response | Grafana from Prometheus; alert on p95 latency, 5xx, pool exhaustion | Metrics endpoint shipped; dashboards optional |
 | **Per-tenant token / cost budgets** | P2 | Runaway LLM spend | Budget counters in Redis; route to cheaper model on threshold | Planned — campus track Phase 4 |
@@ -24,11 +24,11 @@ Priority: **P1** (before multi-tenant production) · **P2** (scale / cost) · **
 | **Async ingestion / KB sync cadence** | P2 | Stale corpus; recall drops | Scheduled sync jobs; invalidation hooks for cache | AWS-managed via Bedrock KB connectors |
 | **Queueing for long RAG paths** | P2 | Timeouts under load | Background worker for eval/heavy retrieve; SSE keep-alive | Not started |
 | **Postgres DR / backup posture** | P2 | Data loss on failure | Automated backups, restore drill, RPO/RTO doc | Operator-dependent |
-| **LangGraph-native SSE** (Phase 6a) | P3 | Higher TTFT on graph path | `astream_events` from graph; same SSE contract as chain | Optional — [DESIGN.md — LangGraph KB path](./DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank) |
+| **LangGraph-native SSE** (Phase 6a) | P3 | Higher TTFT on graph path | `astream_events` from graph; same SSE contract as chain | Optional — [DESIGN.md — LangGraph KB path](../DESIGN.md#langgraph-kb-path-multi-query-retrieve-rerank) |
 | **Expand RAGAS golden set** (10 → 30–50) | P3 | Thin regression signal | Bootstrap + manual curation; tag by topic/difficulty | 10 rows today |
-| **Expand helpdesk-agent eval set** | P3 | Thin agent-decision regression signal | Add scenarios under `backend/tests/eval/test_helpdesk_agent_scenarios.py` (clarify, retry-kb, web, file/link branches) | Initial scenarios shipped — [HELPDESK_AGENT.md](./roadmap/HELPDESK_AGENT.md) |
+| **Expand helpdesk-agent eval set** | P3 | Thin agent-decision regression signal | Add scenarios under `backend/tests/eval/test_helpdesk_agent_scenarios.py` (clarify, retry-kb, web, file/link branches) | Initial scenarios shipped — [HELPDESK_AGENT.md](../roadmap/HELPDESK_AGENT.md) |
 | **RAG service lifecycle** (singleton vs per-request) | P3 | Latency / connection churn | Document tradeoff; optional app-state singleton with config refresh | Per-request construction today |
-| **Chain vs LangGraph consolidation** | P3 | Dual maintenance | Keep both until 6a; deprecate chain when graph streams | Explicit ADR — [ADR-002](./adr/ADR-002-langgraph-vs-chain.md) |
+| **Chain vs LangGraph consolidation** | P3 | Dual maintenance | Keep both until 6a; deprecate chain when graph streams | Explicit ADR — [ADR-002](../adr/ADR-002-langgraph-vs-chain.md) |
 
 ---
 
@@ -68,20 +68,20 @@ Tracked here so hiring readers see intentional scope boundaries:
 
 ## Campus production-scale track (unbuilt)
 
-These items were tracked in the former `PERFORMANCE.md` backlog. **Phase 0** (history cap, DB pool, first-token metric, multi-worker) is **shipped** — see [OPERATIONS.md — Shipped performance guardrails](./OPERATIONS.md#shipped-performance-guardrails-campus-phase-0). Phases 1–3 below are **not implemented**.
+These items were tracked in the former `PERFORMANCE.md` backlog. **Phase 0** (history cap, DB pool, first-token metric, multi-worker) is **shipped** — see [OPERATIONS.md — Shipped performance guardrails](./operations.md#shipped-performance-guardrails-campus-phase-0). Phases 1–3 below are **not implemented**.
 
 | Phase | Goal | Key env flags (when built) | Docs to update |
 |-------|------|---------------------------|----------------|
-| **1** | Exact Redis response cache + deeper observability | `RESPONSE_CACHE_ENABLED`, `RESPONSE_CACHE_TTL_SECONDS`, `CACHE_BYPASS_HEADER` | `.env.example`, [OPERATIONS.md](./OPERATIONS.md), [LOAD_TESTING.md](./LOAD_TESTING.md) |
-| **2** | Retrieval quality at scale (semantic cache, ingestion pipeline) | TBD per slice | [EVALUATION.md](./EVALUATION.md), [archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md) |
-| **3** | Multi-instance reliability, idempotency, cost governance | Production `REDIS_URL`, idempotency TTL, budget caps | [OPERATIONS.md](./OPERATIONS.md), [RELEASE.md](./RELEASE.md) |
+| **1** | Exact Redis response cache + deeper observability | `RESPONSE_CACHE_ENABLED`, `RESPONSE_CACHE_TTL_SECONDS`, `CACHE_BYPASS_HEADER` | `.env.example`, [OPERATIONS.md](./operations.md), [LOAD_TESTING.md](./load-testing.md) |
+| **2** | Retrieval quality at scale (semantic cache, ingestion pipeline) | TBD per slice | [EVALUATION.md](../EVALUATION.md), [archive/PHASED_IMPROVEMENT_ROADMAP.md](../roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md) |
+| **3** | Multi-instance reliability, idempotency, cost governance | Production `REDIS_URL`, idempotency TTL, budget caps | [OPERATIONS.md](./operations.md), [RELEASE.md](./release.md) |
 
-Detail: [archive/PHASED_IMPROVEMENT_ROADMAP.md](./roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md).
+Detail: [archive/PHASED_IMPROVEMENT_ROADMAP.md](../roadmap/archive/PHASED_IMPROVEMENT_ROADMAP.md).
 
 ## Related
 
-- [OPERATIONS.md](./OPERATIONS.md) — runbooks, metrics, migrations, shipped Phase 0 guardrails
-- [SECURITY.md](./SECURITY.md) — dependency audit, production notes
-- [LOAD_TESTING.md](./LOAD_TESTING.md) — k6 profiles
-- [PORTFOLIO_CASE_STUDY.md](./PORTFOLIO_CASE_STUDY.md) — what ships today vs backlog
-- [release-notes/](./release-notes/index.md) — what shipped in v1.0 / v2.0 / v3.0.0
+- [OPERATIONS.md](./operations.md) — runbooks, metrics, migrations, shipped Phase 0 guardrails
+- [SECURITY.md](./security.md) — dependency audit, production notes
+- [LOAD_TESTING.md](./load-testing.md) — k6 profiles
+- [PORTFOLIO_CASE_STUDY.md](../PORTFOLIO_CASE_STUDY.md) — what ships today vs backlog
+- [release-notes/](../release-notes/index.md) — what shipped in v1.0 / v2.0 / v3.0.0

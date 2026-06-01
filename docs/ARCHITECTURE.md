@@ -2,53 +2,57 @@
 
 **Campus RAG Assistant** is a retrieval-augmented chat product: a **FastAPI** backend, a **Vue 3** SPA (`frontend-vue/`), and an optional **Streamlit** client on the same REST API.
 
-For design goals and decision rationale, see [DESIGN.md](./DESIGN.md).
+For design goals and decision rationale, see [DESIGN.md](./DESIGN.md). For release-by-release summaries, see [release-notes/](./release-notes/index.md).
 
-Evolution from upstream [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot): dual frontends, pluggable **AWS / Azure / mock** providers, **Bedrock Knowledge Base** retrieval over **OpenSearch Serverless** (replacing direct OpenSearch client calls from the app), SSE streaming, JWT cookie auth, Alembic migrations, and Prometheus metrics.
+This page starts with the **current v3 system**. Earlier versions are preserved as collapsed drill-downs so reviewers can understand the evolution without piecing together the live architecture from a changelog.
 
-## System architecture
+## Current architecture
 
-Diagrams live in [`docs/assets/`](./assets/) under versioned folders (`architecture/v1`, `v2`, `v3`). The **v3 overview** is in the root [README](../README.md#architecture).
+| Layer | Current shape |
+|------|---------------|
+| **Client** | Vue 3 SPA is primary; Streamlit remains an optional client on the same REST API |
+| **API** | FastAPI under `/api/auth`, `/api/chat`, and `/api/helpdesk`; JWT auth in HTTP-only cookies; SSE for chat and agent status streams |
+| **RAG orchestration** | `RAG_ENGINE=chain` for token streaming and CI default; `RAG_ENGINE=langgraph` for explicit `condense -> multi_query -> retrieve -> rerank -> generate -> format` graph nodes |
+| **Providers** | Pluggable LLM and retriever registry: AWS, Azure, or mock via `LLM_PROVIDER`, `RETRIEVER_PROVIDER`, and `RAG_FORCE_MOCK` |
+| **AWS retrieval** | Bedrock Knowledge Base retrieve API backed by OpenSearch Serverless; the app does not call OpenSearch directly |
+| **Azure retrieval** | Azure AI Search fills the same retriever contract for vector / hybrid search |
+| **Helpdesk agent** | Bounded multi-turn AGENT mode with retry-KB, web search, duplicate-issue search, draft-ticket, HITL confirm, four terminal outcomes, redaction, and Prometheus metrics |
+| **Persistence** | PostgreSQL + Alembic for application data; helpdesk agent checkpoints currently use SQLite keyed by chat session |
+| **Observability and quality** | LangSmith traces, Prometheus metrics, RAGAS baseline checks, k6 load validation, and CI mock-provider coverage |
 
-### What changed in v3
+### Primary request paths
 
-v3 adds the **bounded helpdesk agent** on top of the v2 RAG platform: a supervisor + specialist nodes (clarifier, classifier, writer, solution), agent tools (KB retry, web search, GitHub-issue search, file-ticket), SQLite checkpointing, and a HITL gate before filing GitHub Issues. The Vue UI exposes **Ask** vs **Agent** mode, an activity timeline, and a ticket review modal.
+- **Ask mode:** Vue sends `POST /api/chat/stream`; FastAPI runs the configured RAG path, streams answer tokens/status, persists the message, and returns source metadata for the citation panel.
+- **Agent mode:** When RAG is unresolved, Vue can start `/api/helpdesk/agent/start/stream`; the backend runs a bounded helpdesk loop, pauses for clarifying input when needed, and requires `/agent/confirm` before filing a GitHub issue.
+- **Operations path:** Health, metrics, release, CI/CD, security, and load-testing runbooks live in the [Operations Manual](./operations-manual/index.md).
 
-The current supervisor routing is **deterministic** (hand-coded 3-branch routine), not yet LLM-driven. The shipped surface — tools, multi-turn pause/resume, HITL gate, four explicit outcomes, redaction, Prometheus metrics — is real and demo-able under `RAG_FORCE_MOCK=true`. The [Agentic Helpdesk Rebuild](./roadmap/AGENTIC_HELPDESK_REBUILD.md) is the live forward-looking plan: LLM supervisor + structured-output specialists, compiled `StateGraph`, `AsyncPostgresSaver`, enforced budgets, real-event SSE, trajectory eval, and live campus router. Row-by-row shipped-vs-target reference: [helpdesk/index.md](./helpdesk/index.md#today-vs-target-state). Decision record: [ADR-005](./adr/ADR-005-bounded-helpdesk-agent.md) + [ADR-006](./adr/ADR-006-live-llm-supervisor-migration.md).
-
-### Overview (v3)
+### Overview diagram
 
 ![Campus RAG Assistant — v3 overview](./assets/architecture/v3/overview.png)
 
-### Detailed (v3)
+### Detailed diagram
 
 ![Campus RAG Assistant — v3 detailed architecture](./assets/architecture/v3/detailed.png)
 
-### Full topology (v3)
+### Full topology
 
-RAG pipeline subgraph (`condense` → `multi_query` → `retrieve` → `rerank` → `generate` → `format`) plus helpdesk agent subgraph (supervisor → specialists → tools → HITL gate):
+RAG pipeline subgraph (`condense` -> `multi_query` -> `retrieve` -> `rerank` -> `generate` -> `format`) plus helpdesk agent subgraph (supervisor -> specialists -> tools -> HITL gate):
 
 ![Campus RAG Assistant — v3 topology](./assets/architecture/v3/topology.png)
 
-### Diagram notes (v3 vs v2)
-
-| Area | v2 (RAG platform) | v3 (+ helpdesk agent) |
-|------|-------------------|------------------------|
-| **UI** | Vue 3 SPA with KB chat, sources, web toggle | **Ask / Agent mode** switch, agent activity timeline, ticket review modal |
-| **API** | `/api/chat/*`, `/api/helpdesk/{summarize,draft-ticket,create-issue}` | **`/api/helpdesk/agent/*`** — start, resume, confirm, abort + SSE streams |
-| **Orchestration** | LangGraph RAG only | RAG + **helpdesk LangGraph** (supervisor, specialists, tools) |
-| **Checkpointing** | — | SQLite checkpointer (Postgres planned — [AGENTIC_HELPDESK_REBUILD](./roadmap/AGENTIC_HELPDESK_REBUILD.md)) |
-| **External actions** | — | **GitHub Issues** (HITL-gated), Tavily web search |
-| **Observability** | LangSmith + Prometheus | + `chatbot_helpdesk_agent_*` metrics, agent funnel counters |
-
-| Asset | Description |
-|-------|-------------|
-| [`architecture/v3/overview.png`](./assets/architecture/v3/overview.png) | High-level v3 — shown in [README](../README.md#architecture) |
-| [`architecture/v3/detailed.png`](./assets/architecture/v3/detailed.png) | v3 component detail |
-| [`architecture/v3/topology.png`](./assets/architecture/v3/topology.png) | Full RAG + agent topology |
+The topology image is the reviewer map for the whole current architecture: the RAG path, helpdesk agent path, external services, persistence, and observability surfaces are shown together before historical versions.
 
 ??? info "Evolution from v2 (RAG platform)"
-    v2 introduced the Vue SPA, provider registry, LangGraph RAG pipeline, RAGAS eval, and GitHub Actions CI/CD.
+    v2 introduced the Vue SPA, provider registry, LangGraph RAG pipeline, RAGAS eval, and GitHub Actions CI/CD. v3 keeps that platform and adds a bounded helpdesk agent.
+
+    | Area | v2 (RAG platform) | v3 (+ helpdesk agent) |
+    |------|-------------------|------------------------|
+    | **UI** | Vue 3 SPA with KB chat, sources, web toggle | **Ask / Agent mode** switch, agent activity timeline, ticket review modal |
+    | **API** | `/api/chat/*`, `/api/helpdesk/{summarize,draft-ticket,create-issue}` | **`/api/helpdesk/agent/*`** — start, resume, confirm, abort + SSE streams |
+    | **Orchestration** | LangGraph RAG only | RAG + **helpdesk LangGraph** (supervisor, specialists, tools) |
+    | **Checkpointing** | — | SQLite checkpointer (Postgres planned — [AGENTIC_HELPDESK_REBUILD](./roadmap/AGENTIC_HELPDESK_REBUILD.md)) |
+    | **External actions** | — | **GitHub Issues** (HITL-gated), Tavily web search |
+    | **Observability** | LangSmith + Prometheus | + `chatbot_helpdesk_agent_*` metrics, agent funnel counters |
 
     ![v2 overview](./assets/architecture/v2/overview.png)
 
@@ -75,7 +79,7 @@ RAG pipeline subgraph (`condense` → `multi_query` → `retrieve` → `rerank` 
     | **Retrieval (Azure)** | — | **Azure AI Search** vector + keyword/hybrid index |
     | **LLM** | Bedrock only | **Bedrock** or **Azure OpenAI** or **mock** via `LLM_PROVIDER` |
     | **DB** | PostgreSQL | PostgreSQL + **Alembic** |
-    | **Ops** | LangSmith | LangSmith + **Prometheus** — [OPERATIONS.md — Shipped performance guardrails](./OPERATIONS.md#shipped-performance-guardrails-campus-phase-0) |
+    | **Ops** | LangSmith | LangSmith + **Prometheus** — [OPERATIONS.md — Shipped performance guardrails](operations-manual/operations.md#shipped-performance-guardrails-campus-phase-0) |
     | **Quality** | — | **RAGAS** harness, k6 load tests |
 
 ### AWS retrieval: Bedrock Knowledge Base and OpenSearch
@@ -133,8 +137,8 @@ sequenceDiagram
 
 - **Entry**: [`backend/app/main.py`](../backend/app/main.py) builds the FastAPI app; runs SQLAlchemy `create_all` only in dev/test (production uses Alembic); configures CORS, and mounts routers under `/api/auth` and `/api/chat`.
 - **Configuration**: Pydantic settings in [`backend/app/config/default.py`](../backend/app/config/default.py), loaded via [`backend/app/core/config_manager.py`](../backend/app/core/config_manager.py) from layered `.env` files (`APP_ENV`, repo root `.env`, `.env.{APP_ENV}`).
-- **Auth**: JWT plus HTTP-only cookies (`/api/auth/login-json`, register, **OAuth** via `/api/auth/oauth/{provider}/…`; dev uses API-port callback (`OAUTH_REDIRECT_BASE_URL` on `:8000`) and one-time redirect to Vue `/oauth/handoff` — [OPERATIONS.md — OAuth and authentication](./OPERATIONS.md#oauth-and-authentication). Cookie `Secure` and `SameSite` follow `AUTH_COOKIE_*` settings (see `.env.example`, [OPERATIONS.md — Production HTTPS](./OPERATIONS.md#production-https-and-http2)).
-- **RAG**: [`backend/app/services/rag.py`](../backend/app/services/rag.py) — `RAG_ENGINE=chain` (default in tests via conftest) uses a LangChain conversational retrieval chain; `RAG_ENGINE=langgraph` runs [`backend/app/services/graph/`](../backend/app/services/graph/) with KB path **condense → multi_query → retrieve → rerank → generate → format** (web path skips rerank; see [DESIGN.md — LangGraph KB path](./DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank) and [Opt-in web research](./DESIGN.md#opt-in-web-research)).
+- **Auth**: JWT plus HTTP-only cookies (`/api/auth/login-json`, register, **OAuth** via `/api/auth/oauth/{provider}/…`; dev uses API-port callback (`OAUTH_REDIRECT_BASE_URL` on `:8000`) and one-time redirect to Vue `/oauth/handoff` — [OPERATIONS.md — OAuth and authentication](operations-manual/operations.md#oauth-and-authentication). Cookie `Secure` and `SameSite` follow `AUTH_COOKIE_*` settings (see `.env.example`, [OPERATIONS.md — Production HTTPS](operations-manual/operations.md#production-https-and-http2)).
+- **RAG**: [`backend/app/services/rag.py`](../backend/app/services/rag.py) — `RAG_ENGINE=chain` (default in tests via conftest) uses a LangChain conversational retrieval chain; `RAG_ENGINE=langgraph` runs [`backend/app/services/graph/`](../backend/app/services/graph/) with KB path **condense → multi_query → retrieve → rerank → generate → format** (web path skips rerank; see [DESIGN.md — LangGraph KB path](./DESIGN.md#langgraph-kb-path-multi-query-retrieve-rerank) and [Opt-in web research](./DESIGN.md#opt-in-web-research)).
 - **LangGraph streaming:** When `RAG_ENGINE=langgraph`, `/api/chat/stream` emits a `status` event, runs the graph in a worker thread, then streams the buffered answer in paced chunks (not token-level Bedrock streaming). Use `RAG_ENGINE=chain` for `astream_events` TTFT.
 - **Research mode:** Optional `research_mode=web` on chat requests when `WEB_RESEARCH_ENABLED=true`; responses include `source_kind` and a web disclaimer when applicable.
 - **Singleton:** `get_rag_service()` returns one shared `RAGService` instance (thread-safe) for all chat handlers.
@@ -160,7 +164,7 @@ sequenceDiagram
 - **Data flow**: Axios client (`src/api/`) → Pinia stores (`src/stores/`) → views/components. Cookies sent with `withCredentials`.
 - **Chat UI**: `ChatView` + sidebar session list; `MessageBubble` (Markdown, user/assistant lanes, accessible accent); `SourcesPanel` / `SourcesSummary` below assistant replies; `MessageFeedback`; SSE streaming with typing/status indicator. Dev server: `http://127.0.0.1:5173`.
 - **Routing**: Vue Router guards call `fetchCurrentUser` for protected routes.
-- **Testing**: Vitest + MSW (`src/mocks/`) for unit/integration tests; Playwright under `e2e/` (see [OPERATIONS.md — Playwright E2E](./OPERATIONS.md#playwright-e2e-frontend-vue)).
+- **Testing**: Vitest + MSW (`src/mocks/`) for unit/integration tests; Playwright under `e2e/` (see [OPERATIONS.md — Playwright E2E](operations-manual/operations.md#playwright-e2e-frontend-vue)).
 
 ## Production-oriented behavior
 
@@ -280,7 +284,7 @@ sequenceDiagram
 - **Frontend state:** Vue stores one in-memory/persisted bubble per `agent_session_id`; streamed status updates drive the typing indicator and final `AgentTurn` updates the same card.
 - **Scope:** Vue frontend only (Streamlit unchanged).
 - **Secrets:** `GITHUB_TOKEN` + `GITHUB_REPO` (private demo repo); see
-  `.env.example` and [SECURITY.md](./SECURITY.md).
+  `.env.example` and [SECURITY.md](operations-manual/security.md).
 
 ## Rate limiting
 

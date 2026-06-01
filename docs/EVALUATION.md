@@ -49,7 +49,7 @@ The checked-in golden set was bootstrapped from one **campus knowledge base** de
 |-------|----------------------|--------|
 | PR / `main` CI (`tox (lint, backend, frontends)`) | **0** (default) | Eval not required; keeps PRs fast without AWS |
 | Local / release milestone | **1** | `tox -e eval` or `./scripts/run_eval_phase5.sh`; needs judge + Bedrock |
-| CD `release` workflow | **1** when secrets configured | See [CI.md](./CI.md) |
+| CD `release` workflow | **1** when secrets configured | See [CI.md](operations-manual/ci-cd.md) |
 
 Env overrides: `RAGAS_FAITHFULNESS_MIN`, `RAGAS_ANSWER_RELEVANCY_MIN`, etc.
 
@@ -188,5 +188,5 @@ Screenshots: [docs/assets/observability/](./assets/observability/) (README uses 
 ## Related
 
 - [roadmap/PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md)
-- [DESIGN.md — LangGraph KB path](./DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank)
+- [DESIGN.md — LangGraph KB path](./DESIGN.md#langgraph-kb-path-multi-query-retrieve-rerank)
 - [assets/README.md](./assets/README.md) — demo script
