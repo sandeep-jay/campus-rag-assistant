@@ -1,18 +1,22 @@
 # Reviewer Guide
 
-Campus RAG Assistant is a source-reviewable enterprise RAG platform for governed campus knowledge. Review it as an engineering artifact: code, architecture, screenshots, evaluation, operations, and release hygiene — not as a hosted public SaaS product.
+Campus RAG Assistant is a source-reviewable AI platform for governed campus knowledge. It pairs a
+cited-answer RAG path for routine questions with a bounded LangGraph helpdesk agent for what RAG
+cannot resolve, behind one FastAPI backend, one Vue 3 SPA, and a pluggable AWS / Azure / mock
+provider boundary.
 
-## Senior signals
+Review it as an engineering artifact: source code, architecture, screenshots, evaluation results,
+observability, CI/CD, security posture, and release hygiene. It is not presented as a hosted public
+product.
 
-| Signal | Evidence |
-|---|---|
-| **AI platform architecture** | AWS Bedrock KB, Azure AI Search/OpenAI, and mock providers behind one registry — [ADR-001](adr/ADR-001-provider-registry.md) |
-| **RAG engineering** | LangGraph retrieval stages, multi-query expansion, rerank hooks, explicit source metadata — [Design Notes](DESIGN.md#langgraph-kb-path-multi-query-retrieve-rerank) |
-| **Evaluation discipline** | RAGAS golden set, documented baseline, release-oriented gates, named quality gaps — [Evaluation](EVALUATION.md), [Baseline](eval_baseline_v2.md) |
-| **Product judgment** | KB-first answers, source panels, opt-in web research, visible disclaimer, feedback loop — [Opt-in web research](DESIGN.md#opt-in-web-research) |
-| **Observability and operations** | LangSmith traces, Prometheus metrics, request IDs, k6 load profiles, runbooks — [Operations Manual](operations-manual/index.md) |
-| **Security and release hygiene** | gitleaks, dependency review, no tool attribution, protected `main`, release ladder — [CI/CD](operations-manual/ci-cd.md), [Security](operations-manual/security.md) |
-| **Bounded agentic work** | Helpdesk escalation with tools, HITL ticket filing, deterministic supervisor today, LLM supervisor migration documented — [Helpdesk overview](helpdesk/index.md), [ADR-006](adr/ADR-006-live-llm-supervisor-migration.md) |
+## What this shows
+
+| Capability | What it shows | Evidence |
+|---|---|---|
+| **Cited RAG path** | KB-first answers, multi-query retrieval, rerank hooks, source contracts, and opt-in web research | [DESIGN.md](DESIGN.md) · [EVALUATION.md](EVALUATION.md) · [ADR-001](adr/ADR-001-provider-registry.md) · [ADR-003](adr/ADR-003-opt-in-web-research.md) |
+| **Bounded helpdesk agent** | Multi-turn escalation with KB retry, web search, duplicate-issue search, clarifying turns, HITL ticket filing, and four explicit outcomes | [Helpdesk overview](helpdesk/index.md) · [ADR-005](adr/ADR-005-bounded-helpdesk-agent.md) · [ADR-006](adr/ADR-006-live-llm-supervisor-migration.md) |
+| **AI platform architecture** | Provider registry for AWS / Azure / mock execution, tenant configuration, feature flags, migrations, and CI-safe local mode | [ARCHITECTURE.md](ARCHITECTURE.md) · [ADR-001](adr/ADR-001-provider-registry.md) |
+| **Evaluation and operations** | RAGAS baseline, LangSmith traces, Prometheus metrics, k6 load profiles, gitleaks, branch protection, and release runbooks | [eval_baseline_v2.md](eval_baseline_v2.md) · [operations-manual/index.md](operations-manual/index.md) · [ADR-004](adr/ADR-004-eval-gating-policy.md) |
 
 ## Suggested review paths
 

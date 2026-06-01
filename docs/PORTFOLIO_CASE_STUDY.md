@@ -1,8 +1,13 @@
 # Portfolio Case Study: Campus RAG Assistant
 
-## One-line summary
+Campus RAG Assistant is a source-reviewable AI platform for governed campus knowledge. It pairs a
+cited-answer RAG path for routine questions with a bounded LangGraph helpdesk agent for what RAG
+cannot resolve, behind one FastAPI backend, one Vue 3 SPA, and a pluggable AWS / Azure / mock
+provider boundary.
 
-A source-reviewable AI platform case study: governed campus knowledge becomes cited answers, measurable retrieval quality, and a bounded helpdesk escalation flow.
+Review it as an engineering artifact: source code, architecture, screenshots, evaluation results,
+observability, CI/CD, security posture, and release hygiene. It is not presented as a hosted public
+product.
 
 ## Problem
 
@@ -13,6 +18,15 @@ Campus support knowledge is fragmented across LMS guides, service desk articles,
 I owned the platform transformation represented in this repository: Vue product UI, FastAPI API, provider boundaries, LangGraph RAG orchestration, evaluation harness, LangSmith/Prometheus observability, CI/CD, and the bounded helpdesk escalation path.
 
 The project builds from the public [`ets-berkeley-edu/chabot`](https://github.com/ets-berkeley-edu/chabot) codebase, which established the campus chatbot domain. This repository extends that base into a portfolio and educational architecture artifact. It is not an official UC Berkeley or UC product.
+
+## What this shows
+
+| Capability | What it shows | Evidence |
+|---|---|---|
+| **Cited RAG path** | KB-first answers, multi-query retrieval, rerank hooks, source contracts, and opt-in web research | [./DESIGN.md](./DESIGN.md) · [./EVALUATION.md](./EVALUATION.md) · [ADR-001](./adr/ADR-001-provider-registry.md) · [ADR-003](./adr/ADR-003-opt-in-web-research.md) |
+| **Bounded helpdesk agent** | Multi-turn escalation with KB retry, web search, duplicate-issue search, clarifying turns, HITL ticket filing, and four explicit outcomes | [Helpdesk overview](./helpdesk/index.md) · [ADR-005](./adr/ADR-005-bounded-helpdesk-agent.md) · [ADR-006](./adr/ADR-006-live-llm-supervisor-migration.md) |
+| **AI platform architecture** | Provider registry for AWS / Azure / mock execution, tenant configuration, feature flags, migrations, and CI-safe local mode | [./ARCHITECTURE.md](./ARCHITECTURE.md) · [ADR-001](./adr/ADR-001-provider-registry.md) |
+| **Evaluation and operations** | RAGAS baseline, LangSmith traces, Prometheus metrics, k6 load profiles, gitleaks, branch protection, and release runbooks | [./eval_baseline_v2.md](./eval_baseline_v2.md) · [./operations-manual/index.md](./operations-manual/index.md) · [ADR-004](./adr/ADR-004-eval-gating-policy.md) |
 
 ## Architecture
 
@@ -59,13 +73,6 @@ Full score tables: [eval_baseline_v2.md](./eval_baseline_v2.md). Operations deta
 - **Graph path buffers output** — chain path has true token streaming; LangGraph-native SSE is a planned optional improvement.
 - **Helpdesk supervisor is deterministic today** — the LLM supervisor, Postgres checkpointing, and trajectory eval are the [Agentic Helpdesk Rebuild](./roadmap/AGENTIC_HELPDESK_REBUILD.md) track.
 - **License and deployment scope are bounded** — UC license retained; this is a portfolio/educational fork, not a commercial product claim.
-
-## What this demonstrates
-
-- **AI platform architecture:** provider boundaries, tenant configuration, mock/live parity, CI-safe local mode.
-- **RAG engineering judgment:** explicit retrieval stages, citation contracts, eval baselines, and named quality gaps.
-- **Product judgment:** KB-first UX, source transparency, opt-in web research, feedback loop, bounded escalation.
-- **Production-readiness thinking:** runbooks, metrics, security review, load profiles, release process, hardening backlog.
 
 ## Related
 

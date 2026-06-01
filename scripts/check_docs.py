@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Docs hygiene check for Campus RAG Assistant.
 
-Catches the three categories of doc drift we cleaned up by hand:
+Catches four categories of doc drift we cleaned up by hand:
 
 1. Broken relative markdown links (file targets that no longer exist).
 2. Broken anchor references (``foo.md#some-heading`` where the heading does
@@ -9,6 +9,8 @@ Catches the three categories of doc drift we cleaned up by hand:
 3. "First-visit" docs that lapse into changelog framing -- version-suffixed
    headings or "What changed in vN" sections at the top level of a doc that
    reviewers hit first.
+4. First-visit docs whose shared product introduction or capability placement
+   drifts from the current review narrative.
 
 Scope:
 
@@ -63,6 +65,31 @@ CHANGELOG_HEADING_PATTERNS = (
     re.compile(r"^Full topology \(v\d+\)$", re.IGNORECASE),
 )
 
+CANONICAL_LEDE = (
+    "Campus RAG Assistant is a source-reviewable AI platform for governed campus "
+    "knowledge. It pairs a cited-answer RAG path for routine questions with a "
+    "bounded LangGraph helpdesk agent for what RAG cannot resolve, behind one "
+    "FastAPI backend, one Vue 3 SPA, and a pluggable AWS / Azure / mock provider "
+    "boundary."
+)
+
+CANONICAL_LEDE_DOCS: tuple[Path, ...] = (
+    REPO_ROOT / "README.md",
+    REPO_ROOT / "docs" / "index.md",
+    REPO_ROOT / "docs" / "ARCHITECTURE.md",
+    REPO_ROOT / "docs" / "PORTFOLIO_CASE_STUDY.md",
+    REPO_ROOT / "docs" / "REVIEWER_GUIDE.md",
+)
+CANONICAL_LEDE_DOCS_RESOLVED = {p.resolve() for p in CANONICAL_LEDE_DOCS}
+
+CAPABILITY_DOCS: tuple[Path, ...] = (
+    REPO_ROOT / "README.md",
+    REPO_ROOT / "docs" / "index.md",
+    REPO_ROOT / "docs" / "PORTFOLIO_CASE_STUDY.md",
+    REPO_ROOT / "docs" / "REVIEWER_GUIDE.md",
+)
+CAPABILITY_DOCS_RESOLVED = {p.resolve() for p in CAPABILITY_DOCS}
+
 
 @dataclass(frozen=True)
 class Finding:
@@ -79,6 +106,10 @@ def slugify(text: str) -> str:
     text = re.sub(r"\s+", "-", text)
     text = re.sub(r"-+", "-", text)
     return text
+
+
+def normalize_ws(text: str) -> str:
+    return " ".join(text.split())
 
 
 def collect_anchors(path: Path) -> set[str]:
@@ -189,6 +220,47 @@ def check_changelog_framing(path: Path) -> list[Finding]:
     return findings
 
 
+def check_intro_consistency(path: Path) -> list[Finding]:
+    """Keep first-visit docs aligned on the same product narrative."""
+    findings: list[Finding] = []
+    resolved = path.resolve()
+    text = path.read_text(errors="ignore")
+    normalized = normalize_ws(text)
+
+    if resolved in CANONICAL_LEDE_DOCS_RESOLVED:
+        if normalize_ws(CANONICAL_LEDE) not in normalized:
+            findings.append(
+                Finding(
+                    "error",
+                    path,
+                    "missing canonical product lede; keep the first-visit "
+                    "introduction aligned across README, docs index, reviewer "
+                    "guide, case study, and architecture.",
+                )
+            )
+
+    if resolved in CAPABILITY_DOCS_RESOLVED:
+        if "## What this shows" not in text:
+            findings.append(
+                Finding(
+                    "error",
+                    path,
+                    'missing "## What this shows" near the top of the doc.',
+                )
+            )
+        if "| **Bounded helpdesk agent** |" not in text:
+            findings.append(
+                Finding(
+                    "error",
+                    path,
+                    "missing bounded-helpdesk-agent row in the capability table; "
+                    "the agent should stay visible in quick-review docs.",
+                )
+            )
+
+    return findings
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -204,6 +276,7 @@ def main() -> int:
     for path in files:
         all_findings.extend(check_links(path, anchor_cache))
         all_findings.extend(check_changelog_framing(path))
+        all_findings.extend(check_intro_consistency(path))
 
     errors = [f for f in all_findings if f.severity == "error"]
     warnings = [f for f in all_findings if f.severity == "warning"]
@@ -222,8 +295,8 @@ def main() -> int:
             print(f"  err   {rel}: {f.message}", file=sys.stderr)
         print(file=sys.stderr)
         print(
-            f"FAIL: {len(errors)} broken link(s) / anchor(s). "
-            "Fix before opening the PR.",
+            f"FAIL: {len(errors)} broken link(s), anchor(s), or intro "
+            "consistency issue(s). Fix before opening the PR.",
             file=sys.stderr,
         )
         return 1

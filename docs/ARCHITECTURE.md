@@ -1,10 +1,13 @@
 # Architecture
 
-**Campus RAG Assistant** is a retrieval-augmented chat product: a **FastAPI** backend, a **Vue 3** SPA (`frontend-vue/`), and an optional **Streamlit** client on the same REST API.
+Campus RAG Assistant is a source-reviewable AI platform for governed campus knowledge. It pairs a
+cited-answer RAG path for routine questions with a bounded LangGraph helpdesk agent for what RAG
+cannot resolve, behind one FastAPI backend, one Vue 3 SPA, and a pluggable AWS / Azure / mock
+provider boundary.
+
+This page describes the current system architecture first, then keeps earlier versions as collapsed drill-downs so reviewers can understand the evolution without reconstructing the live architecture from release history.
 
 For design goals and decision rationale, see [DESIGN.md](./DESIGN.md). For release-by-release summaries, see [release-notes/](./release-notes/index.md).
-
-This page starts with the **current v3 system**. Earlier versions are preserved as collapsed drill-downs so reviewers can understand the evolution without piecing together the live architecture from a changelog.
 
 ## Current architecture
 

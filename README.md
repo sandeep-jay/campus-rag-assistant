@@ -9,13 +9,16 @@
 [![LangGraph](https://img.shields.io/badge/RAG-LangGraph-purple.svg)](docs/DESIGN.md#langgraph-kb-path-multi-query-retrieve-rerank)
 [![RAGAS](https://img.shields.io/badge/eval-RAGAS-yellow.svg)](docs/EVALUATION.md)
 
-**Source-reviewable AI platform case study for governed campus knowledge.**
+Campus RAG Assistant is a source-reviewable AI platform for governed campus knowledge. It pairs a
+cited-answer RAG path for routine questions with a bounded LangGraph helpdesk agent for what RAG
+cannot resolve, behind one FastAPI backend, one Vue 3 SPA, and a pluggable AWS / Azure / mock
+provider boundary.
 
-Campus RAG Assistant turns fragmented institutional docs into cited answers, measurable retrieval quality, and a bounded helpdesk escalation path. It demonstrates the platform work around RAG — provider boundaries, evaluation, observability, CI/CD, security, and operational runbooks — not just a chat UI.
+Review it as an engineering artifact: source code, architecture, screenshots, evaluation results,
+observability, CI/CD, security posture, and release hygiene. It is not presented as a hosted public
+product.
 
 **Portfolio focus:** Lead AI Engineering and AI Platform Architecture. Live docs: <https://sandeep-jay.github.io/campus-rag-assistant/>.
-
-> Review model: evaluate this through source code, architecture docs, screenshots, evaluation results, and operational artifacts. It is not presented as a hosted public product.
 
 ![Structured KB answer with session history](docs/assets/product/v3/chat-overview.png)
 
@@ -33,10 +36,10 @@ Campus RAG Assistant turns fragmented institutional docs into cited answers, mea
 
 ## Why this project matters
 
-- Turns scattered institutional docs (Canvas LMS, ServiceNow, policies) into **cited, natural-language answers** users can verify.
-- Shows **production RAG** concerns end-to-end: retrieval quality, observability, auth, streaming, evals, and deployment.
-- Demonstrates **platform architecture**: AWS/Azure/mock providers, tenant config, feature flags, and CI-safe local mode.
-- Goes beyond chat with a **bounded helpdesk escalation flow**: KB retry, web search, GitHub-issue search, clarifying pauses, four outcomes, and HITL ticket filing. The current supervisor is deterministic; the LLM supervisor migration is documented in [ADR-006](docs/adr/ADR-006-live-llm-supervisor-migration.md).
+- Turns scattered institutional knowledge into **cited answers** users can verify instead of a black-box chat response.
+- Adds a **bounded helpdesk agent** for questions the KB cannot resolve, with clarifying pauses and HITL-gated ticket filing.
+- Demonstrates **AI platform architecture** around the product surface: provider boundaries, evaluation, observability, CI/CD, security, and operational runbooks.
+- Keeps claims reviewable through source code, architecture diagrams, screenshots, evaluation results, and release artifacts.
 
 ## Role alignment
 
@@ -51,14 +54,12 @@ This project is designed to demonstrate strengths relevant to:
 
 ## What this shows
 
-| Layer | What is demonstrated |
-|-------|----------------------|
-| **Product** | Governed KB-first chat, cited sources, opt-in web research, feedback loop, and campus-ready UX |
-| **RAG engineering** | LangGraph retrieval stages, multi-query retrieval, rerank hooks, fallback chain streaming, and explicit source contracts |
-| **Platform architecture** | AWS/Azure/mock provider registry, tenant config, feature flags, Alembic migrations, and CI-safe local mode |
-| **Evaluation** | RAGAS golden-set regression harness, documented Phase 5 baseline, and LangSmith traces for KB/web paths |
-| **Helpdesk agent** | Multi-turn LangGraph escalation: KB retry, web search, duplicate-issue search, HITL ticket filing to a demo GitHub repo, four explicit outcomes |
-| **Operations** | GitHub Actions, gitleaks, dependency review, no tool attribution, Prometheus metrics, k6 load tests, release docs, and runbooks |
+| Capability | What it shows | Evidence |
+|---|---|---|
+| **Cited RAG path** | KB-first answers, multi-query retrieval, rerank hooks, source contracts, and opt-in web research | [docs/DESIGN.md](docs/DESIGN.md) · [docs/EVALUATION.md](docs/EVALUATION.md) · [ADR-001](docs/adr/ADR-001-provider-registry.md) · [ADR-003](docs/adr/ADR-003-opt-in-web-research.md) |
+| **Bounded helpdesk agent** | Multi-turn escalation with KB retry, web search, duplicate-issue search, clarifying turns, HITL ticket filing, and four explicit outcomes | [Helpdesk overview](docs/helpdesk/index.md) · [ADR-005](docs/adr/ADR-005-bounded-helpdesk-agent.md) · [ADR-006](docs/adr/ADR-006-live-llm-supervisor-migration.md) |
+| **AI platform architecture** | Provider registry for AWS / Azure / mock execution, tenant configuration, feature flags, migrations, and CI-safe local mode | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [ADR-001](docs/adr/ADR-001-provider-registry.md) |
+| **Evaluation and operations** | RAGAS baseline, LangSmith traces, Prometheus metrics, k6 load profiles, gitleaks, branch protection, and release runbooks | [docs/eval_baseline_v2.md](docs/eval_baseline_v2.md) · [docs/operations-manual/index.md](docs/operations-manual/index.md) · [ADR-004](docs/adr/ADR-004-eval-gating-policy.md) |
 
 ## System at a glance
 
