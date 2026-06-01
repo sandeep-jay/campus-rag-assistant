@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, TypedDict
+from typing import Any, Literal, TypedDict
 
 from pydantic import BaseModel, Field
 
-if TYPE_CHECKING:
-    from backend.app.schemas.helpdesk import ConversationTurn, TicketDraft
+# Imported at runtime (not under ``TYPE_CHECKING``) because LangGraph's
+# ``StateGraph`` resolves the TypedDict's annotations via
+# ``typing.get_type_hints`` when compiling the channel schema; deferred
+# annotations break that resolution.
+from backend.app.schemas.helpdesk import AgentTurn, ConversationTurn, TicketDraft  # noqa: TCH001
 
 
 class GitHubIssue(BaseModel):
@@ -71,3 +74,13 @@ class HelpdeskState(TypedDict, total=False):
     ]
     awaiting_user: AwaitingUserPayload | None
     outcome: Literal['filed', 'linked', 'resolved_by_agent', 'aborted'] | None
+    # --- Phase 1a transient graph plumbing (stripped before checkpoint save). ---
+    # ``entry`` tells the supervisor which entry point invoked the graph this
+    # turn (start/resume/confirm/abort); ``_next`` is the supervisor's chosen
+    # next node and is read by the routing function; ``_graph_turn`` carries
+    # the final ``AgentTurn`` that the runner returns to the API layer.
+    entry: Literal['start', 'resume', 'confirm', 'abort']
+    resume_answer: str | None
+    confirm_draft: TicketDraft | None
+    _next: str | None
+    _graph_turn: AgentTurn | None
