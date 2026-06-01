@@ -159,17 +159,36 @@ When `HELPDESK_ENABLED=true` (or `HELPDESK_AGENT_ENABLED=true`), the chat path c
    only after step 1 — rewriting history doesn't make a leaked key safer, it
    only hides it from casual viewers.
 
-## Dependency policy (2026-05-18)
+## Dependency floor (2026-05-31)
 
-Runtime bumps on `feature/security-deps`:
+Pinned floors in `requirements.txt` / `frontend-vue/package.json` as of `v3.0.0`. CI runs `dependency review (new high/critical CVEs)` on every PR; `tox -e secrets` runs gitleaks on history + diff.
 
-- **FastAPI / Starlette** — `fastapi>=0.115` (Starlette CVE fixes)
-- **Auth** — `python-jose>=3.4`, `PyJWT>=2.12`
-- **Uploads** — `python-multipart>=0.0.27`
-- **HTTP** — `requests>=2.32.4`, `urllib3>=2.2`, `httpx>=0.27` (LangGraph 0.2.x)
-- **LangGraph** — `langgraph==0.2.76`, `langgraph-checkpoint==2.0.26`
+**Python runtime (API path)**
 
-Dev-only packages (Streamlit, RAGAS, old pip/setuptools) may still appear in audits; track separately.
+| Package | Floor | Notes |
+|---------|-------|-------|
+| **FastAPI / Starlette** | `fastapi>=0.115` | Starlette CVE fixes |
+| **Auth** | `python-jose>=3.4`, `PyJWT>=2.12`, **`authlib==1.6.12`** | OAuth provider integration |
+| **LangChain stack** | **`langchain==0.3.30`**, `langchain-community==0.3.27`, `langchain-aws>=0.2.15`, `langchain-openai>=0.2` | RAG + helpdesk LLM calls |
+| **LangGraph** | `langgraph==0.2.76`, `langgraph-checkpoint==2.0.26` | RAG graph + helpdesk orchestration target |
+| **Uploads** | `python-multipart>=0.0.27` | File upload endpoints |
+| **HTTP** | `requests>=2.32.4`, `urllib3>=2.2`, `httpx>=0.27` | Provider clients |
+
+**Python dev / secondary UI**
+
+| Package | Floor | Notes |
+|---------|-------|-------|
+| **Streamlit** | **`streamlit==1.54.0`** | Secondary UI; not on the Vue product path |
+| **RAGAS / judge stack** | pinned in tox `eval` env | Live eval only; not required on PR CI |
+
+**Frontend (Vue product UI)**
+
+| Package | Floor | Notes |
+|---------|-------|-------|
+| **vite / esbuild / vitest** | bumped in v3.0.0 (PR #44) | Dev-tool CVE remediation |
+| **@rollup/rollup-linux-x64-gnu** | optionalDependency pin | GHA Linux tox parity — see [CI.md](./CI.md) |
+
+Dev-only packages may still appear in `npm audit` / `pip-audit` output; track separately from the API runtime floor above.
 
 ## Reporting
 

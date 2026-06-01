@@ -1,6 +1,6 @@
 # Product phased roadmap
 
-**Last updated:** 2026-05-19
+**Last updated:** 2026-05-31
 
 Delivery phases for Campus RAG Assistant — what is shipped on [`main`](https://github.com/sandeep-jay/campus-rag-assistant) versus optional follow-ups. Design context: [DESIGN.md](../DESIGN.md).
 
@@ -13,6 +13,7 @@ Delivery phases for Campus RAG Assistant — what is shipped on [`main`](https:/
 | [DESIGN.md — Opt-in web research](../DESIGN.md#opt-in-web-research) | `research_mode=web` (Vue toggle + API), Tavily config |
 | [EVALUATION.md](../EVALUATION.md) | RAGAS vs LangSmith |
 | [archive/SPRINT_2026-05-18_LANGGRAPH.md](./archive/SPRINT_2026-05-18_LANGGRAPH.md) | Completed AWS KB validation sprint (log) |
+| [AGENTIC_HELPDESK_REBUILD.md](./AGENTIC_HELPDESK_REBUILD.md) | LLM supervisor migration, Postgres checkpointing, trajectory eval — **live track** |
 | [archive/PHASED_IMPROVEMENT_ROADMAP.md](./archive/PHASED_IMPROVEMENT_ROADMAP.md) | Campus / production scale (Redis HA, EB) — optional |
 
 ## Quick dev commands
@@ -60,7 +61,8 @@ flowchart LR
 | **6b** | Opt-in web research (`research_mode=web`) | **Done** — [DESIGN.md — Opt-in web research](../DESIGN.md#opt-in-web-research) |
 | **3** | RAGAS baseline + README quality + LangSmith screenshots | **Done (lite)** — [EVALUATION.md](../EVALUATION.md); strict gates on release only |
 | **5** | Retrieval nodes (multi-query, filters, rerank) | **Done** — re-run RAGAS for full gates ([baseline](../eval_baseline_v2.md)) |
-| **6** | LangGraph SSE; bounded rewrite loop | **Optional** |
+| **6d** | Bounded helpdesk agent (Ask/Agent mode, tools, HITL, SQLite checkpoint) | **Done** — tagged `v3.0.0`; [helpdesk/index.md](../helpdesk/index.md) |
+| **6** | LangGraph SSE (6a); bounded rewrite loop (6c) | **Optional** |
 
 Campus production (Redis HA, tenant budgets, Elastic Beanstalk): [archive/PHASED_IMPROVEMENT_ROADMAP.md](./archive/PHASED_IMPROVEMENT_ROADMAP.md) (separate phase numbering).
 
@@ -73,6 +75,8 @@ Campus production (Redis HA, tenant budgets, Elastic Beanstalk): [archive/PHASED
 - **RAG:** provider registry; `RAG_ENGINE=langgraph` with condense → multi_query → retrieve → rerank → generate (KB); web branch with disclaimer.
 - **Eval:** 10-row golden set, [eval_baseline_v2.md](../eval_baseline_v2.md), `tox -e eval`, LangSmith trace PNGs in README.
 - **OAuth (local):** API-port OAuth + handoff to Vue — [OPERATIONS.md — OAuth and authentication](../OPERATIONS.md#oauth-and-authentication).
+- **Helpdesk agent (v3.0.0):** bounded loop with Ask/Agent mode, HITL ticket filing — [helpdesk/index.md](../helpdesk/index.md); Agentic Rebuild is the live forward track — [AGENTIC_HELPDESK_REBUILD.md](./AGENTIC_HELPDESK_REBUILD.md).
+- **Docs:** consolidated releases hub ([release-notes/](../release-notes/index.md)); operations + tenant + LangGraph/web research folded into [OPERATIONS.md](../OPERATIONS.md) and [DESIGN.md](../DESIGN.md); ADR-006 records helpdesk shipped-vs-target gap.
 
 ---
 
@@ -112,13 +116,21 @@ Opt-in `research_mode=web`, Tavily optional, disclaimer UI. [DESIGN.md — Opt-i
 
 ---
 
-## Phase 6 — Optional
+## Phase 6d — Helpdesk agent (**shipped** — `v3.0.0`)
+
+| Slice | Status | Description |
+|-------|--------|-------------|
+| **6d (shipped)** | **Done** on `main` | Bounded helpdesk loop: tools, multi-turn pause/resume, HITL gate, four outcomes, Vue Ask/Agent mode, Prometheus metrics. Supervisor is **deterministic** today — [helpdesk/index.md — Today vs target](../helpdesk/index.md#today-vs-target-state). |
+| **6d (target)** | **Live track** | LLM supervisor + specialists, compiled `StateGraph`, `AsyncPostgresSaver`, enforced budgets, trajectory eval — [AGENTIC_HELPDESK_REBUILD.md](./AGENTIC_HELPDESK_REBUILD.md), [ADR-006](../adr/ADR-006-live-llm-supervisor-migration.md). |
+
+Specs: [CONVERSATION_FLOW.md](./CONVERSATION_FLOW.md), [HELPDESK_AGENT.md](./HELPDESK_AGENT.md).
+
+## Phase 6 — Optional (RAG path)
 
 | Slice | Description |
 |-------|-------------|
 | **6a** | LangGraph `astream_events` → same SSE shape as chain |
 | **6c** | Bounded `grade_documents` / rewrite loop (`RAG_AGENTIC_ENABLED`) |
-| **6d** | Helpdesk agent — multi-turn, multi-tool LangGraph; ASK / AGENT mode split; intent router; HITL ticket filing. See [CONVERSATION_FLOW.md](./CONVERSATION_FLOW.md) and [HELPDESK_AGENT.md](./HELPDESK_AGENT.md). |
 
 ---
 
@@ -138,9 +150,9 @@ Opt-in `research_mode=web`, Tavily optional, disclaimer UI. [DESIGN.md — Opt-i
 
 | Priority | Focus |
 |----------|--------|
-| **Now** | Ship product increments; `Protect main` requires tox, gitleaks, dependency review, and no tool attribution; deletion blocked on `main`/`qa`/`release` |
-| **Optional** | Phase 6a LangGraph SSE; grow golden set; faithfulness/precision via ingestion |
-| **Later** | Campus scale track — [PHASED_IMPROVEMENT_ROADMAP.md](./archive/PHASED_IMPROVEMENT_ROADMAP.md) |
+| **Now** | [Agentic Helpdesk Rebuild](./AGENTIC_HELPDESK_REBUILD.md) — Phase −1 (Docker Compose Postgres) through Phase 5 (live campus router); documentation cleanup landed in PRs #50–#54 |
+| **Optional** | Phase 6a LangGraph SSE; grow golden set (10 → 30–50); faithfulness/precision via ingestion/chunking |
+| **Later** | Campus scale track — [PHASED_IMPROVEMENT_ROADMAP.md](./archive/PHASED_IMPROVEMENT_ROADMAP.md) (Redis HA, exact/semantic cache, tenant budgets) |
 
 ---
 
