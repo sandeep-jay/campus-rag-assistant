@@ -188,7 +188,7 @@ Load validation: [LOAD_TESTING.md](./load-testing.md). Release promotion: [RELEA
 | `HELPDESK_AGENT_CHECKPOINT_TTL_SECONDS` | Checkpoint retention window; normal agent traffic periodically prunes expired checkpoint threads |
 | `HELPDESK_AGENT_CLARIFY_CONFIDENCE_FLOOR` | Default `0.75`; below this classifier confidence, the agent may ask one targeted clarification when the missing fact changes severity or routing |
 
-Prometheus metrics: `chatbot_helpdesk_recap_*`, `chatbot_helpdesk_draft_ticket_*`, `chatbot_helpdesk_create_issue_total`, `chatbot_helpdesk_kb_resolved_total`, `chatbot_helpdesk_agent_started_total`, `chatbot_helpdesk_agent_tool_total`, `chatbot_helpdesk_agent_outcome_total`, `chatbot_helpdesk_agent_funnel_total`, `chatbot_helpdesk_agent_error_total`. Engineering spec: [HELPDESK_AGENT.md](../roadmap/HELPDESK_AGENT.md).
+Prometheus metrics: `chatbot_helpdesk_recap_*`, `chatbot_helpdesk_draft_ticket_*`, `chatbot_helpdesk_create_issue_total`, `chatbot_helpdesk_kb_resolved_total`, `chatbot_helpdesk_agent_started_total`, `chatbot_helpdesk_agent_tool_total`, `chatbot_helpdesk_agent_tool_latency_seconds`, `chatbot_helpdesk_agent_decision_total`, `chatbot_helpdesk_agent_tokens_total`, `chatbot_helpdesk_agent_turns_taken`, `chatbot_helpdesk_agent_outcome_total`, `chatbot_helpdesk_agent_funnel_total`, `chatbot_helpdesk_agent_error_total`. Engineering spec: [HELPDESK_AGENT.md](../roadmap/HELPDESK_AGENT.md).
 
 ## OAuth and authentication
 

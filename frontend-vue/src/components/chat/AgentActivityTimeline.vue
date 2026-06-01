@@ -74,10 +74,13 @@ const rows = computed<TimelineRow[]>(() => {
     const status = classifyStatus(step.outcome)
     const label = humanize(step.action)
     let detail: string | null = null
+    const latency = typeof step.latency_ms === 'number' ? `${Math.round(step.latency_ms)}ms` : null
     if (step.message && step.message.trim()) {
-      detail = step.message.trim()
+      detail = latency ? `${step.message.trim()} · ${latency}` : step.message.trim()
     } else if (step.outcome && step.outcome.toLowerCase() !== 'success') {
-      detail = step.outcome
+      detail = latency ? `${step.outcome} · ${latency}` : step.outcome
+    } else if (latency) {
+      detail = latency
     }
     return {
       key: `${idx}-${step.action}-${step.outcome}`,
@@ -90,7 +93,7 @@ const rows = computed<TimelineRow[]>(() => {
 })
 
 const hasRows = computed(() => rows.value.length > 0)
-const toggleLabel = computed(() => `Steps (${rows.value.length})`)
+const toggleLabel = computed(() => `What the agent did (${rows.value.length})`)
 
 function rowTitle(row: TimelineRow): string {
   return `${row.raw.step} \u2192 ${row.raw.action} (${row.raw.outcome})`

@@ -110,7 +110,7 @@ describe('ChatView agent mode', () => {
     await waitFor(() => expect(api.streamStartAgentSession).toHaveBeenCalledTimes(1))
     expect(api.streamStartAgentSession).toHaveBeenCalledWith([
       { role: 'user', content: 'Create a ticket for Oracle 403' },
-    ], null, expect.any(Function))
+    ], null, expect.any(Function), expect.any(Function))
     expect(events).toContain('helpdesk_agent_start_completed')
     window.removeEventListener('campus-rag:telemetry', handler)
     expect(screen.getByText(/affecting only you/i)).toBeInTheDocument()
@@ -142,7 +142,7 @@ describe('ChatView agent mode', () => {
       reply: 'It affects my team',
       pending_question_id: 'impact-agent-1',
       chat_session_id: null,
-    }, expect.any(Function))
+    }, expect.any(Function), expect.any(Function))
     expect(helpdesk.modalOpen).toBe(true)
     expect(helpdesk.draft?.title).toBe('Oracle Financials 403')
   })

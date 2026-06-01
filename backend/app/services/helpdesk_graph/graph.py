@@ -26,8 +26,15 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
 from backend.app.core.config_manager import settings
-from backend.app.services.helpdesk_graph.checkpoint import checkpointer_context, use_langgraph_checkpoint
-from backend.app.services.helpdesk_graph.nodes import select_supervisor_action, validate_supervisor_action
+from backend.app.core.metrics import HELPDESK_AGENT_DECISION_TOTAL
+from backend.app.services.helpdesk_graph.checkpoint import (
+    checkpointer_context,
+    use_langgraph_checkpoint,
+)
+from backend.app.services.helpdesk_graph.nodes import (
+    select_supervisor_action,
+    validate_supervisor_action,
+)
 from backend.app.services.helpdesk_graph.state import HelpdeskState
 
 if TYPE_CHECKING:
@@ -91,10 +98,15 @@ async def _supervisor_node(state: HelpdeskState) -> dict[str, Any]:
             from backend.app.services.helpdesk_graph.llm import supervisor_decide
 
             decision = await supervisor_decide(state)
-            action = validate_supervisor_action(state, getattr(decision, 'next_action', None))
+            action = validate_supervisor_action(
+                state, getattr(decision, 'next_action', None)
+            )
             if action is not None:
+                HELPDESK_AGENT_DECISION_TOTAL.labels(next_action=action).inc()
                 return {'_next': action}
-            return {'_next': 'end' if state.get('_graph_turn') is not None else 'write_draft'}
+            fallback = 'end' if state.get('_graph_turn') is not None else 'write_draft'
+            HELPDESK_AGENT_DECISION_TOTAL.labels(next_action=fallback).inc()
+            return {'_next': fallback}
         except Exception:
             # Supervisor failures must never escape to the user; the
             # deterministic supervisor remains the rollback path.
@@ -190,7 +202,11 @@ async def _await_user_node(state: HelpdeskState) -> dict[str, Any]:
     )
     if isinstance(resume_value, dict) and resume_value.get('action') == 'abort':
         return {'entry': 'abort', '_graph_turn': None}
-    return {'entry': 'resume', 'resume_answer': str(resume_value or ''), '_graph_turn': None}
+    return {
+        'entry': 'resume',
+        'resume_answer': str(resume_value or ''),
+        '_graph_turn': None,
+    }
 
 
 async def _await_confirm_node(state: HelpdeskState) -> dict[str, Any]:
@@ -208,7 +224,11 @@ async def _await_confirm_node(state: HelpdeskState) -> dict[str, Any]:
 
     from backend.app.schemas.helpdesk import TicketDraft
 
-    draft = resume_value if isinstance(resume_value, TicketDraft) else TicketDraft(**resume_value)
+    draft = (
+        resume_value
+        if isinstance(resume_value, TicketDraft)
+        else TicketDraft(**resume_value)
+    )
     return {'entry': 'confirm', 'confirm_draft': draft, '_graph_turn': None}
 
 

@@ -44,7 +44,14 @@ from backend.app.schemas.helpdesk import (
 )
 from backend.app.services.helpdesk.agent import draft_ticket, recap_conversation
 from backend.app.services.helpdesk.github import create_github_issue
-from backend.app.services.helpdesk_graph.runner import abort_session, confirm_session, resume_session, start_session
+from backend.app.services.helpdesk_graph.runner import (
+    abort_session,
+    confirm_session,
+    resume_session,
+    start_session,
+    stream_resume_session,
+    stream_start_session,
+)
 
 
 def _require_enabled() -> None:
@@ -67,7 +74,9 @@ def _agent_turn_event(turn: AgentTurn) -> dict:
     return {'type': 'done', 'turn': turn.model_dump(mode='json')}
 
 
-@router.post('/summarize', response_model=SummarizeResponse, dependencies=[Depends(limit_chat)])
+@router.post(
+    '/summarize', response_model=SummarizeResponse, dependencies=[Depends(limit_chat)]
+)
 async def summarize(
     request: SummarizeRequest,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -77,7 +86,11 @@ async def summarize(
     return SummarizeResponse(summary=summary)
 
 
-@router.post('/draft-ticket', response_model=DraftTicketResponse, dependencies=[Depends(limit_chat)])
+@router.post(
+    '/draft-ticket',
+    response_model=DraftTicketResponse,
+    dependencies=[Depends(limit_chat)],
+)
 async def draft_ticket_endpoint(
     request: SummarizeRequest,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -87,7 +100,9 @@ async def draft_ticket_endpoint(
     return DraftTicketResponse(draft=draft)
 
 
-@router.post('/agent/start', response_model=AgentTurn, dependencies=[Depends(limit_chat)])
+@router.post(
+    '/agent/start', response_model=AgentTurn, dependencies=[Depends(limit_chat)]
+)
 async def start_agent(
     request: AgentStartRequest,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -114,24 +129,24 @@ async def start_agent_stream(
     """Stream visible helpdesk-agent start progress and final turn."""
 
     async def _events():
-        yield _sse_payload({'type': 'status', 'message': 'Starting helpdesk agent…'})
-        yield _sse_payload({'type': 'status', 'message': 'Checking existing issues…'})
         try:
-            turn = await start_session(
+            async for event in stream_start_session(
                 request.conversation,
                 user_id=current_user.id,
                 trigger='stream',
                 chat_session_id=request.chat_session_id,
                 db=db,
-            )
-            yield _sse_payload(_agent_turn_event(turn))
+            ):
+                yield _sse_payload(event)
         except HTTPException as exc:
             yield _sse_payload({'type': 'error', 'message': str(exc.detail)})
 
     return StreamingResponse(_events(), media_type='text/event-stream')
 
 
-@router.post('/agent/resume', response_model=AgentTurn, dependencies=[Depends(limit_chat)])
+@router.post(
+    '/agent/resume', response_model=AgentTurn, dependencies=[Depends(limit_chat)]
+)
 async def resume_agent(
     request: AgentResumeRequest,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -158,10 +173,8 @@ async def resume_agent_stream(
     """Stream visible helpdesk-agent resume progress and final turn."""
 
     async def _events():
-        yield _sse_payload({'type': 'status', 'message': 'Continuing helpdesk workflow…'})
-        yield _sse_payload({'type': 'status', 'message': 'Running agent tools…'})
         try:
-            turn = await resume_session(
+            async for event in stream_resume_session(
                 request.session_id,
                 user_id=current_user.id,
                 reply=request.reply,
@@ -169,15 +182,17 @@ async def resume_agent_stream(
                 pending_question_id=request.pending_question_id,
                 chat_session_id=request.chat_session_id,
                 db=db,
-            )
-            yield _sse_payload(_agent_turn_event(turn))
+            ):
+                yield _sse_payload(event)
         except HTTPException as exc:
             yield _sse_payload({'type': 'error', 'message': str(exc.detail)})
 
     return StreamingResponse(_events(), media_type='text/event-stream')
 
 
-@router.post('/agent/confirm', response_model=AgentTurn, dependencies=[Depends(limit_chat)])
+@router.post(
+    '/agent/confirm', response_model=AgentTurn, dependencies=[Depends(limit_chat)]
+)
 async def confirm_agent(
     request: AgentConfirmRequest,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -195,7 +210,9 @@ async def confirm_agent(
     )
 
 
-@router.post('/agent/abort', response_model=AgentTurn, dependencies=[Depends(limit_chat)])
+@router.post(
+    '/agent/abort', response_model=AgentTurn, dependencies=[Depends(limit_chat)]
+)
 async def abort_agent(
     request: AgentAbortRequest,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -210,7 +227,11 @@ async def abort_agent(
     )
 
 
-@router.post('/create-issue', response_model=CreateIssueResponse, dependencies=[Depends(limit_chat)])
+@router.post(
+    '/create-issue',
+    response_model=CreateIssueResponse,
+    dependencies=[Depends(limit_chat)],
+)
 async def create_issue(
     request: CreateIssueRequest,
     current_user: Annotated[User, Depends(get_current_user)],

@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 from backend.app.core.config_manager import settings
+from backend.app.core.metrics import HELPDESK_AGENT_DECISION_TOTAL
 
 if TYPE_CHECKING:
     from backend.app.services.helpdesk_graph.state import HelpdeskState
@@ -62,7 +63,9 @@ def supervisor_next_action(state: HelpdeskState) -> NextAction:
 
 def _is_solution_acceptance(answer: str) -> bool:
     normalized = (answer or '').strip().lower()
-    return normalized.startswith('yes') or 'solved' in normalized or 'fixed' in normalized
+    return (
+        normalized.startswith('yes') or 'solved' in normalized or 'fixed' in normalized
+    )
 
 
 def _action_for_start(state: HelpdeskState) -> SupervisorAction:
@@ -128,7 +131,9 @@ def allowed_supervisor_actions(state: HelpdeskState) -> set[SupervisorAction]:
     return actions
 
 
-def validate_supervisor_action(state: HelpdeskState, action: str | None) -> SupervisorAction | None:
+def validate_supervisor_action(
+    state: HelpdeskState, action: str | None
+) -> SupervisorAction | None:
     """Accept only enum members that are legal for this state."""
     if action not in SUPERVISOR_ACTIONS:
         return None
@@ -154,15 +159,25 @@ def select_supervisor_action(state: HelpdeskState) -> SupervisorAction:
     one ``SupervisorAction`` out) stays the same.
     """
     if state.get('_graph_turn') is not None:
-        return 'end'
+        action: SupervisorAction = 'end'
+        HELPDESK_AGENT_DECISION_TOTAL.labels(next_action=action).inc()
+        return action
     entry = state.get('entry')
     if entry in _ENTRY_DISPATCH:
-        return _ENTRY_DISPATCH[entry]
+        action = _ENTRY_DISPATCH[entry]
+        HELPDESK_AGENT_DECISION_TOTAL.labels(next_action=action).inc()
+        return action
     if entry == 'start':
-        return _action_for_start(state)
+        action = _action_for_start(state)
+        HELPDESK_AGENT_DECISION_TOTAL.labels(next_action=action).inc()
+        return action
     if entry == 'resume':
-        return _action_for_resume(state)
-    return 'end'
+        action = _action_for_resume(state)
+        HELPDESK_AGENT_DECISION_TOTAL.labels(next_action=action).inc()
+        return action
+    action = 'end'
+    HELPDESK_AGENT_DECISION_TOTAL.labels(next_action=action).inc()
+    return action
 
 
 def _contains_any(text: str, needles: tuple[str, ...]) -> bool:
@@ -172,13 +187,21 @@ def _contains_any(text: str, needles: tuple[str, ...]) -> bool:
 def _combined_classification_text(state: HelpdeskState) -> str:
     conversation_text = ' '.join(turn.content for turn in state.get('conversation', []))
     facts_text = ' '.join(state.get('facts', {}).values())
-    return f"{state.get('original_question', '')} {conversation_text} {facts_text}".lower()
+    return (
+        f"{state.get('original_question', '')} {conversation_text} {facts_text}".lower()
+    )
 
 
 def _clarification_source_text(state: HelpdeskState) -> str:
     conversation_text = ' '.join(turn.content for turn in state.get('conversation', []))
-    facts_text = ' '.join(value for key, value in state.get('facts', {}).items() if key not in {'severity', 'category', 'impact'})
-    return f"{state.get('original_question', '')} {conversation_text} {facts_text}".lower()
+    facts_text = ' '.join(
+        value
+        for key, value in state.get('facts', {}).items()
+        if key not in {'severity', 'category', 'impact'}
+    )
+    return (
+        f"{state.get('original_question', '')} {conversation_text} {facts_text}".lower()
+    )
 
 
 def _has_explicit_impact(text: str) -> bool:
@@ -213,7 +236,9 @@ def _classification_confidence(text: str, classification: dict[str, str]) -> flo
 
 
 def _classify_impact(text: str) -> str:
-    if _contains_any(text, ('campus-wide', 'campus wide', 'all users', 'everyone', 'outage')):
+    if _contains_any(
+        text, ('campus-wide', 'campus wide', 'all users', 'everyone', 'outage')
+    ):
         return 'Campus-wide'
     if _contains_any(text, ('my team', 'team', 'department', 'multiple users')):
         return 'Team'
@@ -223,7 +248,9 @@ def _classify_impact(text: str) -> str:
 def _classify_severity(text: str) -> str:
     if _contains_any(text, ('outage', 'down', 'campus-wide', 'all users', 'everyone')):
         return 'critical'
-    if _contains_any(text, ('blocked', 'cannot access', '403', 'forbidden', 'team', 'urgent')):
+    if _contains_any(
+        text, ('blocked', 'cannot access', '403', 'forbidden', 'team', 'urgent')
+    ):
         return 'high'
     if _contains_any(text, ('cosmetic', 'typo', 'minor')):
         return 'low'
@@ -272,11 +299,17 @@ def _positive_int_setting(name: str, default: int) -> int:
 
 
 def _clarify_confidence_floor() -> float:
-    return float(getattr(settings, 'HELPDESK_AGENT_CLARIFY_CONFIDENCE_FLOOR', 0.75) or 0.75)
+    return float(
+        getattr(settings, 'HELPDESK_AGENT_CLARIFY_CONFIDENCE_FLOOR', 0.75) or 0.75
+    )
 
 
 def _should_try_solution_before_clarifying(state: HelpdeskState) -> bool:
-    return int(state.get('turns_taken', 0)) == 0 and not state.get('proposed_solutions') and int(state.get('tool_attempts', 0)) == 0
+    return (
+        int(state.get('turns_taken', 0)) == 0
+        and not state.get('proposed_solutions')
+        and int(state.get('tool_attempts', 0)) == 0
+    )
 
 
 def _should_clarify_classification(state: HelpdeskState) -> bool:
@@ -285,7 +318,9 @@ def _should_clarify_classification(state: HelpdeskState) -> bool:
     questions_asked = len(state.get('questions_asked', []))
     if questions_asked >= _positive_int_setting('HELPDESK_AGENT_MAX_QUESTIONS', 2):
         return False
-    confidence = float(state.get('classification_confidence') or classify_ticket_confidence(state))
+    confidence = float(
+        state.get('classification_confidence') or classify_ticket_confidence(state)
+    )
     if confidence >= _clarify_confidence_floor():
         return False
     return not _has_explicit_impact(_clarification_source_text(state))
