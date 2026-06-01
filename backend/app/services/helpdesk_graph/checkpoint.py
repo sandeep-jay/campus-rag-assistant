@@ -1,7 +1,13 @@
 """Checkpoint helpers for helpdesk agent sessions.
 
 Phase 1b makes LangGraph's checkpointers the default persistence layer:
-Postgres for the app, SQLite for zero-infra demos, and in-memory for tests.
+Postgres for the app and in-memory for tests. A SQLite backend is also
+supported as a zero-infra dev fallback but is opt-in — the
+``langgraph-checkpoint-sqlite`` package is not pinned in ``requirements.txt``
+because the 2.0.x line carries a high-severity advisory and the 3.x line
+requires a LangGraph major-version bump. Install it manually when running
+the SQLite backend locally.
+
 The original JSON SQLite store remains behind
 ``HELPDESK_AGENT_USE_LANGGRAPH_CHECKPOINT=false`` for one release as an
 instant rollback path.
@@ -18,7 +24,6 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from backend.app.core.config_manager import settings
 from backend.app.schemas.helpdesk import ConversationTurn, TicketDraft
@@ -61,6 +66,17 @@ async def checkpointer_context() -> AsyncIterator[Any]:
         async with AsyncPostgresSaver.from_conn_string(settings.DATABASE_URL) as saver:
             yield saver
         return
+
+    try:
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+    except ImportError as exc:  # pragma: no cover - optional dev fallback
+        raise RuntimeError(
+            "HELPDESK_AGENT_CHECKPOINT_BACKEND='sqlite' requires the optional "
+            "'langgraph-checkpoint-sqlite' package, which is intentionally not "
+            'pinned in requirements.txt (2.0.x carries GHSA-9rwj-6rc7-p77c; 3.x '
+            'needs LangGraph 1.x). Install it manually if you really want the '
+            'SQLite dev fallback.'
+        ) from exc
 
     path = _checkpoint_path()
     if path.parent != Path('.'):
