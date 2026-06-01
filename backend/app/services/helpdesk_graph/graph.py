@@ -46,7 +46,7 @@ _ACTION_TO_NODE: dict[str, str] = {
     'ask_user': 'clarifier',
     'propose_solution': 'solution',
     'resolved_by_agent': 'resolved',
-    'write_draft': 'writer',
+    'write_draft': 'classifier',
     'file_new': 'file_ticket',
     'abort': 'aborted',
     'end': END,
@@ -69,12 +69,20 @@ def _route_after_specialist(state: HelpdeskState) -> str:
     """
     turn = state.get('_graph_turn')
     if turn is None:
+        if state.get('_next') is not None:
+            return 'supervisor'
         return END
     if turn.kind == 'draft_ready':
         return 'await_confirm'
     if turn.kind in {'question', 'info'}:
         return 'await_user'
     return END
+
+
+def _route_after_classifier(state: HelpdeskState) -> str:
+    if state.get('_next') == 'ask_user':
+        return 'clarifier'
+    return 'writer'
 
 
 async def _supervisor_node(state: HelpdeskState) -> dict[str, Any]:
@@ -120,15 +128,9 @@ async def _clarifier_node(state: HelpdeskState) -> dict[str, Any]:
 
 
 async def _classifier_node(state: HelpdeskState) -> dict[str, Any]:
-    """Phase 1a placeholder.
+    from backend.app.services.helpdesk_graph import runner as _runner
 
-    The current ``_draft_from_state`` helper produces both the
-    ``classify_ticket`` and ``write_draft`` trace steps in one call;
-    splitting them into two graph nodes would change the trace
-    byte-shape and break ``test_agent_solution_rejection_returns_ticket_draft``.
-    Phase 2 splits the helper and routes through this node properly.
-    """
-    return {'_next': 'write_draft'}
+    return await _runner.graph_classifier_step(dict(state))
 
 
 async def _writer_node(state: HelpdeskState) -> dict[str, Any]:
@@ -237,7 +239,7 @@ def build_helpdesk_graph(*, checkpointer: Any | None = None) -> CompiledStateGra
     graph.add_conditional_edges('supervisor', _route_supervisor)
 
     graph.add_edge('tools', 'supervisor')
-    graph.add_edge('classifier', 'writer')
+    graph.add_conditional_edges('classifier', _route_after_classifier)
 
     for specialist in ('clarifier', 'solution', 'writer'):
         graph.add_conditional_edges(specialist, _route_after_specialist)

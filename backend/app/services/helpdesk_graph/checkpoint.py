@@ -125,6 +125,7 @@ _TRANSIENT_KEYS: frozenset[str] = frozenset(
         'entry',
         'resume_answer',
         'confirm_draft',
+        '_trace_seed',
         '_next',
         '_graph_turn',
     }

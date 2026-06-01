@@ -182,12 +182,14 @@ async def confirm_agent(
     request: AgentConfirmRequest,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
+    idempotency_key: Annotated[str | None, Header(alias='Idempotency-Key')] = None,
 ) -> AgentTurn:
     """File a reviewed ticket draft for an active helpdesk-agent session."""
     return await confirm_session(
         request.session_id,
         user_id=current_user.id,
         draft=request.draft,
+        idempotency_key=idempotency_key,
         chat_session_id=request.chat_session_id,
         db=db,
     )

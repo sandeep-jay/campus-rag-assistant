@@ -186,6 +186,7 @@ Load validation: [LOAD_TESTING.md](./load-testing.md). Release promotion: [RELEA
 | `HELPDESK_AGENT_CHECKPOINT_BACKEND` | `postgres` (default), `sqlite`, or `memory`; production should use `postgres`. The `sqlite` backend is an opt-in dev fallback that requires installing the unpinned `langgraph-checkpoint-sqlite` package (2.0.x carries GHSA-9rwj-6rc7-p77c, 3.x needs a LangGraph 1.x bump) |
 | `HELPDESK_AGENT_CHECKPOINT_PATH` | SQLite checkpointer path for `sqlite` or legacy fallback (`.helpdesk_agent_checkpoints.sqlite` by default) |
 | `HELPDESK_AGENT_CHECKPOINT_TTL_SECONDS` | Checkpoint retention window; normal agent traffic periodically prunes expired checkpoint threads |
+| `HELPDESK_AGENT_CLARIFY_CONFIDENCE_FLOOR` | Default `0.75`; below this classifier confidence, the agent may ask one targeted clarification when the missing fact changes severity or routing |
 
 Prometheus metrics: `chatbot_helpdesk_recap_*`, `chatbot_helpdesk_draft_ticket_*`, `chatbot_helpdesk_create_issue_total`, `chatbot_helpdesk_kb_resolved_total`, `chatbot_helpdesk_agent_started_total`, `chatbot_helpdesk_agent_tool_total`, `chatbot_helpdesk_agent_outcome_total`, `chatbot_helpdesk_agent_funnel_total`, `chatbot_helpdesk_agent_error_total`. Engineering spec: [HELPDESK_AGENT.md](../roadmap/HELPDESK_AGENT.md).
 
