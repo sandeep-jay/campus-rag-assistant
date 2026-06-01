@@ -4,7 +4,7 @@ Campus RAG Assistant follows a `main` → `qa` → `release` promotion ladder wi
 
 | Tag | Date | Highlights |
 |---|---|---|
-| [`v3.0.0`](#v300--helpdesk-agent--docs-refresh) | 2026-05-31 | Bounded helpdesk agent (backend + Vue), v3 architecture refresh, versioned assets |
+| [`v3.0.0`](#v300--helpdesk-agent--docs-refresh) | 2026-05-31 | Bounded helpdesk agent (backend + Vue), v3 architecture, full reviewer-docs refresh, operations manual, Azure retrieval parity |
 | [`v2.0`](#v20--rag-platform-transformation) | 2026-05-19 | Vue SPA, multicloud providers, LangGraph RAG, RAGAS baseline, GitHub Actions CI/CD |
 | [`v1.0`](#v10--upstream-chabot-baseline) | 2024 (upstream fork point) | Initial fork of UC Berkeley ETS chabot — Streamlit + FastAPI + LangChain |
 
@@ -16,7 +16,7 @@ GitHub Releases (with attached release notes and tagged commit): [`v1.0`](https:
 
 **Tag:** `v3.0.0` · **Date:** 2026-05-31
 
-Ships the **bounded helpdesk agent** end-to-end (backend LangGraph + Vue Ask/Agent mode + HITL ticket filing) and refreshes all documentation with v3 architecture diagrams, agent UI screenshots, and versioned asset layout.
+Ships the **bounded helpdesk agent** end-to-end (backend LangGraph + Vue Ask/Agent mode + HITL ticket filing), refreshes all documentation with v3 architecture diagrams, agent UI screenshots, and versioned asset layout, and completes a **full reviewer-docs refresh pass** — releases hub, operations manual, Architecture/Design refresh with Azure retrieval parity, and aligned reviewer introductions across README, docs landing, Reviewer Guide, and Case Study.
 
 ### Helpdesk agent (backend)
 
@@ -41,6 +41,18 @@ Ships the **bounded helpdesk agent** end-to-end (backend LangGraph + Vue Ask/Age
 - **Versioned asset layout** — `docs/assets/{architecture,product,auth}/{v1,v2,v3}/`
 - **Agentic rebuild roadmap** — [AGENTIC_HELPDESK_REBUILD.md](../roadmap/AGENTIC_HELPDESK_REBUILD.md) for LLM-driven supervisor migration
 - **Release notes** — high-level summaries for v1.0, v2.0, and v3.0.0 (this page)
+
+### Documentation refresh pass (PRs #50–#57)
+
+A six-PR docs consolidation that reorganized reviewer-facing material around portfolio value and current system state instead of changelog-style history.
+
+- **Releases hub** (#50) — single canonical `docs/release-notes/index.md` (this page) covers v1.0/v2.0/v3.0.0; duplicate `docs/README.md` removed.
+- **Helpdesk shipped-vs-target** (#51) — ADR-006 records the LLM supervisor migration; `docs/helpdesk/index.md` adds a clear shipped-vs-target table so the deterministic supervisor and bounded specialists are not over-claimed.
+- **Architecture + Design refresh** (#52) — `ARCHITECTURE.md` and `DESIGN.md` show full current state with collapsed v1/v2 history; LANGGRAPH + WEB_RESEARCH content folded into DESIGN; the helpdesk agent flow is promoted next to the RAG flow; **Azure retrieval** documented in parity with AWS Bedrock KB (Azure AI Search hybrid path: `AzureOpenAIEmbeddings` → `AzureHybridRetriever`).
+- **Operations manual** (#53) — `docs/operations-manual/` consolidates CI/CD, security, release, OAuth, TLS, E2E, tenant config, and performance into one ops surface; standalone `OPERATIONS`, `PERFORMANCE`, `PRODUCTION_TLS`, `E2E`, `TENANT_CONFIG` absorbed.
+- **Eval refresh** (#54) — `eval_baseline_2026-05-19` → [`eval_baseline_v2`](../eval_baseline_v2.md); reframed to distinguish the shipped RAGAS baseline from the planned trajectory rig.
+- **Security + roadmap refresh** (#55) — dependency floor pinned in `SECURITY.md`; `PRODUCT_ROADMAP.md` marks Phase 6d shipped under `v3.0.0`; CHANGELOG batched.
+- **First-visit polish + reviewer intros** (#56, #57) — README, docs landing, Reviewer Guide, Case Study, and Architecture aligned around one canonical product introduction and capability table; reordered so product features and architecture lead instead of evidence/defensive framing; role-alignment moved to Case Study; collapsible primary nav on the docs site; [`scripts/check_docs.py`](https://github.com/sandeep-jay/campus-rag-assistant/blob/main/scripts/check_docs.py) extended to enforce canonical intro + capability rows so future drift fails `tox -e docs`.
 
 ### Security & hygiene
 
