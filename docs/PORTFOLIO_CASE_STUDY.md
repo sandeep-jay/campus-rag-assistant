@@ -77,6 +77,17 @@ Full score tables: [eval_baseline_v2.md](./eval_baseline_v2.md). Operations deta
 - **Helpdesk supervisor is deterministic today** — the LLM supervisor, Postgres checkpointing, and trajectory eval are the [Agentic Helpdesk Rebuild](./roadmap/AGENTIC_HELPDESK_REBUILD.md) track.
 - **License and deployment scope are bounded** — UC license retained; this is a portfolio/educational fork, not a commercial product claim.
 
+## Role alignment
+
+This case study is production-aligned portfolio work for roles that need more than a chatbot demo: AI platform design, RAG quality, agentic workflow boundaries, product UX, and operational readiness in one reviewable system.
+
+- Higher Education / EdTech AI Strategist
+- Lead Data & AI Platform Architect
+- Lead / Senior / Staff AI Engineer
+- GenAI Platform Engineer
+- Applied ML / LLMOps Engineer
+- Full Stack Engineer
+
 ## Related
 
 - [README](../README.md) — repo landing page and quick review paths

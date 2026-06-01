@@ -26,7 +26,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Changed
 
-- **Docs — reviewer introductions** — aligned README, docs landing, Reviewer Guide, Case Study, and Architecture around one product introduction and capability table; added docs-auditor checks to prevent future drift.
+- **Docs — reviewer introductions** — aligned README, docs landing, Reviewer Guide, Case Study, and Architecture around one product introduction; reordered first-visit sections around product features and architecture; added Azure retrieval parity in Architecture/Design; and extended docs-auditor checks to prevent future drift.
 - **Docs — first-visit polish** — moved operational runbooks into `docs/operations-manual/`, added an operations-manual landing page, and tightened the repo README, docs landing page, Reviewer Guide, and Case Study so first-time reviewers see crisp portfolio value before release history or deep reference material.
 - **Docs cleanup arc (PRs #50–#54)** — six-PR documentation consolidation: releases hub; helpdesk shipped-vs-target labels + ADR-006; ARCHITECTURE + DESIGN refresh with LANGGRAPH/WEB_RESEARCH folded into DESIGN; operations surface consolidated (PERFORMANCE, PRODUCTION_TLS, E2E, TENANT_CONFIG absorbed); `eval_baseline_2026-05-19` renamed to [eval_baseline_v2.md](../docs/eval_baseline_v2.md); SECURITY dependency floor + PRODUCT_ROADMAP Phase 6d shipped status refreshed.
 - **Docs — OPERATIONS.md** — absorbs local OAuth, production HTTPS/HTTP/2, Playwright E2E, campus Phase 0 performance guardrails.

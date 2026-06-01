@@ -21,7 +21,7 @@ Review it as an engineering artifact: source code, architecture, screenshots, ev
 observability, CI/CD, security posture, and release hygiene. It is not presented as a hosted public
 product.
 
-**Portfolio focus:** Lead AI Engineering and AI Platform Architecture. Live docs: <https://sandeep-jay.github.io/campus-rag-assistant/>.
+**Portfolio focus:** Production-aligned AI platform architecture: RAG quality, LangGraph agentic orchestration, provider boundaries, observability, and responsible-AI guardrails in one reviewable system. Role-fit context: [docs/PORTFOLIO_CASE_STUDY.md#role-alignment](docs/PORTFOLIO_CASE_STUDY.md#role-alignment). Live docs: <https://sandeep-jay.github.io/campus-rag-assistant/>.
 
 ![Structured KB answer with session history](docs/assets/product/v3/chat-overview.png)
 
@@ -37,34 +37,41 @@ product.
 | Operations and security | [docs/operations-manual/](docs/operations-manual/index.md) |
 | Release history | [docs/release-notes/](docs/release-notes/index.md) — v1.0 / v2.0 / v3.0.0 |
 
-## Why this project matters
+## Features
 
-- Turns scattered institutional knowledge into **cited answers** users can verify instead of a black-box chat response.
-- Shows **LangGraph agentic orchestration** for unresolved questions: KB retry, controlled web research, GitHub duplicate search, and HITL-gated GitHub ticket filing.
-- Demonstrates **AI platform architecture** around the product surface: provider boundaries, RAGAS evaluation, LangSmith/Prometheus observability, CI/CD, security, and operational runbooks.
-- Keeps responsible-AI claims reviewable through redaction, source transparency, human approval before side effects, architecture docs, screenshots, evaluation results, and release artifacts.
+### Knowledge-base chat (default)
 
-## Role alignment
+- **RAG over managed search** — AWS: Bedrock KB API → OpenSearch Serverless (vectors + keywords); Azure AI Search hybrid; grounded generation with cited sources
+- **LangGraph pipeline** — `condense` → `multi_query` → `retrieve` → `rerank` → `generate` → `format` when `RAG_ENGINE=langgraph`
+- **Legacy chain path** — `RAG_ENGINE=chain` (default) for true Bedrock token streaming via LangChain
+- **Scoped topics** — declines off-topic questions via `SUPPORTED_TOPICS` / `tenant.rag_config`
+- **Structured markdown** — summary, `##` sections, bullets, numbered steps
+- **Sources panel** — KB article chips, scores, expandable excerpt (Sources / Content tabs)
 
-This project is designed to demonstrate strengths relevant to:
+### Web research (opt-in)
 
-- Higher Education / EdTech AI Strategist
-- Lead Data & AI Platform Architect
-- Lead / Senior / Staff AI Engineer
-- GenAI Platform Engineer
-- Applied ML / LLMOps Engineer
-- Full Stack Engineer
+- **Per-message toggle** — `research_mode=web` (Vue + API); not silent open-web mode
+- **Disclaimer banner** on web answers; sources labeled **WEB**
+- **Providers** — mock for demos; **Tavily** when `WEB_SEARCH_PROVIDER=tavily` and `WEB_RESEARCH_ENABLED=true`
 
-## What this shows
+### App and platform
 
-| Capability | What it shows | Evidence |
-|---|---|---|
-| **Cited RAG path** | LangGraph retrieval stages, KB-first answers, multi-query retrieval, rerank hooks, source contracts, and opt-in web research | [docs/DESIGN.md](docs/DESIGN.md) · [docs/EVALUATION.md](docs/EVALUATION.md) · [ADR-001](docs/adr/ADR-001-provider-registry.md) · [ADR-003](docs/adr/ADR-003-opt-in-web-research.md) |
-| **Agentic helpdesk orchestration** | Bounded LangGraph escalation with KB retry, web research, GitHub duplicate search, GitHub ticket drafting/filing, clarifying turns, redaction, HITL confirmation, and four explicit outcomes | [Helpdesk overview](docs/helpdesk/index.md) · [ADR-005](docs/adr/ADR-005-bounded-helpdesk-agent.md) · [ADR-006](docs/adr/ADR-006-live-llm-supervisor-migration.md) |
-| **AI platform architecture** | One FastAPI + Vue product surface over AWS / Azure / mock providers, tenant configuration, feature flags, migrations, and CI-safe local mode | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [ADR-001](docs/adr/ADR-001-provider-registry.md) |
-| **Evaluation, observability, and responsible AI** | RAGAS baseline, LangSmith traces, Prometheus metrics, k6 load profiles, gitleaks, protected branches, redaction, and human approval before side effects | [docs/eval_baseline_v2.md](docs/eval_baseline_v2.md) · [docs/operations-manual/index.md](docs/operations-manual/index.md) · [ADR-004](docs/adr/ADR-004-eval-gating-policy.md) |
+- **SSE streaming** — `POST /api/chat/stream` with buffered fallback to `POST /api/chat/chat`
+- **Sessions** — multi-turn history; sidebar to create, switch, and delete chats
+- **Feedback** — thumbs up/down on assistant messages
+- **Auth** — email/password or **GitHub OAuth** (Google-ready); JWT in HTTP-only cookies; local dev uses API-port OAuth + handoff to Vue ([docs/operations-manual/operations.md — OAuth](docs/operations-manual/operations.md#oauth-and-authentication))
+- **UI** — dark/light mode, mobile-friendly layout, copy answer
+- **Ops** — rate limiting, `X-Request-ID`, Alembic migrations, optional Streamlit client on the same API
 
-## System at a glance
+### Helpdesk agent (post-RAG escalation)
+
+- **`metadata.kb_resolved`** signal — Vue surfaces escalation chips when the KB cannot answer.
+- **ASK-mode actions** — one-shot `/summarize` and `/draft-ticket`; reviewed drafts are filed via `/create-issue` to a private demo GitHub repo (HITL-gated).
+- **AGENT mode** — multi-turn LangGraph agent (`HELPDESK_AGENT_ENABLED`) with supervisor + clarifier/classifier/writer specialists, KB retry / web search / GitHub-search tools, SQLite checkpointer, SSE status, and four explicit outcomes (`resolved_by_agent`, `linked`, `filed`, `aborted`).
+- **Privacy** — emails, JWTs, AWS keys, GitHub tokens, and bearer tokens are redacted before summarization or issue filing.
+- Specs: [docs/roadmap/CONVERSATION_FLOW.md](docs/roadmap/CONVERSATION_FLOW.md), [docs/roadmap/HELPDESK_AGENT.md](docs/roadmap/HELPDESK_AGENT.md).
+
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -86,59 +93,7 @@ flowchart LR
 
 Design detail: [docs/DESIGN.md](docs/DESIGN.md) · [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-## What changed from upstream
-
-Extended from the public upstream [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot) into a source-reviewable AI platform:
-
-- **Vue 3 SPA** — streaming chat, sessions, source panels, feedback, OAuth handoff
-- **Provider registry** — AWS Bedrock KB, Azure AI Search/OpenAI, mock mode for CI/local
-- **LangGraph RAG pipeline** — condense → multi-query → retrieve → rerank → generate → format
-- **Tenant-hydrated prompts** — `tenant.rag_config` in Postgres
-- **RAGAS + LangSmith** — golden-set regression evals and per-node traces
-- **Production ops** — Prometheus, request IDs, rate limits, k6, Alembic, GitHub Actions CI/CD
-- **Helpdesk agent** — LangGraph multi-turn agent with KB retry, web search, GitHub-issue search, HITL ticket filing, and SQLite checkpointer
-- **v3 architecture + agent UI** — versioned diagrams and screenshots under `docs/assets/`; [agentic rebuild roadmap](docs/roadmap/AGENTIC_HELPDESK_REBUILD.md) for LLM-driven supervisor (current agent is deterministic — see ADR-005 target state)
-
-## Quality baseline
-
-The project includes a **RAGAS golden-set harness** and a documented baseline ([docs/eval_baseline_v2.md](docs/eval_baseline_v2.md)). Phase 5 retrieval tuning improved AWS **context_recall to 0.80** (passes gate). **Context precision** remains the main improvement target; next work focuses on ingestion/chunking and rerank tuning.
-
-This is intentionally presented as an **engineering baseline**, not a marketing claim. Gates are **release controls** (`RAGAS_QUALITY_GATE=1` on milestones), not blockers for local demo or PR CI. Detail: [docs/EVALUATION.md](docs/EVALUATION.md).
-
-## Review artifacts
-
-Two-to-three minute walkthrough script for the Vue product UI: [docs/assets/README.md#product-demo-script-34-min-v3](docs/assets/README.md#product-demo-script-34-min-v3).
-
-| Artifact | Status |
-|---|---|
-| Source code | Implemented |
-| Vue product UI screenshots | Included ([docs/assets/README.md](docs/assets/README.md)) |
-| Local mock execution path | Implemented (`RAG_FORCE_MOCK=true`) |
-| AWS Bedrock KB path | Implemented |
-| Azure AI Search / OpenAI path | Implemented |
-| Web research (opt-in) | Implemented (`mock` or `tavily`) |
-| RAGAS baseline | Documented ([docs/eval_baseline_v2.md](docs/eval_baseline_v2.md)) |
-| LangSmith traces | Captured in screenshots ([docs/assets/observability/](docs/assets/observability/)) |
-| Public hosted product | Not claimed |
-| Official campus deployment | Not claimed |
-
-## Portfolio case study
-
-Hiring-manager narrative (problem, architecture, decisions, outcomes, limits): [docs/PORTFOLIO_CASE_STUDY.md](docs/PORTFOLIO_CASE_STUDY.md)
-
----
-
-## Overview
-
-Architecture, design rationale, product UI, and observability traces.
-
-### Architecture
-
-| Overview (v3) | Detailed (v3) |
-|----------|----------------|
-| ![High-level architecture](docs/assets/architecture/v3/overview.png) | ![Detailed component diagram](docs/assets/architecture/v3/detailed.png) |
-
-Upstream v1 comparison and request flows: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+Detailed architecture and design rationale: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/DESIGN.md](docs/DESIGN.md)
 
 ### Design
 
@@ -150,7 +105,9 @@ Upstream v1 comparison and request flows: [docs/ARCHITECTURE.md](docs/ARCHITECTU
 
 Full goals, tradeoffs, boundaries, and ADRs: [docs/DESIGN.md](docs/DESIGN.md) · [docs/adr/](docs/adr/)
 
-### Screenshots
+## Screenshots and traces
+
+### Product UI
 
 | Sign in | Chat (KB answer) |
 |---------|------------------|
@@ -191,39 +148,11 @@ Agent specs: [docs/helpdesk/index.md](docs/helpdesk/index.md) · Next: [AGENTIC_
 
 Enable `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, and `LANGCHAIN_PROJECT` in `.env`; filter runs by `chat-session-<id>`. Capture steps: [docs/EVALUATION.md](docs/EVALUATION.md#capture-a-trace-for-docs). More traces: [docs/assets/README.md](docs/assets/README.md)
 
-## Features
+## Quality baseline
 
-### Knowledge-base chat (default)
+The project includes a **RAGAS golden-set harness** and a documented baseline ([docs/eval_baseline_v2.md](docs/eval_baseline_v2.md)). Phase 5 retrieval tuning improved AWS **context_recall to 0.80** (passes gate). **Context precision** remains the main improvement target; next work focuses on ingestion/chunking and rerank tuning.
 
-- **RAG over managed search** — AWS: Bedrock KB API → OpenSearch Serverless (vectors + keywords); Azure AI Search hybrid; grounded generation with cited sources
-- **LangGraph pipeline** — `condense` → `multi_query` → `retrieve` → `rerank` → `generate` → `format` when `RAG_ENGINE=langgraph`
-- **Legacy chain path** — `RAG_ENGINE=chain` (default) for true Bedrock token streaming via LangChain
-- **Scoped topics** — declines off-topic questions via `SUPPORTED_TOPICS` / `tenant.rag_config`
-- **Structured markdown** — summary, `##` sections, bullets, numbered steps
-- **Sources panel** — KB article chips, scores, expandable excerpt (Sources / Content tabs)
-
-### Web research (opt-in)
-
-- **Per-message toggle** — `research_mode=web` (Vue + API); not silent open-web mode
-- **Disclaimer banner** on web answers; sources labeled **WEB**
-- **Providers** — mock for demos; **Tavily** when `WEB_SEARCH_PROVIDER=tavily` and `WEB_RESEARCH_ENABLED=true`
-
-### App and platform
-
-- **SSE streaming** — `POST /api/chat/stream` with buffered fallback to `POST /api/chat/chat`
-- **Sessions** — multi-turn history; sidebar to create, switch, and delete chats
-- **Feedback** — thumbs up/down on assistant messages
-- **Auth** — email/password or **GitHub OAuth** (Google-ready); JWT in HTTP-only cookies; local dev uses API-port OAuth + handoff to Vue ([docs/operations-manual/operations.md — OAuth](docs/operations-manual/operations.md#oauth-and-authentication))
-- **UI** — dark/light mode, mobile-friendly layout, copy answer
-- **Ops** — rate limiting, `X-Request-ID`, Alembic migrations, optional Streamlit client on the same API
-
-### Helpdesk agent (post-RAG escalation)
-
-- **`metadata.kb_resolved`** signal — Vue surfaces escalation chips when the KB cannot answer.
-- **ASK-mode actions** — one-shot `/summarize` and `/draft-ticket`; reviewed drafts are filed via `/create-issue` to a private demo GitHub repo (HITL-gated).
-- **AGENT mode** — multi-turn LangGraph agent (`HELPDESK_AGENT_ENABLED`) with supervisor + clarifier/classifier/writer specialists, KB retry / web search / GitHub-search tools, SQLite checkpointer, SSE status, and four explicit outcomes (`resolved_by_agent`, `linked`, `filed`, `aborted`).
-- **Privacy** — emails, JWTs, AWS keys, GitHub tokens, and bearer tokens are redacted before summarization or issue filing.
-- Specs: [docs/roadmap/CONVERSATION_FLOW.md](docs/roadmap/CONVERSATION_FLOW.md), [docs/roadmap/HELPDESK_AGENT.md](docs/roadmap/HELPDESK_AGENT.md).
+This is intentionally presented as an **engineering baseline**, not a marketing claim. Gates are **release controls** (`RAGAS_QUALITY_GATE=1` on milestones), not blockers for local demo or PR CI. Detail: [docs/EVALUATION.md](docs/EVALUATION.md).
 
 ## Stack
 
@@ -353,22 +282,28 @@ Golden set (**10** rows), thresholds, and baseline scores: [docs/EVALUATION.md](
 | Metrics             | `GET /api/metrics` (Prometheus)                                          |
 | Mock vs live RAG    | `RAG_FORCE_MOCK`, `LLM_PROVIDER`, `RETRIEVER_PROVIDER` in `.env.example` |
 
+## Case study and role alignment
+
+Hiring-manager narrative, role-fit context, decisions, outcomes, and limits: [docs/PORTFOLIO_CASE_STUDY.md](docs/PORTFOLIO_CASE_STUDY.md)
+
+Origin summary: extended from the public upstream [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot) into a source-reviewable AI platform with Vue, FastAPI, multicloud providers, LangGraph RAG, agentic helpdesk orchestration, RAGAS evaluation, and production-oriented docs.
+
+## What changed from upstream
+
+Extended from the public upstream [ets-berkeley-edu/chabot](https://github.com/ets-berkeley-edu/chabot) into a source-reviewable AI platform:
+
+- **Vue 3 SPA** — streaming chat, sessions, source panels, feedback, OAuth handoff
+- **Provider registry** — AWS Bedrock KB, Azure AI Search/OpenAI, mock mode for CI/local
+- **LangGraph RAG pipeline** — condense → multi-query → retrieve → rerank → generate → format
+- **Tenant-hydrated prompts** — `tenant.rag_config` in Postgres
+- **RAGAS + LangSmith** — golden-set regression evals and per-node traces
+- **Production ops** — Prometheus, request IDs, rate limits, k6, Alembic, GitHub Actions CI/CD
+- **Helpdesk agent** — LangGraph multi-turn agent with KB retry, web search, GitHub-issue search, HITL ticket filing, and SQLite checkpointer
+- **v3 architecture + agent UI** — versioned diagrams and screenshots under `docs/assets/`; [agentic rebuild roadmap](docs/roadmap/AGENTIC_HELPDESK_REBUILD.md) for LLM-driven supervisor (current agent is deterministic — see ADR-005 target state)
+
 ## What's next
 
 Optional follow-ups: **LangGraph-native SSE** (Phase 6a), stricter RAGAS gates after ingestion improvements, campus-scale ops. Status: [docs/roadmap/PRODUCT_ROADMAP.md](docs/roadmap/PRODUCT_ROADMAP.md). Production hardening backlog: [docs/operations-manual/production-hardening.md](docs/operations-manual/production-hardening.md).
-
-## Documentation
-
-| Visitor | Best entry point |
-|---------|------------------|
-| New here | [Live docs](https://sandeep-jay.github.io/campus-rag-assistant/) or this README |
-| Hiring / portfolio reviewer | [docs/PORTFOLIO_CASE_STUDY.md](docs/PORTFOLIO_CASE_STUDY.md) |
-| Architecture reviewer | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/DESIGN.md](docs/DESIGN.md), [docs/adr/](docs/adr/) |
-| Evaluation reviewer | [docs/EVALUATION.md](docs/EVALUATION.md), [docs/eval_baseline_v2.md](docs/eval_baseline_v2.md) |
-| Operations reviewer | [docs/operations-manual/operations.md](docs/operations-manual/operations.md), [docs/operations-manual/ci-cd.md](docs/operations-manual/ci-cd.md), [docs/operations-manual/release.md](docs/operations-manual/release.md), [docs/operations-manual/security.md](docs/operations-manual/security.md) |
-| Product demo reviewer | [docs/assets/README.md](docs/assets/README.md) |
-| Roadmap reviewer | [docs/roadmap/PRODUCT_ROADMAP.md](docs/roadmap/PRODUCT_ROADMAP.md) |
-| Release-history reviewer | [changelog/CHANGELOG.md](changelog/CHANGELOG.md) |
 
 ## License
 

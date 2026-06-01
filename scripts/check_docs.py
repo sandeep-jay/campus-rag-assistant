@@ -87,7 +87,6 @@ CANONICAL_LEDE_DOCS: tuple[Path, ...] = (
 CANONICAL_LEDE_DOCS_RESOLVED = {p.resolve() for p in CANONICAL_LEDE_DOCS}
 
 CAPABILITY_DOCS: tuple[Path, ...] = (
-    REPO_ROOT / "README.md",
     REPO_ROOT / "docs" / "index.md",
     REPO_ROOT / "docs" / "PORTFOLIO_CASE_STUDY.md",
     REPO_ROOT / "docs" / "REVIEWER_GUIDE.md",

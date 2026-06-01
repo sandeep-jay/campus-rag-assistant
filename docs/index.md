@@ -46,14 +46,6 @@ responsible AI.
 | **AI platform architecture** | One FastAPI + Vue product surface over AWS / Azure / mock providers, tenant configuration, feature flags, migrations, and CI-safe local mode | [ARCHITECTURE.md](ARCHITECTURE.md) · [ADR-001](adr/ADR-001-provider-registry.md) |
 | **Evaluation, observability, and responsible AI** | RAGAS baseline, LangSmith traces, Prometheus metrics, k6 load profiles, gitleaks, protected branches, redaction, and human approval before side effects | [eval_baseline_v2.md](eval_baseline_v2.md) · [operations-manual/index.md](operations-manual/index.md) · [ADR-004](adr/ADR-004-eval-gating-policy.md) |
 
-## Quality baseline
-
-The project includes a **RAGAS golden-set harness** and a documented v2 retrieval baseline. Phase 5 retrieval tuning improved AWS **context recall to 0.800**, passing the retrieval coverage gate. **Context precision** remains the main improvement target.
-
-This is an engineering baseline, not a marketing claim. Strict RAGAS gates are release controls, not blockers for local demo or ordinary PR CI.
-
-Read more: [Evaluation approach](EVALUATION.md) and [baseline scores](eval_baseline_v2.md).
-
 ## Architecture
 
 ```mermaid
@@ -106,6 +98,14 @@ Design detail: [Architecture](ARCHITECTURE.md) and [Design Notes](DESIGN.md).
 
 More assets: [screenshots catalog](assets/README.md).
 
+## Quality baseline
+
+The project includes a **RAGAS golden-set harness** and a documented v2 retrieval baseline. Phase 5 retrieval tuning improved AWS **context recall to 0.800**, passing the retrieval coverage gate. **Context precision** remains the main improvement target.
+
+This is an engineering baseline, not a marketing claim. Strict RAGAS gates are release controls, not blockers for local demo or ordinary PR CI.
+
+Read more: [Evaluation approach](EVALUATION.md) and [baseline scores](eval_baseline_v2.md).
+
 ## Stack
 
 | Layer | Technologies |
@@ -144,20 +144,6 @@ PIP_SYNC=0 ./scripts/run-backend-venv.sh          # http://127.0.0.1:8000
 ```
 
 Register a user and start a chat. Responses use the mock provider unless you configure live AWS/Azure providers.
-
-## Review artifacts
-
-| Artifact | Status |
-|---|---|
-| Source code | Implemented |
-| Vue product UI screenshots | Included |
-| Local mock execution path | Implemented |
-| AWS Bedrock KB path | Implemented |
-| Azure AI Search / OpenAI path | Implemented |
-| RAGAS baseline | Documented |
-| LangSmith traces | Captured in screenshots |
-| Public hosted product | Not claimed |
-| Official campus deployment | Not claimed |
 
 ## Origin and Scope
 
