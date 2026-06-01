@@ -194,5 +194,5 @@ Screenshots: [docs/assets/observability/](./assets/observability/) (README uses 
 ## Related
 
 - [roadmap/PRODUCT_ROADMAP.md](./roadmap/PRODUCT_ROADMAP.md)
-- [roadmap/LANGGRAPH.md](./roadmap/LANGGRAPH.md)
+- [DESIGN.md — LangGraph KB path](./DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank)
 - [assets/README.md](./assets/README.md) — demo script

@@ -12,9 +12,9 @@ Diagrams live in [`docs/assets/`](./assets/) under versioned folders (`architect
 
 ### What changed in v3
 
-v3 adds the **bounded helpdesk agent** on top of the v2 RAG platform: a LangGraph supervisor with specialist nodes (clarifier, classifier, writer, solution), agent tools (KB retry, web search, GitHub-issue search, file-ticket), SQLite checkpointing, and a HITL gate before filing GitHub Issues. The Vue UI exposes **Ask** vs **Agent** mode, an activity timeline, and a ticket review modal.
+v3 adds the **bounded helpdesk agent** on top of the v2 RAG platform: a supervisor + specialist nodes (clarifier, classifier, writer, solution), agent tools (KB retry, web search, GitHub-issue search, file-ticket), SQLite checkpointing, and a HITL gate before filing GitHub Issues. The Vue UI exposes **Ask** vs **Agent** mode, an activity timeline, and a ticket review modal.
 
-The current supervisor routing is **deterministic** (hand-coded `if/elif`), not yet LLM-driven. The [Agentic Helpdesk Rebuild](./roadmap/AGENTIC_HELPDESK_REBUILD.md) roadmap describes the phased migration to a true LLM supervisor with Postgres checkpointing, real-event SSE, and a trajectory eval.
+The current supervisor routing is **deterministic** (hand-coded 3-branch routine), not yet LLM-driven. The shipped surface — tools, multi-turn pause/resume, HITL gate, four explicit outcomes, redaction, Prometheus metrics — is real and demo-able under `RAG_FORCE_MOCK=true`. The [Agentic Helpdesk Rebuild](./roadmap/AGENTIC_HELPDESK_REBUILD.md) is the live forward-looking plan: LLM supervisor + structured-output specialists, compiled `StateGraph`, `AsyncPostgresSaver`, enforced budgets, real-event SSE, trajectory eval, and live campus router. Row-by-row shipped-vs-target reference: [helpdesk/index.md](./helpdesk/index.md#today-vs-target-state). Decision record: [ADR-005](./adr/ADR-005-bounded-helpdesk-agent.md) + [ADR-006](./adr/ADR-006-live-llm-supervisor-migration.md).
 
 ### Overview (v3)
 
@@ -80,10 +80,10 @@ RAG pipeline subgraph (`condense` → `multi_query` → `retrieve` → `rerank` 
 
 ### AWS retrieval: Bedrock Knowledge Base and OpenSearch
 
-On AWS, the application calls the **Bedrock Knowledge Base** retrieve API—not OpenSearch HTTP endpoints directly. In a typical deployment:
+On AWS, the application calls the **Bedrock Knowledge Base** retrieve API via LangChain's `AmazonKnowledgeBasesRetriever` — not OpenSearch HTTP endpoints directly. In a typical deployment:
 
 ```text
-App (LangChain AmazonKnowledgeBasesRetriever)
+App (AmazonKnowledgeBasesRetriever)
   → Bedrock Knowledge Base (retrieve, metadata filters)
     → OpenSearch Serverless (vector index + chunk storage)
 ```
@@ -94,9 +94,9 @@ App (LangChain AmazonKnowledgeBasesRetriever)
 | **OpenSearch Serverless** | Vector (and often hybrid) index backing the KB; ingestion and index lifecycle owned by AWS |
 | **ServiceNow / LMS corpus** | Source content ingested into the KB (e.g. knowledge articles synced to the index) |
 
-**v1 (upstream chabot)** invoked OpenSearch from application code. **v2** keeps OpenSearch in the platform stack but routes retrieval through the KB API for simpler ops and consistent metadata filters (`build_bedrock_vector_filter` in `backend/app/services/retrieval.py`).
+The application owns one retriever interface in the provider registry — `RETRIEVER_PROVIDER=aws` selects the KB path with optional metadata filters via `build_bedrock_vector_filter` in `backend/app/services/retrieval.py`. Index lifecycle, chunking, and ingestion connectors stay managed by AWS, so the app does not run OpenSearch client code.
 
-Azure path uses **Azure AI Search** instead of OpenSearch—same provider pattern, different backing service.
+The Azure path uses **Azure AI Search** instead of OpenSearch — same provider pattern, different backing service. The original [upstream chabot](https://github.com/ets-berkeley-edu/chabot) (v1) invoked OpenSearch from application code; v2 moved retrieval through the KB API and that contract is unchanged in v3.
 
 ## Chat request flow
 
@@ -134,7 +134,7 @@ sequenceDiagram
 - **Entry**: [`backend/app/main.py`](../backend/app/main.py) builds the FastAPI app; runs SQLAlchemy `create_all` only in dev/test (production uses Alembic); configures CORS, and mounts routers under `/api/auth` and `/api/chat`.
 - **Configuration**: Pydantic settings in [`backend/app/config/default.py`](../backend/app/config/default.py), loaded via [`backend/app/core/config_manager.py`](../backend/app/core/config_manager.py) from layered `.env` files (`APP_ENV`, repo root `.env`, `.env.{APP_ENV}`).
 - **Auth**: JWT plus HTTP-only cookies (`/api/auth/login-json`, register, **OAuth** via `/api/auth/oauth/{provider}/…`; dev uses API-port callback (`OAUTH_REDIRECT_BASE_URL` on `:8000`) and one-time redirect to Vue `/oauth/handoff` — [PRODUCTION_TLS.md](./PRODUCTION_TLS.md). Cookie `Secure` and `SameSite` follow `AUTH_COOKIE_*` settings (see `.env.example`, [PRODUCTION_TLS.md](./PRODUCTION_TLS.md)).
-- **RAG**: [`backend/app/services/rag.py`](../backend/app/services/rag.py) — `RAG_ENGINE=chain` (default in tests via conftest) uses a LangChain conversational retrieval chain; `RAG_ENGINE=langgraph` runs [`backend/app/services/graph/`](../backend/app/services/graph/) with KB path **condense → multi_query → retrieve → rerank → generate → format** (web path skips rerank; see [LANGGRAPH.md](./roadmap/LANGGRAPH.md), [WEB_RESEARCH.md](./roadmap/WEB_RESEARCH.md)).
+- **RAG**: [`backend/app/services/rag.py`](../backend/app/services/rag.py) — `RAG_ENGINE=chain` (default in tests via conftest) uses a LangChain conversational retrieval chain; `RAG_ENGINE=langgraph` runs [`backend/app/services/graph/`](../backend/app/services/graph/) with KB path **condense → multi_query → retrieve → rerank → generate → format** (web path skips rerank; see [DESIGN.md — LangGraph KB path](./DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank) and [Opt-in web research](./DESIGN.md#opt-in-web-research)).
 - **LangGraph streaming:** When `RAG_ENGINE=langgraph`, `/api/chat/stream` emits a `status` event, runs the graph in a worker thread, then streams the buffered answer in paced chunks (not token-level Bedrock streaming). Use `RAG_ENGINE=chain` for `astream_events` TTFT.
 - **Research mode:** Optional `research_mode=web` on chat requests when `WEB_RESEARCH_ENABLED=true`; responses include `source_kind` and a web disclaimer when applicable.
 - **Singleton:** `get_rag_service()` returns one shared `RAGService` instance (thread-safe) for all chat handlers.

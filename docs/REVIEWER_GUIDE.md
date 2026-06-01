@@ -16,10 +16,10 @@ Campus RAG Assistant is a production-style enterprise RAG platform for governed 
 | Signal | Evidence |
 |---|---|
 | AI platform architecture | Provider registry, AWS / Azure / mock separation, tenant config — [ADR-001](adr/ADR-001-provider-registry.md) |
-| RAG engineering | LangGraph stages, multi-query retrieval, rerank hooks, explicit source contracts — [LangGraph roadmap](roadmap/LANGGRAPH.md) |
+| RAG engineering | LangGraph stages, multi-query retrieval, rerank hooks, explicit source contracts — [LangGraph KB path](DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank) |
 | Evaluation discipline | RAGAS golden set, documented baseline, release-oriented gates — [Evaluation](EVALUATION.md) |
 | Observability | LangSmith traces, request IDs, Prometheus metrics — [Operations](OPERATIONS.md) |
-| Product judgment | KB-first answers, opt-in web research, source transparency, feedback — [Web Research roadmap](roadmap/WEB_RESEARCH.md) |
+| Product judgment | KB-first answers, opt-in web research, source transparency, feedback — [Opt-in web research](DESIGN.md#opt-in-web-research) |
 | Production thinking | CI/CD, gitleaks, dependency review, no tool attribution, rate limits, load testing, hardening backlog — [CI/CD](CI.md), [Security](SECURITY.md), [Load Testing](LOAD_TESTING.md), [Production Hardening](PRODUCTION_HARDENING.md) |
 | Agentic engineering | Bounded helpdesk loop (tools, HITL ticket filing, SQLite checkpoint) with deterministic supervisor on `main` and LLM supervisor migration planned — [Helpdesk Agent overview](helpdesk/index.md), [Conversation Flow](roadmap/CONVERSATION_FLOW.md), [Engineering Spec](roadmap/HELPDESK_AGENT.md), [ADR-005](adr/ADR-005-bounded-helpdesk-agent.md), [ADR-006](adr/ADR-006-live-llm-supervisor-migration.md), [Agentic Rebuild plan](roadmap/AGENTIC_HELPDESK_REBUILD.md) |
 
@@ -43,7 +43,7 @@ This project builds from the public [`ets-berkeley-edu/chabot`](https://github.c
 |---|---|
 | Hiring manager | [Case Study](PORTFOLIO_CASE_STUDY.md) |
 | Staff / principal engineer | [Architecture](ARCHITECTURE.md), [Design Notes](DESIGN.md), [ADRs](adr/README.md) |
-| AI engineer | [Evaluation](EVALUATION.md), [LangGraph roadmap](roadmap/LANGGRAPH.md), [Provider registry ADR](adr/ADR-001-provider-registry.md) |
+| AI engineer | [Evaluation](EVALUATION.md), [LangGraph KB path](DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank), [Provider registry ADR](adr/ADR-001-provider-registry.md), [Agentic Helpdesk Rebuild](roadmap/AGENTIC_HELPDESK_REBUILD.md) |
 | Platform / DevOps reviewer | [CI/CD](CI.md), [Operations](OPERATIONS.md), [Security](SECURITY.md), [Load Testing](LOAD_TESTING.md) |
 | Product reviewer | [Screenshots](assets/README.md), [Case Study](PORTFOLIO_CASE_STUDY.md), [Product Roadmap](roadmap/PRODUCT_ROADMAP.md) |
 | Agent / orchestration reviewer | [Helpdesk Agent overview](helpdesk/index.md), [Conversation Flow](roadmap/CONVERSATION_FLOW.md), [Engineering Spec](roadmap/HELPDESK_AGENT.md), [ADR-005](adr/ADR-005-bounded-helpdesk-agent.md), [ADR-006](adr/ADR-006-live-llm-supervisor-migration.md), [Agentic Rebuild plan](roadmap/AGENTIC_HELPDESK_REBUILD.md), [Architecture: helpdesk](ARCHITECTURE.md#helpdesk-capabilities-post-rag) |

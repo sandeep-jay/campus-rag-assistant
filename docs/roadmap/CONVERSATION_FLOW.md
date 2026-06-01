@@ -413,6 +413,6 @@ This document only declares the product shape. Engineering details live in:
 
 - [HELPDESK_AGENT.md](./HELPDESK_AGENT.md) — agent graph, tools, specialists,
   HITL gate, budgets, P0/P1 hardening, mock-mode behavior, phasing.
-- [LANGGRAPH.md](./LANGGRAPH.md) — RAG graph (unchanged by this design).
-- [WEB_RESEARCH.md](./WEB_RESEARCH.md) — KB vs. web research-mode internals
+- [DESIGN.md — LangGraph KB path](../DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank) — RAG graph (unchanged by this design).
+- [DESIGN.md — Opt-in web research](../DESIGN.md#opt-in-web-research) — KB vs. web research-mode internals
   (unchanged in ASK; subsumed by the agent's tool selection in AGENT).

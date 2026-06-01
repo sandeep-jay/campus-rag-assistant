@@ -42,6 +42,6 @@ KB path always retrieves first; web is never a silent fallback when retrieval sc
 ## References
 
 - [DESIGN.md — Opt-in web research](../DESIGN.md#opt-in-web-research)
-- [roadmap/WEB_RESEARCH.md](../roadmap/WEB_RESEARCH.md)
+- [DESIGN.md — Opt-in web research](../DESIGN.md#opt-in-web-research)
 - `backend/app/services/tools/web_search.py`
 - `backend/app/services/graph/nodes.py`

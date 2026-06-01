@@ -102,8 +102,6 @@ nav:
   - Roadmap:
       - Product Roadmap: roadmap/PRODUCT_ROADMAP.md
       - Agentic Helpdesk Rebuild: roadmap/AGENTIC_HELPDESK_REBUILD.md
-      - LangGraph: roadmap/LANGGRAPH.md
-      - Web Research: roadmap/WEB_RESEARCH.md
   - Releases: release-notes/index.md
   - Changelog: changelog.md
   - Notice: notice.md

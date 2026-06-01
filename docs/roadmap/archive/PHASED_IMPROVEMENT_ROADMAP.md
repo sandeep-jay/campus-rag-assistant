@@ -1,6 +1,6 @@
 # Campus / production scale roadmap (archived)
 
-> **Archived.** Product roadmap: [PRODUCT_ROADMAP.md](../PRODUCT_ROADMAP.md). **Phase 5 (retrieval stack)** (multi-query, rerank on LangGraph) is already shipped on `main` — see [LANGGRAPH.md](../LANGGRAPH.md) and [eval_baseline_2026-05-19.md](../../eval_baseline_2026-05-19.md). This file is the **org / campus** scale track (Redis HA, EB, tenant budgets) with its **own** phase numbers.
+> **Archived.** Product roadmap: [PRODUCT_ROADMAP.md](../PRODUCT_ROADMAP.md). **Phase 5 (retrieval stack)** (multi-query, rerank on LangGraph) is already shipped on `main` — see [DESIGN.md — LangGraph KB path](../../DESIGN.md#langgraph-kb-path-multi-query--retrieve--rerank) and [eval_baseline_2026-05-19.md](../../eval_baseline_2026-05-19.md). This file is the **org / campus** scale track (Redis HA, EB, tenant budgets) with its **own** phase numbers.
 
 **Last updated:** 2026-05-19 (archive; see product roadmap for current status)
 
