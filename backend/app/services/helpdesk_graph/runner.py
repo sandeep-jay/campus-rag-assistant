@@ -423,7 +423,7 @@ def _is_web_consent_denial(answer: str) -> bool:
 
 
 def _kb_confidence_floor() -> float:
-    raw = getattr(settings, 'HELPDESK_AGENT_KB_CONFIDENCE_FLOOR', 0.4)
+    raw = getattr(settings, 'HELPDESK_AGENT_KB_CONFIDENCE_FLOOR', 0.55)
     try:
         return max(0.0, float(raw))
     except (TypeError, ValueError):
