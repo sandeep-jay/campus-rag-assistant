@@ -69,6 +69,10 @@ export interface ChatMessage {
       // the reloaded chat row can render the same step-by-step timeline
       // as the live bubble. Capped server-side (currently ~last 20 steps).
       trace?: AgentStep[] | null
+      sources?: Source[]
+      document_contents?: DocContent[]
+      source_kind?: ResearchMode
+      disclaimer?: string | null
     }
   }
   created_at: string

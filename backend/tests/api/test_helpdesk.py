@@ -42,6 +42,8 @@ def enable_helpdesk(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, 'HELPDESK_AGENT_LLM_SUPERVISOR', False)
     monkeypatch.setattr(settings, 'RAG_FORCE_MOCK', True)
     monkeypatch.setattr(settings, 'LLM_PROVIDER', 'mock')
+    monkeypatch.setattr(settings, 'WEB_SEARCH_PROVIDER', 'mock')
+    monkeypatch.setattr(settings, 'TAVILY_API_KEY', None)
     monkeypatch.setattr(settings, 'GITHUB_TOKEN', _SecretLike('demo-token'))
     monkeypatch.setattr(settings, 'GITHUB_REPO', 'demo-org/demo-repo')
     monkeypatch.setattr(settings, 'GITHUB_DEFAULT_LABELS', 'it-helpdesk,demo')
@@ -462,6 +464,189 @@ def test_agent_resume_proposes_solution_after_impact_answer(
         'retry_kb',
         'propose_solution',
     ]
+    assert body['sources']
+    assert len(body['sources']) >= 1
+    assert body['source_kind'] == 'kb'
+    assert body['document_contents']
+
+
+def test_agent_requests_web_consent_when_kb_empty_and_live_provider(
+    client: TestClient,
+    test_user_token: str,
+    enable_helpdesk,
+    monkeypatch,
+):
+    async def _no_documents(*args, **kwargs):
+        return []
+
+    monkeypatch.setattr(settings, 'WEB_SEARCH_PROVIDER', 'tavily')
+    monkeypatch.setattr(settings, 'TAVILY_API_KEY', _SecretLike('test-tavily-key'))
+    with patch('backend.app.services.helpdesk_graph.runner.tools.retry_kb', _no_documents):
+        response = client.post(
+            '/api/helpdesk/agent/start',
+            json={
+                'conversation': [
+                    {
+                        'role': 'user',
+                        'content': 'Oracle Financials 403 error on budget reports',
+                    },
+                ],
+            },
+            headers={'Authorization': f'Bearer {test_user_token}'},
+        )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body['kind'] == 'question'
+    assert body['input'] == 'radio'
+    assert 'public web' in body['message'].lower()
+    assert body['choices'] == ['Search the web', 'Skip and draft a ticket']
+    assert 'web_search' not in [step['action'] for step in body.get('debug_trace', [])]
+
+
+def test_agent_web_consent_accept_runs_web_search(
+    client: TestClient,
+    test_user_token: str,
+    enable_helpdesk,
+    monkeypatch,
+):
+    from langchain.schema import Document
+
+    async def _no_kb(*args, **kwargs):
+        return []
+
+    async def _web_docs(*args, **kwargs):
+        return [
+            Document(
+                page_content='Clear browser cache and retry Oracle login.',
+                metadata={
+                    'source_metadata': {
+                        'kb_url': 'https://example.com/oracle-fix',
+                        'kb_number': 'WEB-1',
+                        'short_description': 'Oracle login fix',
+                        'kb_category': '',
+                        'project': '',
+                        'ingestion_date': '',
+                    },
+                    'score': 0.9,
+                },
+            ),
+        ]
+
+    monkeypatch.setattr(settings, 'WEB_SEARCH_PROVIDER', 'tavily')
+    monkeypatch.setattr(settings, 'TAVILY_API_KEY', _SecretLike('test-tavily-key'))
+    with (
+        patch('backend.app.services.helpdesk_graph.runner.tools.retry_kb', _no_kb),
+        patch('backend.app.services.helpdesk_graph.runner.tools.web_search', _web_docs),
+    ):
+        start = client.post(
+            '/api/helpdesk/agent/start',
+            json={
+                'conversation': [
+                    {
+                        'role': 'user',
+                        'content': 'Oracle Financials 403 error on budget reports',
+                    },
+                ],
+            },
+            headers={'Authorization': f'Bearer {test_user_token}'},
+        )
+        assert start.status_code == 200, start.text
+        first = start.json()
+        pending_question_id = first['debug_trace'][-1]['message']
+        resume = client.post(
+            '/api/helpdesk/agent/resume',
+            json={
+                'session_id': first['session_id'],
+                'choice': 'Search the web',
+                'pending_question_id': pending_question_id,
+            },
+            headers={'Authorization': f'Bearer {test_user_token}'},
+        )
+
+    assert resume.status_code == 200, resume.text
+    body = resume.json()
+    assert body['kind'] == 'info'
+    assert body['source_kind'] == 'web'
+    assert body['disclaimer']
+    assert body['sources']
+    assert any(step['action'] == 'web_search' for step in body['debug_trace'])
+
+
+def test_agent_web_consent_decline_drafts_ticket(
+    client: TestClient,
+    test_user_token: str,
+    enable_helpdesk,
+    monkeypatch,
+):
+    async def _no_documents(*args, **kwargs):
+        return []
+
+    monkeypatch.setattr(settings, 'WEB_SEARCH_PROVIDER', 'tavily')
+    monkeypatch.setattr(settings, 'TAVILY_API_KEY', _SecretLike('test-tavily-key'))
+    with patch('backend.app.services.helpdesk_graph.runner.tools.retry_kb', _no_documents):
+        start = client.post(
+            '/api/helpdesk/agent/start',
+            json={
+                'conversation': [
+                    {
+                        'role': 'user',
+                        'content': 'Oracle Financials 403 error on budget reports',
+                    },
+                ],
+            },
+            headers={'Authorization': f'Bearer {test_user_token}'},
+        )
+        assert start.status_code == 200, start.text
+        first = start.json()
+        pending_question_id = first['debug_trace'][-1]['message']
+        resume = client.post(
+            '/api/helpdesk/agent/resume',
+            json={
+                'session_id': first['session_id'],
+                'choice': 'Skip and draft a ticket',
+                'pending_question_id': pending_question_id,
+            },
+            headers={'Authorization': f'Bearer {test_user_token}'},
+        )
+
+    assert resume.status_code == 200, resume.text
+    body = resume.json()
+    assert body['kind'] == 'draft_ready'
+    assert body['draft']['title']
+    assert not any(step['action'] == 'web_search' for step in body['debug_trace'])
+
+
+def test_mock_web_search_skips_consent_prompt(
+    client: TestClient,
+    test_user_token: str,
+    enable_helpdesk,
+    monkeypatch,
+):
+    async def _no_kb(*args, **kwargs):
+        return []
+
+    monkeypatch.setattr(settings, 'WEB_SEARCH_PROVIDER', 'mock')
+    monkeypatch.setattr(settings, 'TAVILY_API_KEY', None)
+    with patch('backend.app.services.helpdesk_graph.runner.tools.retry_kb', _no_kb):
+        response = client.post(
+            '/api/helpdesk/agent/start',
+            json={
+                'conversation': [
+                    {
+                        'role': 'user',
+                        'content': 'Oracle Financials 403 error on budget reports',
+                    },
+                ],
+            },
+            headers={'Authorization': f'Bearer {test_user_token}'},
+        )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body['kind'] == 'info'
+    assert 'web_search_consent' not in [step['action'] for step in body.get('debug_trace', [])]
+    assert any(step['action'] == 'web_search' for step in body['debug_trace'])
 
 
 def test_agent_asks_clarification_after_help_attempt_when_impact_ambiguous(
@@ -1221,6 +1406,9 @@ def test_agent_start_upserts_question_when_chat_session_id_provided(
     trace = summary.get('trace')
     assert isinstance(trace, list)
     assert trace
+    assert summary.get('sources')
+    assert summary.get('document_contents')
+    assert summary.get('source_kind') == 'kb'
 
 
 def test_agent_journey_upserts_same_chat_message_row(

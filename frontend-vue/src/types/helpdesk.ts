@@ -43,6 +43,22 @@ export interface AgentStep {
   latency_ms?: number | null
 }
 
+export interface AgentSource {
+  source: string
+  kb_url: string
+  kb_number: string
+  kb_category: string
+  short_description: string
+  project: string
+  ingestion_date?: string
+  score?: number | null
+}
+
+export interface AgentDocContent {
+  content: string
+  metadata: AgentSource
+}
+
 export interface AgentStreamStepEvent {
   type: 'step'
   node: string
@@ -81,6 +97,10 @@ export interface AgentTurn {
   draft: TicketDraft | null
   linked_issue_url: string | null
   debug_trace: AgentStep[] | null
+  sources?: AgentSource[] | null
+  document_contents?: AgentDocContent[] | null
+  source_kind?: 'kb' | 'web' | null
+  disclaimer?: string | null
 }
 
 export type AgentStreamEvent =
