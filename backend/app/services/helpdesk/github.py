@@ -158,14 +158,37 @@ async def create_github_issue(
 
     if response.status_code >= 400:
         HELPDESK_CREATE_ISSUE_TOTAL.labels(outcome='github_error').inc()
+        # Pull the API's own ``message`` (and ``errors[*].message`` when
+        # available) into the surfaced detail so the modal toast tells the
+        # user what GitHub actually objected to (auth scope, validation,
+        # rate limit, etc.) rather than just an opaque 502.
+        github_detail = ''
+        try:
+            payload_err = response.json()
+        except ValueError:
+            payload_err = None
+        if isinstance(payload_err, dict):
+            msg = payload_err.get('message')
+            if isinstance(msg, str) and msg.strip():
+                github_detail = msg.strip()
+            sub_errors = payload_err.get('errors')
+            if isinstance(sub_errors, list) and sub_errors:
+                fragments = [str(item.get('message') or item.get('code') or '').strip() for item in sub_errors if isinstance(item, dict)]
+                fragments = [f for f in fragments if f]
+                if fragments:
+                    github_detail = f'{github_detail}: {"; ".join(fragments)}' if github_detail else '; '.join(fragments)
         logger.error(
-            'GitHub issue creation failed: status=%s repo=%s',
+            'GitHub issue creation failed: status=%s repo=%s detail=%s',
             response.status_code,
             repo,
+            github_detail or '(none)',
         )
+        detail = f'GitHub API rejected the issue (status {response.status_code}).'
+        if github_detail:
+            detail = f'{detail} {github_detail}'
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f'GitHub API rejected the issue (status {response.status_code}).',
+            detail=detail,
         )
 
     data = response.json()

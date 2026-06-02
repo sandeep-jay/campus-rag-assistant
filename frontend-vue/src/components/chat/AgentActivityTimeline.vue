@@ -38,8 +38,10 @@ interface TimelineRow {
 const ACTION_LABELS: Record<string, string> = {
   search_existing_issues: 'Checked existing tickets',
   classify_ticket: 'Classified the issue',
-  retry_kb: 'Searched the knowledge base',
-  web_search: 'Ran a web search',
+  retry_kb: 'Knowledge base (agent retry)',
+  web_search: 'Public web search',
+  web_search_consent: 'Asked to use public web search',
+  kb_low_confidence: 'KB hits below confidence floor',
   propose_solution: 'Proposed a solution',
   skip_propose_solution: 'Skipped proposing a solution',
   file_ticket: 'Filed the ticket',

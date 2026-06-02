@@ -21,7 +21,8 @@ const samplePrompts = ['How do I submit an assignment in the learning platform?'
     aria-label="Conversation"
     aria-live="polite"
     aria-relevant="additions"
-    class="py-4 min-h-full"
+    class="py-4 flex flex-col"
+    :class="{ 'min-h-full': messages.length === 0 && !streamingMessage }"
   >
     <ul role="list" class="flex flex-col">
       <li

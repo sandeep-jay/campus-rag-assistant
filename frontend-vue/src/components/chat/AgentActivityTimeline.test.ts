@@ -7,6 +7,7 @@ import type { AgentStep } from '@/types/helpdesk'
 const STEPS: AgentStep[] = [
   { step: 'classifier', action: 'classify_ticket', outcome: 'success', message: null },
   { step: 'retrieval', action: 'retry_kb', outcome: 'success', message: '4 candidate(s)' },
+  { step: 'supervisor', action: 'kb_low_confidence', outcome: 'skipped', message: 'top_score=0.18 < floor=0.40' },
   { step: 'researcher', action: 'web_search', outcome: 'failed', message: 'rate-limited' },
   { step: 'solver', action: 'propose_solution', outcome: 'waiting', message: null },
 ]
@@ -20,9 +21,13 @@ describe('AgentActivityTimeline', () => {
   it('humanizes known actions and shows details inline', () => {
     render(AgentActivityTimeline, { props: { steps: STEPS, defaultExpanded: true } })
     expect(screen.getByText('Classified the issue')).toBeTruthy()
-    expect(screen.getByText('Searched the knowledge base')).toBeTruthy()
+    // The agent's KB retry is labeled distinctly from the chat-level KB
+    // retrieval so users can tell the two passes apart.
+    expect(screen.getByText('Knowledge base (agent retry)')).toBeTruthy()
     expect(screen.getByText('4 candidate(s)')).toBeTruthy()
-    expect(screen.getByText('Ran a web search')).toBeTruthy()
+    expect(screen.getByText('KB hits below confidence floor')).toBeTruthy()
+    expect(screen.getByText('top_score=0.18 < floor=0.40')).toBeTruthy()
+    expect(screen.getByText('Public web search')).toBeTruthy()
     expect(screen.getByText('rate-limited')).toBeTruthy()
     expect(screen.getByText('Proposed a solution')).toBeTruthy()
   })
@@ -31,7 +36,7 @@ describe('AgentActivityTimeline', () => {
     const user = userEvent.setup()
     render(AgentActivityTimeline, { props: { steps: STEPS } })
 
-    const toggle = screen.getByRole('button', { name: /What the agent did \(4\)/ })
+    const toggle = screen.getByRole('button', { name: /What the agent did \(5\)/ })
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
 
     await user.click(toggle)
@@ -42,9 +47,11 @@ describe('AgentActivityTimeline', () => {
   it('exposes the raw step/action/outcome tuple via title for power users', () => {
     render(AgentActivityTimeline, { props: { steps: STEPS, defaultExpanded: true } })
     const list = screen.getByTestId('agent-activity-timeline').querySelector('ol')!
-    const items = list.querySelectorAll('li')
+    const items = Array.from(list.querySelectorAll('li'))
     expect(items[0].getAttribute('title')).toContain('classifier')
     expect(items[0].getAttribute('title')).toContain('classify_ticket')
-    expect(items[2].getAttribute('title')).toContain('failed')
+    const webSearchRow = items.find((li) => li.getAttribute('title')?.includes('web_search'))
+    expect(webSearchRow).toBeTruthy()
+    expect(webSearchRow!.getAttribute('title')).toContain('failed')
   })
 })

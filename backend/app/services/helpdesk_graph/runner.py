@@ -422,13 +422,75 @@ def _is_web_consent_denial(answer: str) -> bool:
     return 'skip' in normalized or 'draft' in normalized
 
 
+def _kb_confidence_floor() -> float:
+    raw = getattr(settings, 'HELPDESK_AGENT_KB_CONFIDENCE_FLOOR', 0.4)
+    try:
+        return max(0.0, float(raw))
+    except (TypeError, ValueError):
+        return 0.4
+
+
+def _evidence_top_n() -> int:
+    raw = getattr(settings, 'HELPDESK_AGENT_EVIDENCE_TOP_N', 3)
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return 3
+    return max(1, value)
+
+
+def _top_kb_score(documents: list[Document]) -> float | None:
+    """Return the highest similarity score across retrieved KB documents.
+
+    Bedrock and Azure providers stash ``score`` on Document metadata. Mock /
+    test providers may omit it, in which case we return ``None`` and the
+    caller treats the retrieval as "score unknown" (which we accept rather
+    than penalising mock-mode tests).
+    """
+    best: float | None = None
+    for doc in documents:
+        meta = doc.metadata or {}
+        raw = meta.get('score')
+        if raw is None:
+            continue
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            continue
+        if best is None or value > best:
+            best = value
+    return best
+
+
+def _kb_solution_has_confidence(documents: list[Document]) -> bool:
+    """Return True when the KB retry's top hit clears the confidence floor.
+
+    No-score retrievals (mock providers, tests) are treated as confident so
+    deterministic mock flows keep their current behavior.
+    """
+    if not documents:
+        return False
+    top = _top_kb_score(documents)
+    if top is None:
+        return True
+    return top >= _kb_confidence_floor()
+
+
 def _format_agent_evidence(
     documents: list[Document],
 ) -> tuple[list[AgentSource], list[AgentDocContent]]:
-    """Map retrieved LangChain docs to the chat-compatible sources shape."""
+    """Map retrieved LangChain docs to the chat-compatible sources shape.
+
+    The agent retries the KB with a wider ``numberOfResults`` than the chat
+    pipeline; surfacing all of them clutters the bubble. We keep only the
+    top ``HELPDESK_AGENT_EVIDENCE_TOP_N`` documents (already ranked by the
+    retriever).
+    """
+    top_n = _evidence_top_n()
+    trimmed = list(documents)[:top_n]
     metadata_list: list[dict[str, Any]] = []
     document_contents: list[dict[str, Any]] = []
-    for doc in documents:
+    for doc in trimmed:
         source_meta = doc.metadata.get('source_metadata', {})
         doc_metadata = {
             'source': source_meta.get('source', doc.metadata.get('source', 'unknown')),
@@ -703,16 +765,43 @@ async def _propose_solution_or_draft(state: HelpdeskState, trace: list[AgentStep
     state['tool_attempts'] = int(state.get('tool_attempts', 0)) + 1
     kb_docs = await tools.retry_kb(query, rag_service=rag_service, state=state)
     state['kb_retry_results'] = kb_docs
-    trace.append(_trace('tool', 'retry_kb', 'success', f'{len(kb_docs)} document(s)'))
 
-    solution = await _solution_from_documents(kb_docs, source='kb', question=query)
-    if solution is not None:
-        if _budget_exhausted(state):
-            return await _budget_exhausted_turn(
-                state,
-                [*trace, _trace('supervisor', 'propose_solution', 'blocked', f"solution-{state['session_id']}")],
+    top_score = _top_kb_score(kb_docs)
+    floor = _kb_confidence_floor()
+    if top_score is None:
+        score_note = f'{len(kb_docs)} document(s)'
+    else:
+        score_note = f'{len(kb_docs)} document(s); top_score={top_score:.2f} (floor={floor:.2f})'
+    trace.append(_trace('tool', 'retry_kb', 'success', score_note))
+    logger.info(
+        'helpdesk_agent.retry_kb session=%s docs=%d top_score=%s floor=%.2f',
+        state.get('session_id'),
+        len(kb_docs),
+        f'{top_score:.3f}' if top_score is not None else 'n/a',
+        floor,
+    )
+
+    if _kb_solution_has_confidence(kb_docs):
+        solution = await _solution_from_documents(kb_docs, source='kb', question=query)
+        if solution is not None:
+            if _budget_exhausted(state):
+                return await _budget_exhausted_turn(
+                    state,
+                    [*trace, _trace('supervisor', 'propose_solution', 'blocked', f"solution-{state['session_id']}")],
+                )
+            return _build_solution_turn(state, solution, kb_docs, source_kind='kb', trace=trace)
+    elif kb_docs:
+        # KB returned hits but none cleared the confidence floor — say so in the
+        # trace so the user can see why we're escalating to web/draft instead of
+        # quietly dropping the retrieval.
+        trace.append(
+            _trace(
+                'supervisor',
+                'kb_low_confidence',
+                'skipped',
+                f'top_score={top_score:.2f} < floor={floor:.2f}' if top_score is not None else 'score_unavailable',
             )
-        return _build_solution_turn(state, solution, kb_docs, source_kind='kb', trace=trace)
+        )
 
     return await _propose_web_solution_or_draft(state, trace, query=query)
 

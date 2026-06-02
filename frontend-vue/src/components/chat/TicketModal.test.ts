@@ -120,4 +120,36 @@ describe('TicketModal', () => {
     expect(chat.messages.some((m) => m.role === 'assistant' && m.content.includes('#77'))).toBe(true)
   })
 
+  it('surfaces the backend detail when agent confirm fails', async () => {
+    vi.mocked(confirmAgentSession).mockRejectedValueOnce({
+      response: {
+        data: {
+          detail: 'GitHub API rejected the issue (status 422). Validation Failed: Issue body too long',
+        },
+      },
+    })
+    renderWithProviders(TicketModal)
+    await openModal()
+    const helpdesk = useHelpdeskStore()
+    helpdesk.recordAgentTurn({
+      session_id: 'agent-1',
+      kind: 'draft_ready',
+      message: 'Review this draft.',
+      choices: null,
+      draft: helpdesk.draft,
+      linked_issue_url: null,
+      debug_trace: null,
+    })
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: /create issue/i }))
+
+    await waitFor(() => expect(vi.mocked(confirmAgentSession)).toHaveBeenCalled())
+    expect(helpdesk.error).toBe(
+      'GitHub API rejected the issue (status 422). Validation Failed: Issue body too long',
+    )
+    expect(helpdesk.modalOpen).toBe(true)
+    expect(helpdesk.activeTurn).not.toBeNull()
+  })
+
 })

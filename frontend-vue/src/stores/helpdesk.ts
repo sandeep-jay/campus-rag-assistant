@@ -22,6 +22,30 @@ import type {
 } from '@/types/helpdesk'
 import { trackHelpdeskAgentEvent } from '@/utils/telemetry'
 
+// Best-effort extraction of a backend error message. FastAPI HTTPException
+// responses look like ``{ detail: string | { msg, ... } }``; axios surfaces
+// them via ``error.response.data``. We fall back to the supplied default
+// when nothing user-presentable is available.
+function describeApiError(err: unknown, fallback: string): string {
+  const candidate = err as {
+    response?: { data?: { detail?: unknown; message?: unknown } }
+    message?: string
+  } | null
+  const data = candidate?.response?.data
+  const detail = data?.detail
+  if (typeof detail === 'string' && detail.trim()) return detail.trim()
+  if (Array.isArray(detail) && detail.length > 0) {
+    const first = detail[0] as { msg?: unknown }
+    if (typeof first?.msg === 'string' && first.msg.trim()) return first.msg.trim()
+  }
+  const message = data?.message
+  if (typeof message === 'string' && message.trim()) return message.trim()
+  if (typeof candidate?.message === 'string' && candidate.message.trim()) {
+    return candidate.message.trim()
+  }
+  return fallback
+}
+
 export const useHelpdeskStore = defineStore('helpdesk', () => {
   const modalOpen = ref(false)
   // Distinct loading flags per agent task so a Summarize in flight does
@@ -235,9 +259,9 @@ export const useHelpdeskStore = defineStore('helpdesk', () => {
       modalOpen.value = false
       trackHelpdeskAgentEvent('confirm_completed', { kind: turn.kind })
       return turn
-    } catch {
+    } catch (err) {
       trackHelpdeskAgentEvent('confirm_failed')
-      error.value = 'Failed to file agent ticket. Please try again.'
+      error.value = describeApiError(err, 'Failed to file agent ticket. Please try again.')
       return null
     } finally {
       submitting.value = false
@@ -254,8 +278,8 @@ export const useHelpdeskStore = defineStore('helpdesk', () => {
       result.value = next
       modalOpen.value = false
       return next
-    } catch {
-      error.value = 'Failed to create issue. Please try again.'
+    } catch (err) {
+      error.value = describeApiError(err, 'Failed to create issue. Please try again.')
       return null
     } finally {
       submitting.value = false

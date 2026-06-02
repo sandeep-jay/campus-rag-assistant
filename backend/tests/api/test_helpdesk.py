@@ -504,6 +504,100 @@ def test_agent_requests_web_consent_when_kb_empty_and_live_provider(
     assert 'web_search' not in [step['action'] for step in body.get('debug_trace', [])]
 
 
+def test_agent_requests_web_consent_when_kb_top_score_below_floor(
+    client: TestClient,
+    test_user_token: str,
+    enable_helpdesk,
+    monkeypatch,
+):
+    """KB returns docs but with low similarity scores → still ask for consent.
+
+    Regression for the Panopto case: AWS Bedrock returned 15 Kaltura
+    documents for a Panopto question; the agent confidently proposed an
+    irrelevant fix without ever asking the user about live web search.
+    """
+    from langchain.schema import Document as LC_Document
+
+    async def _low_score_kb(*args, **kwargs):
+        return [
+            LC_Document(
+                page_content='Kaltura download steps (not Panopto).',
+                metadata={
+                    'source_metadata': {
+                        'kb_url': 'https://example.com/kaltura',
+                        'kb_number': 'KB-LOW',
+                        'short_description': 'Kaltura download',
+                    },
+                    'score': 0.18,
+                },
+            )
+        ]
+
+    monkeypatch.setattr(settings, 'WEB_SEARCH_PROVIDER', 'tavily')
+    monkeypatch.setattr(settings, 'TAVILY_API_KEY', _SecretLike('test-tavily-key'))
+    monkeypatch.setattr(settings, 'HELPDESK_AGENT_KB_CONFIDENCE_FLOOR', 0.5)
+    with patch('backend.app.services.helpdesk_graph.runner.tools.retry_kb', _low_score_kb):
+        response = client.post(
+            '/api/helpdesk/agent/start',
+            json={
+                'conversation': [
+                    {
+                        'role': 'user',
+                        'content': 'How do I download files from Panopto?',
+                    },
+                ],
+            },
+            headers={'Authorization': f'Bearer {test_user_token}'},
+        )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body['kind'] == 'question'
+    assert body['choices'] == ['Search the web', 'Skip and draft a ticket']
+    actions = [step['action'] for step in body.get('debug_trace', [])]
+    assert 'kb_low_confidence' in actions, actions
+
+
+def test_agent_kb_solution_trims_sources_to_top_n(
+    client: TestClient,
+    test_user_token: str,
+    enable_helpdesk,
+    monkeypatch,
+):
+    """Agent must not surface every retry_kb hit — only the top N."""
+    from langchain.schema import Document as LC_Document
+
+    docs = [
+        LC_Document(
+            page_content=f'Result {idx} body.',
+            metadata={
+                'source_metadata': {
+                    'kb_url': f'https://example.com/kb-{idx}',
+                    'kb_number': f'KB-{idx:04d}',
+                    'short_description': f'Result {idx}',
+                },
+                'score': 0.9 - (idx * 0.01),
+            },
+        )
+        for idx in range(15)
+    ]
+
+    async def _many_kb(*args, **kwargs):
+        return docs
+
+    monkeypatch.setattr(settings, 'HELPDESK_AGENT_EVIDENCE_TOP_N', 3)
+    monkeypatch.setattr(settings, 'HELPDESK_AGENT_KB_CONFIDENCE_FLOOR', 0.2)
+    with patch('backend.app.services.helpdesk_graph.runner.tools.retry_kb', _many_kb):
+        first = _start_agent_for_oracle_issue(client, test_user_token)
+        body = _answer_impact(client, test_user_token, first)
+
+    assert body['kind'] == 'info', body
+    assert body['source_kind'] == 'kb'
+    assert body['sources'] is not None
+    assert len(body['sources']) == 3
+    assert len(body['document_contents']) == 3
+
+
 def test_agent_web_consent_accept_runs_web_search(
     client: TestClient,
     test_user_token: str,
@@ -1191,7 +1285,13 @@ def test_create_issue_calls_github_and_dedups(client: TestClient, test_user_toke
 
 def test_create_issue_github_error_returns_502(client: TestClient, test_user_token: str, enable_helpdesk):
     def _handler(_request: httpx.Request) -> httpx.Response:
-        return httpx.Response(403, json={'message': 'Forbidden'})
+        return httpx.Response(
+            422,
+            json={
+                'message': 'Validation Failed',
+                'errors': [{'message': 'Issue body too long'}],
+            },
+        )
 
     transport = httpx.MockTransport(_handler)
 
@@ -1219,6 +1319,13 @@ def test_create_issue_github_error_returns_502(client: TestClient, test_user_tok
             headers={'Authorization': f'Bearer {test_user_token}'},
         )
     assert response.status_code == 502, response.text
+    detail = response.json().get('detail', '')
+    # The surfaced detail must include both the GitHub status and the
+    # underlying message so the frontend modal can show why the ticket
+    # was refused rather than a generic 'try again' toast.
+    assert '422' in detail
+    assert 'Validation Failed' in detail
+    assert 'Issue body too long' in detail
 
 
 # --- Option A: durable agent summary persistence ---------------------------
