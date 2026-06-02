@@ -66,6 +66,11 @@ def _is_solution_acceptance(answer: str) -> bool:
     return normalized.startswith('yes') or 'solved' in normalized or 'fixed' in normalized
 
 
+def _is_web_consent_acceptance(answer: str) -> bool:
+    normalized = (answer or '').strip().lower()
+    return normalized.startswith('search the web')
+
+
 def _action_for_start(state: HelpdeskState) -> SupervisorAction:
     if not state.get('original_question'):
         return 'ask_user'
@@ -85,6 +90,8 @@ def _action_for_resume(state: HelpdeskState) -> SupervisorAction:
     answer = state.get('resume_answer') or ''
     if awaiting is not None and awaiting.question_id.startswith('solution-'):
         return 'resolved_by_agent' if _is_solution_acceptance(answer) else 'write_draft'
+    if awaiting is not None and awaiting.question_id.startswith('web-consent-'):
+        return 'propose_solution' if _is_web_consent_acceptance(answer) else 'write_draft'
     return 'propose_solution'
 
 
@@ -120,6 +127,8 @@ def allowed_supervisor_actions(state: HelpdeskState) -> set[SupervisorAction]:
         awaiting = state.get('awaiting_user')
         if awaiting is not None and awaiting.question_id.startswith('solution-'):
             actions = {'resolved_by_agent', 'write_draft', 'abort'}
+        elif awaiting is not None and awaiting.question_id.startswith('web-consent-'):
+            actions = {'propose_solution', 'write_draft', 'abort'}
         else:
             actions = {'propose_solution', 'write_draft', 'abort'}
     elif state.get('entry') == 'start':

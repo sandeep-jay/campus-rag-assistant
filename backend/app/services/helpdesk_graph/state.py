@@ -54,6 +54,8 @@ class HelpdeskState(TypedDict, total=False):
     duplicate_candidates: list[GitHubIssue]
     kb_retry_results: list[Any]
     web_search_results: list[Any]
+    web_search_consent: Literal['pending', 'granted', 'denied'] | None
+    solution_source_kind: Literal['kb', 'web'] | None
     tool_cache: dict[str, Any]
     proposed_solutions: list[ProposedSolution]
     rejected_solutions: list[str]

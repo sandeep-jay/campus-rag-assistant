@@ -89,6 +89,8 @@ def _enable_helpdesk_agent(monkeypatch, tmp_path):
         monkeypatch.setattr(settings, 'RAG_FORCE_MOCK', True)
         monkeypatch.setattr(settings, 'LLM_PROVIDER', 'mock')
         monkeypatch.setattr(settings, 'HELPDESK_AGENT_LLM_SUPERVISOR', False)
+    monkeypatch.setattr(settings, 'WEB_SEARCH_PROVIDER', 'mock')
+    monkeypatch.setattr(settings, 'TAVILY_API_KEY', None)
 
     github_module._dedup_cache._store.clear()
     runner_module._confirm_idempotency_cache._store.clear()

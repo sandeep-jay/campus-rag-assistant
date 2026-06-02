@@ -199,16 +199,23 @@ def upsert_agent_summary(
         return None
 
     summary_text = _build_summary_text(turn, state)
-    meta: dict[str, Any] = {
-        'agent_summary': {
-            'kind': turn.kind,
-            'agent_session_id': turn.session_id,
-            'agent_run_id': agent_run_id,
-            'linked_issue_url': turn.linked_issue_url,
-            'impact': ((state or {}).get('facts') or {}).get('impact') if state else None,
-            'trace': _trim_trace(turn),
-        },
+    agent_summary: dict[str, Any] = {
+        'kind': turn.kind,
+        'agent_session_id': turn.session_id,
+        'agent_run_id': agent_run_id,
+        'linked_issue_url': turn.linked_issue_url,
+        'impact': ((state or {}).get('facts') or {}).get('impact') if state else None,
+        'trace': _trim_trace(turn),
     }
+    if turn.sources:
+        agent_summary['sources'] = [source.model_dump() for source in turn.sources]
+    if turn.document_contents:
+        agent_summary['document_contents'] = [{'content': doc.content, 'metadata': doc.metadata.model_dump()} for doc in turn.document_contents]
+    if turn.source_kind:
+        agent_summary['source_kind'] = turn.source_kind
+    if turn.disclaimer:
+        agent_summary['disclaimer'] = turn.disclaimer
+    meta: dict[str, Any] = {'agent_summary': agent_summary}
 
     # Look up an existing row for this agent_session_id. Scanning the
     # session's assistant rows in Python keeps the query dialect-agnostic

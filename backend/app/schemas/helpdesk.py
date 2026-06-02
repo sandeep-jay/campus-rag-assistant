@@ -131,6 +131,26 @@ class AgentStep(BaseModel):
     message: str | None = None
 
 
+class AgentSource(BaseModel):
+    """Structured citation metadata aligned with chat ``metadata.sources``."""
+
+    source: str = 'unknown'
+    kb_url: str = '#'
+    kb_number: str = 'N/A'
+    kb_category: str = ''
+    short_description: str = ''
+    project: str = ''
+    ingestion_date: str = ''
+    score: float | None = None
+
+
+class AgentDocContent(BaseModel):
+    """Retrieved chunk body plus metadata for the sources panel Content tab."""
+
+    content: str
+    metadata: AgentSource
+
+
 class AgentTurn(BaseModel):
     """Single response turn from the helpdesk agent."""
 
@@ -152,6 +172,11 @@ class AgentTurn(BaseModel):
     draft: TicketDraft | None = None
     linked_issue_url: str | None = None
     debug_trace: list[AgentStep] | None = None
+    # Evidence backing a proposed solution — mirrors chat ``metadata.sources``.
+    sources: list[AgentSource] | None = None
+    document_contents: list[AgentDocContent] | None = None
+    source_kind: Literal['kb', 'web'] | None = None
+    disclaimer: str | None = None
 
 
 class CreateIssueRequest(BaseModel):

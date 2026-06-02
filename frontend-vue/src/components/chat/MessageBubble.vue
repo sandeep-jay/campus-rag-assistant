@@ -29,13 +29,28 @@ function getSources(msg: DisplayMessage): ChatMessage['metadata'] {
   return undefined
 }
 
-const sources = computed(() => getSources(props.message)?.sources ?? [])
-const documentContents = computed(() => getSources(props.message)?.document_contents ?? [])
+const sources = computed(() => {
+  const meta = getSources(props.message)
+  if (meta?.sources?.length) return meta.sources
+  if (meta?.agent_turn?.sources?.length) return meta.agent_turn.sources
+  if (meta?.agent_summary?.sources?.length) return meta.agent_summary.sources
+  return []
+})
+const documentContents = computed(() => {
+  const meta = getSources(props.message)
+  if (meta?.document_contents?.length) return meta.document_contents
+  if (meta?.agent_turn?.document_contents?.length) return meta.agent_turn.document_contents
+  if (meta?.agent_summary?.document_contents?.length) return meta.agent_summary.document_contents
+  return []
+})
 const hasSources = computed(
   () => sources.value.length > 0 || documentContents.value.length > 0,
 )
 
-const disclaimer = computed(() => getSources(props.message)?.disclaimer ?? null)
+const disclaimer = computed(() => {
+  const meta = getSources(props.message)
+  return meta?.disclaimer ?? meta?.agent_turn?.disclaimer ?? meta?.agent_summary?.disclaimer ?? null
+})
 
 const kbResolved = computed(() => getSources(props.message)?.kb_resolved ?? null)
 const routerDecision = computed(() => getSources(props.message)?.router_decision ?? null)

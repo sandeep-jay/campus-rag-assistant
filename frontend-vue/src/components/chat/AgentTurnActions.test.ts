@@ -149,6 +149,56 @@ describe('AgentTurnActions', () => {
     }, expect.any(Function), expect.any(Function))
   })
 
+  it('posts web-search consent through resume and appends the next turn below the user reply', async () => {
+    const api = await import('@/api/helpdesk')
+    const consentTurn = {
+      session_id: 'agent-1',
+      kind: 'question' as const,
+      message: 'The knowledge base did not have a likely fix. Search the public web for troubleshooting ideas?',
+      choices: ['Search the web', 'Skip and draft a ticket'],
+      input: 'radio' as const,
+      draft: null,
+      linked_issue_url: null,
+      debug_trace: [
+        { step: 'supervisor', action: 'web_search_consent', outcome: 'waiting', message: 'web-consent-agent-1' },
+      ],
+    }
+    vi.mocked(api.streamResumeAgentSession).mockResolvedValueOnce({
+      session_id: 'agent-1',
+      kind: 'info',
+      message: 'Try clearing your browser cache and re-uploading the assignment.',
+      choices: ['Yes, that solved it', "Tried it, didn't work"],
+      source_kind: 'web',
+      disclaimer: 'This answer used public web search results.',
+      draft: null,
+      linked_issue_url: null,
+      debug_trace: [
+        { step: 'supervisor', action: 'propose_solution', outcome: 'waiting', message: 'solution-agent-1' },
+      ],
+    })
+    renderWithProviders(AgentTurnActions, { props: { turn: consentTurn } })
+    const chat = useChatStore()
+    chat.addAssistantMessage(consentTurn.message, { agent_turn: consentTurn })
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('radio', { name: /search the web/i }))
+    await user.click(screen.getByRole('button', { name: /submit/i }))
+
+    await waitFor(() => expect(api.streamResumeAgentSession).toHaveBeenCalledTimes(1))
+    expect(api.streamResumeAgentSession).toHaveBeenCalledWith({
+      session_id: 'agent-1',
+      chat_session_id: null,
+      choice: 'Search the web',
+      pending_question_id: 'web-consent-agent-1',
+    }, expect.any(Function), expect.any(Function))
+    await waitFor(() => expect(chat.messages).toHaveLength(3))
+    const [, userReply, nextAgent] = chat.messages
+    expect(userReply.role).toBe('user')
+    expect(userReply.content).toBe('Search the web')
+    expect(nextAgent.role).toBe('assistant')
+    expect(nextAgent.content).toContain('browser cache')
+  })
+
   it('opens the ticket modal when resume returns a draft', async () => {
     const api = await import('@/api/helpdesk')
     vi.mocked(api.streamResumeAgentSession).mockResolvedValueOnce({

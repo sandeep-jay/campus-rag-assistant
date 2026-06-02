@@ -255,7 +255,95 @@ describe('MessageBubble', () => {
     created_at: '2024-01-01T10:00:00Z',
   }
 
-  it('renders AgentTurnActions on the bottom-most agent bubble (isLastMessage)', () => {
+  it('renders agent turn sources from metadata.agent_turn', () => {
+    const agentWithSources: ChatMessage = {
+      id: 12,
+      content: '### Oracle fix\n\nTry clearing cache.',
+      role: 'assistant',
+      metadata: {
+        agent_turn: {
+          session_id: 'agent-src',
+          kind: 'info',
+          message: '### Oracle fix',
+          choices: ['Yes, that solved it'],
+          input: 'pills',
+          draft: null,
+          linked_issue_url: null,
+          debug_trace: [],
+          sources: [
+            {
+              kb_url: 'https://example.com/kb/123',
+              kb_number: 'KB-123',
+              kb_category: 'Finance',
+              short_description: 'Oracle access fix',
+              project: 'Helpdesk',
+              source: 'mock-document',
+            },
+          ],
+          document_contents: [
+            {
+              content: 'Clear cache and retry.',
+              metadata: {
+                kb_url: 'https://example.com/kb/123',
+                kb_number: 'KB-123',
+                kb_category: 'Finance',
+                short_description: 'Oracle access fix',
+                project: 'Helpdesk',
+                source: 'mock-document',
+              },
+            },
+          ],
+          source_kind: 'kb',
+        },
+      },
+      created_at: '',
+    }
+    renderWithProviders(MessageBubble, {
+      props: { message: agentWithSources, isLastMessage: true },
+    })
+    expect(screen.getByTestId('sources-summary')).toBeInTheDocument()
+    expect(screen.getByText('KB-123')).toBeInTheDocument()
+  })
+
+  it('renders web disclaimer for agent turn backed by web sources', () => {
+    const agentWeb: ChatMessage = {
+      id: 13,
+      content: '### Web fix',
+      role: 'assistant',
+      metadata: {
+        agent_turn: {
+          session_id: 'agent-web',
+          kind: 'info',
+          message: '### Web fix',
+          choices: ['Yes, that solved it'],
+          input: 'pills',
+          draft: null,
+          linked_issue_url: null,
+          debug_trace: [],
+          source_kind: 'web',
+          disclaimer: 'This answer used public web search results. Verify information against official institutional sources.',
+          sources: [
+            {
+              kb_url: 'https://example.com/fix',
+              kb_number: 'WEB-1',
+              kb_category: '',
+              short_description: 'Public web result',
+              project: '',
+              source: 'example.com',
+            },
+          ],
+          document_contents: [],
+        },
+      },
+      created_at: '',
+    }
+    renderWithProviders(MessageBubble, {
+      props: { message: agentWeb, isLastMessage: true },
+    })
+    expect(screen.getByTestId('web-disclaimer')).toHaveTextContent(/public web search/i)
+  })
+
+  it('shows AgentTurnActions on last agent bubble with choices', () => {
     renderWithProviders(MessageBubble, {
       props: { message: agentBubble, isLastMessage: true },
     })

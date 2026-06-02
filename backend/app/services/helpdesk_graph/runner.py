@@ -25,6 +25,8 @@ from backend.app.core.metrics import (
     HELPDESK_AGENT_TURNS_TAKEN,
 )
 from backend.app.schemas.helpdesk import (
+    AgentDocContent,
+    AgentSource,
     AgentStep,
     AgentTurn,
     Category,
@@ -73,6 +75,9 @@ STATE_VERSION = 1
 IMPACT_QUESTION = 'Is this affecting only you, your team, or the whole campus?'
 IMPACT_CHOICES = ['Only me', 'My team', 'Campus-wide', 'Not sure']
 SOLUTION_CHOICES = ['Yes, that solved it', "No, doesn't apply", "Tried it, didn't work"]
+WEB_CONSENT_QUESTION = 'The knowledge base did not have a likely fix. ' 'Search the public web for troubleshooting ideas?'
+WEB_CONSENT_CHOICES = ['Search the web', 'Skip and draft a ticket']
+WEB_SEARCH_DISCLAIMER = 'This answer used public web search results. ' 'Verify information against official institutional sources.'
 
 logger = logging.getLogger(__name__)
 
@@ -353,6 +358,8 @@ def _new_state(
         'tool_attempts': 0,
         'kb_retry_results': [],
         'web_search_results': [],
+        'web_search_consent': None,
+        'solution_source_kind': None,
         'tool_cache': {},
         'proposed_solutions': [],
         'rejected_solutions': [],
@@ -389,6 +396,183 @@ def _source_url(doc: Document) -> str | None:
     nested = meta.get('source_metadata') if isinstance(meta.get('source_metadata'), dict) else {}
     url = nested.get('kb_url') or meta.get('source') or nested.get('source')
     return str(url) if url else None
+
+
+def _requires_live_web_consent() -> bool:
+    """True when web search would call a live provider (Tavily) off-campus."""
+    if not settings.HELPDESK_AGENT_TOOL_WEB_SEARCH:
+        return False
+    provider = (getattr(settings, 'WEB_SEARCH_PROVIDER', None) or 'mock').strip().lower()
+    if provider != 'tavily':
+        return False
+    api_key = getattr(settings, 'TAVILY_API_KEY', None)
+    if api_key is None:
+        return False
+    secret = api_key.get_secret_value() if hasattr(api_key, 'get_secret_value') else str(api_key)
+    return bool(secret.strip())
+
+
+def _is_web_consent_acceptance(answer: str) -> bool:
+    normalized = answer.strip().lower()
+    return normalized.startswith('search the web')
+
+
+def _is_web_consent_denial(answer: str) -> bool:
+    normalized = answer.strip().lower()
+    return 'skip' in normalized or 'draft' in normalized
+
+
+def _format_agent_evidence(
+    documents: list[Document],
+) -> tuple[list[AgentSource], list[AgentDocContent]]:
+    """Map retrieved LangChain docs to the chat-compatible sources shape."""
+    metadata_list: list[dict[str, Any]] = []
+    document_contents: list[dict[str, Any]] = []
+    for doc in documents:
+        source_meta = doc.metadata.get('source_metadata', {})
+        doc_metadata = {
+            'source': source_meta.get('source', doc.metadata.get('source', 'unknown')),
+            'kb_url': source_meta.get('kb_url', doc.metadata.get('kb_url', '#')),
+            'kb_number': source_meta.get('kb_number', doc.metadata.get('kb_number', 'N/A')),
+            'kb_category': source_meta.get('kb_category', doc.metadata.get('kb_category', '')),
+            'short_description': source_meta.get('short_description', doc.metadata.get('short_description', '')),
+            'project': source_meta.get('project', doc.metadata.get('project', '')),
+            'ingestion_date': source_meta.get('ingestion_date', doc.metadata.get('ingestion_date', '')),
+            'score': doc.metadata.get('score', None),
+        }
+        metadata_list.append(doc_metadata)
+        document_contents.append({'content': doc.page_content, 'metadata': doc_metadata})
+    sources = [AgentSource(**item) for item in metadata_list]
+    doc_contents = [AgentDocContent(content=item['content'], metadata=AgentSource(**item['metadata'])) for item in document_contents]
+    return sources, doc_contents
+
+
+async def _pause_for_web_consent(state: HelpdeskState, trace: list[AgentStep]) -> AgentTurn:
+    question_id = f"web-consent-{state['session_id']}"
+    state['awaiting_user'] = AwaitingUserPayload(
+        question_id=question_id,
+        question=WEB_CONSENT_QUESTION,
+        choices=WEB_CONSENT_CHOICES,
+    )
+    state['web_search_consent'] = 'pending'
+    state['next_action'] = 'ask_user'
+    state['turns_taken'] = int(state.get('turns_taken', 0)) + 1
+    if _budget_exhausted(state):
+        return await _budget_exhausted_turn(
+            state,
+            [*trace, _trace('supervisor', 'web_search_consent', 'blocked', question_id)],
+        )
+    save_checkpoint(state)
+    HELPDESK_AGENT_OUTCOME_TOTAL.labels(outcome='question').inc()
+    _record_funnel('web_search_consent_requested')
+    return AgentTurn(
+        session_id=state['session_id'],
+        kind='question',
+        message=WEB_CONSENT_QUESTION,
+        choices=WEB_CONSENT_CHOICES,
+        input='radio',
+        debug_trace=[*trace, _trace('supervisor', 'web_search_consent', 'waiting', question_id)],
+    )
+
+
+def _build_solution_turn(
+    state: HelpdeskState,
+    solution: ProposedSolution,
+    documents: list[Document],
+    *,
+    source_kind: str,
+    trace: list[AgentStep],
+) -> AgentTurn:
+    sources, document_contents = _format_agent_evidence(documents) if documents else (None, None)
+    disclaimer = WEB_SEARCH_DISCLAIMER if source_kind == 'web' else None
+    state['solution_source_kind'] = source_kind  # type: ignore[typeddict-item]
+    question_id = f"solution-{state['session_id']}"
+    state['proposed_solutions'] = [*state.get('proposed_solutions', []), solution]
+    state['awaiting_user'] = AwaitingUserPayload(
+        question_id=question_id,
+        question='Did this solve the issue?',
+        choices=SOLUTION_CHOICES,
+    )
+    state['next_action'] = 'propose_solution'
+    state['turns_taken'] = int(state.get('turns_taken', 0)) + 1
+    save_checkpoint(state)
+    HELPDESK_AGENT_OUTCOME_TOTAL.labels(outcome='solution_proposed').inc()
+    _record_funnel('solution_proposed')
+    return AgentTurn(
+        session_id=state['session_id'],
+        kind='info',
+        message=_solution_message(solution),
+        choices=SOLUTION_CHOICES,
+        sources=sources,
+        document_contents=document_contents,
+        source_kind=source_kind,  # type: ignore[arg-type]
+        disclaimer=disclaimer,
+        debug_trace=[
+            *trace,
+            _trace('supervisor', 'propose_solution', 'waiting', question_id),
+        ],
+    )
+
+
+async def _propose_solution_after_web_consent(
+    state: HelpdeskState,
+    trace: list[AgentStep],
+) -> AgentTurn | None:
+    """Run web search after the user granted live-web consent."""
+    query = state.get('original_question', '')
+    if _tool_budget_exhausted(state):
+        return await _budget_exhausted_turn(state, trace)
+    state['tool_attempts'] = int(state.get('tool_attempts', 0)) + 1
+    web_docs = await tools.web_search(query, state=state)
+    state['web_search_results'] = web_docs
+    trace.append(_trace('tool', 'web_search', 'success', f'{len(web_docs)} document(s)'))
+    solution = await _solution_from_documents(web_docs, source='web', question=query)
+    if solution is None:
+        state['_trace_seed'] = trace
+        state['_next'] = 'write_draft'
+        return None
+    if _budget_exhausted(state):
+        return await _budget_exhausted_turn(
+            state,
+            [*trace, _trace('supervisor', 'propose_solution', 'blocked', f"solution-{state['session_id']}")],
+        )
+    return _build_solution_turn(state, solution, web_docs, source_kind='web', trace=trace)
+
+
+async def _propose_web_solution_or_draft(
+    state: HelpdeskState,
+    trace: list[AgentStep],
+    *,
+    query: str,
+) -> AgentTurn | None:
+    consent = state.get('web_search_consent')
+    if consent == 'denied':
+        state['_trace_seed'] = trace
+        state['_next'] = 'write_draft'
+        return None
+
+    if _requires_live_web_consent() and consent != 'granted':
+        return await _pause_for_web_consent(state, trace)
+
+    if _tool_budget_exhausted(state):
+        return await _budget_exhausted_turn(state, trace)
+    state['tool_attempts'] = int(state.get('tool_attempts', 0)) + 1
+    web_docs = await tools.web_search(query, state=state)
+    state['web_search_results'] = web_docs
+    trace.append(_trace('tool', 'web_search', 'success', f'{len(web_docs)} document(s)'))
+    solution = await _solution_from_documents(web_docs, source='web', question=query)
+
+    if solution is None:
+        state['_trace_seed'] = trace
+        state['_next'] = 'write_draft'
+        return None
+
+    if _budget_exhausted(state):
+        return await _budget_exhausted_turn(
+            state,
+            [*trace, _trace('supervisor', 'propose_solution', 'blocked', f"solution-{state['session_id']}")],
+        )
+    return _build_solution_turn(state, solution, web_docs, source_kind='web', trace=trace)
 
 
 async def _solution_from_documents(
@@ -522,47 +706,15 @@ async def _propose_solution_or_draft(state: HelpdeskState, trace: list[AgentStep
     trace.append(_trace('tool', 'retry_kb', 'success', f'{len(kb_docs)} document(s)'))
 
     solution = await _solution_from_documents(kb_docs, source='kb', question=query)
-    if solution is None:
-        if _tool_budget_exhausted(state):
-            return await _budget_exhausted_turn(state, trace)
-        state['tool_attempts'] = int(state.get('tool_attempts', 0)) + 1
-        web_docs = await tools.web_search(query, state=state)
-        state['web_search_results'] = web_docs
-        trace.append(_trace('tool', 'web_search', 'success', f'{len(web_docs)} document(s)'))
-        solution = await _solution_from_documents(web_docs, source='web', question=query)
+    if solution is not None:
+        if _budget_exhausted(state):
+            return await _budget_exhausted_turn(
+                state,
+                [*trace, _trace('supervisor', 'propose_solution', 'blocked', f"solution-{state['session_id']}")],
+            )
+        return _build_solution_turn(state, solution, kb_docs, source_kind='kb', trace=trace)
 
-    if solution is None:
-        state['_trace_seed'] = trace
-        state['_next'] = 'write_draft'
-        return None
-
-    question_id = f"solution-{state['session_id']}"
-    state['proposed_solutions'] = [*state.get('proposed_solutions', []), solution]
-    state['awaiting_user'] = AwaitingUserPayload(
-        question_id=question_id,
-        question='Did this solve the issue?',
-        choices=SOLUTION_CHOICES,
-    )
-    state['next_action'] = 'propose_solution'
-    state['turns_taken'] = int(state.get('turns_taken', 0)) + 1
-    if _budget_exhausted(state):
-        return await _budget_exhausted_turn(
-            state,
-            [*trace, _trace('supervisor', 'propose_solution', 'blocked', question_id)],
-        )
-    save_checkpoint(state)
-    HELPDESK_AGENT_OUTCOME_TOTAL.labels(outcome='solution_proposed').inc()
-    _record_funnel('solution_proposed')
-    return AgentTurn(
-        session_id=state['session_id'],
-        kind='info',
-        message=_solution_message(solution),
-        choices=SOLUTION_CHOICES,
-        debug_trace=[
-            *trace,
-            _trace('supervisor', 'propose_solution', 'waiting', question_id),
-        ],
-    )
+    return await _propose_web_solution_or_draft(state, trace, query=query)
 
 
 def _persist_and_stamp(
@@ -661,15 +813,36 @@ async def graph_solution_step(state: HelpdeskState) -> dict[str, Any]:
     """Graph-node wrapper around :func:`_propose_solution_or_draft`.
 
     Only runs on the resume path where the user just answered the
-    impact question. Mirrors the legacy ``resume_session`` branch that
-    appended the user reply, recorded the impact fact, cleared
-    ``awaiting_user``, then handed control to the propose-solution
-    helper with the ``append_user_reply`` trace seed.
+    impact question or granted live-web search consent. Mirrors the
+    legacy ``resume_session`` branch that appended the user reply,
+    recorded the impact fact, cleared ``awaiting_user``, then handed
+    control to the propose-solution helper with the ``append_user_reply``
+    trace seed.
     """
     awaiting = state.get('awaiting_user')
     answer = state.get('resume_answer') or ''
     question_id = awaiting.question_id if awaiting is not None else ''
     trace_seed: list[AgentStep] = []
+    if awaiting is not None and awaiting.question_id.startswith('web-consent-'):
+        _append_user_reply(state, answer, label='Web search consent')
+        state['awaiting_user'] = None
+        outcome = 'granted' if _is_web_consent_acceptance(answer) else 'denied'
+        trace_seed.append(_trace('resume', 'web_search_consent', outcome, question_id))
+        if _is_web_consent_acceptance(answer):
+            state['web_search_consent'] = 'granted'
+            turn = await _propose_solution_after_web_consent(state, trace_seed)
+        else:
+            state['web_search_consent'] = 'denied'
+            turn = await _draft_from_state(
+                state,
+                message='Understood — I prepared a ticket draft instead of searching the public web.',
+                trace=trace_seed,
+            )
+        if turn is None:
+            state['_graph_turn'] = None
+            return state
+        state['_graph_turn'] = turn
+        return state
     if awaiting is not None:
         _append_user_reply(state, answer, label='Impact clarification')
         state['facts'] = {**state.get('facts', {}), 'impact': answer}
@@ -696,16 +869,19 @@ async def graph_classifier_step(state: HelpdeskState) -> dict[str, Any]:
 async def graph_writer_step(state: HelpdeskState) -> dict[str, Any]:
     """Graph-node wrapper around :func:`_draft_from_state`.
 
-    Currently reachable only from the resume path on a rejected
-    solution. The trace seed (``solution_feedback`` step) keeps the
-    pre-graph byte-shape that
-    ``test_agent_solution_rejection_returns_ticket_draft`` asserts.
+    Currently reachable from the resume path on a rejected solution or
+    when the user declines live-web search consent. The trace seed keeps
+    the pre-graph byte-shape that existing tests assert.
     """
     awaiting = state.get('awaiting_user')
     answer = state.get('resume_answer') or ''
     question_id = awaiting.question_id if awaiting is not None else ''
     trace_seed = [*state.get('_trace_seed', [])]
-    if awaiting is not None and awaiting.question_id.startswith('solution-'):
+    if awaiting is not None and awaiting.question_id.startswith('web-consent-'):
+        _append_user_reply(state, answer, label='Web search consent')
+        state['web_search_consent'] = 'denied'
+        trace_seed.append(_trace('resume', 'web_search_consent', 'denied', question_id))
+    elif awaiting is not None and awaiting.question_id.startswith('solution-'):
         _append_user_reply(state, answer, label='Solution feedback')
         if _is_solution_rejection(answer):
             state['rejected_solutions'] = [*state.get('rejected_solutions', []), answer]
@@ -714,8 +890,16 @@ async def graph_writer_step(state: HelpdeskState) -> dict[str, Any]:
         state,
         message=(
             'Thanks — I prepared a ticket draft instead. Review it before filing.'
-            if awaiting is not None
-            else 'I could not find a likely fix, so I prepared a ticket draft. Review it before filing.'
+            if awaiting is not None and awaiting.question_id.startswith('solution-')
+            else (
+                'Understood — I prepared a ticket draft instead of searching the public web.'
+                if awaiting is not None and awaiting.question_id.startswith('web-consent-')
+                else (
+                    'Thanks — I prepared a ticket draft instead. Review it before filing.'
+                    if awaiting is not None
+                    else 'I could not find a likely fix, so I prepared a ticket draft. Review it before filing.'
+                )
+            )
         ),
         trace=trace_seed,
     )
