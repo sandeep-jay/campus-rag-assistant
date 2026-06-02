@@ -105,7 +105,6 @@ function rowTitle(row: TimelineRow): string {
 <template>
   <div v-if="hasRows" class="w-full text-chat-caption" data-testid="agent-activity-timeline">
     <button
-      v-if="!defaultExpanded"
       type="button"
       class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
       :aria-expanded="expanded"
@@ -118,7 +117,7 @@ function rowTitle(row: TimelineRow): string {
     </button>
 
     <ol
-      v-show="expanded || defaultExpanded"
+      v-show="expanded"
       id="agent-activity-list"
       class="mt-2 space-y-1.5"
       :class="{ 'pl-1': !defaultExpanded }"

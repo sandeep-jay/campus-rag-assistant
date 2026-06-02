@@ -20,6 +20,8 @@ describe('AgentActivityTimeline', () => {
 
   it('humanizes known actions and shows details inline', () => {
     render(AgentActivityTimeline, { props: { steps: STEPS, defaultExpanded: true } })
+    const toggle = screen.getByRole('button', { name: /What the agent did \(5\)/ })
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
     expect(screen.getByText('Classified the issue')).toBeTruthy()
     // The agent's KB retry is labeled distinctly from the chat-level KB
     // retrieval so users can tell the two passes apart.

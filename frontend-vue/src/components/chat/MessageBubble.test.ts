@@ -350,6 +350,14 @@ describe('MessageBubble', () => {
     expect(screen.getByTestId('agent-turn-actions')).toBeInTheDocument()
   })
 
+  it('expands the current agent activity trace by default', () => {
+    renderWithProviders(MessageBubble, {
+      props: { message: agentBubble, isLastMessage: true },
+    })
+    expect(screen.getByRole('button', { name: /What the agent did \(1\)/ })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText('Proposed a solution')).toBeInTheDocument()
+  })
+
   it('hides AgentTurnActions on older agent bubbles (not isLastMessage)', () => {
     renderWithProviders(MessageBubble, {
       props: { message: agentBubble, isLastMessage: false },
