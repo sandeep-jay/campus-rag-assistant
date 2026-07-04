@@ -109,7 +109,7 @@ tox -e agent-eval-live  # live LLM supervisor comparison; needs provider + LangS
 
 ## Helpdesk agent evaluation
 
-**Shipped:** Prometheus outcome/tool/funnel metrics on `/api/metrics`, API/unit coverage under `backend/tests/api/test_helpdesk.py`, and a trajectory scenario rig in `backend/tests/eval/test_helpdesk_agent_scenarios.py`. `tox -e agent-eval` runs the mock dataset in PR CI and gates over-ask, false-escalation, unnecessary-loop, resolve-without-ticket, HITL, and injection-resistance regressions. `tox -e agent-eval-live` runs the same dataset with the live LLM supervisor for nightly/manual comparison; it is intentionally not a PR gate.
+**Shipped:** Prometheus outcome/tool/funnel metrics on `/api/metrics`, API/unit coverage under `backend/tests/api/test_helpdesk.py`, and a trajectory scenario rig in `backend/tests/eval/test_helpdesk_agent_scenarios.py`. `tox -e agent-eval` runs the mock dataset in PR CI and gates over-ask, false-escalation, unnecessary-loop, resolve-without-ticket, HITL, and injection-resistance regressions. `tox -e agent-eval-live` runs the same dataset with the live LLM supervisor for **local/manual** comparison when AWS + LangSmith are configured; it is not wired into GitHub Actions CI.
 
 | Layer | Status | What it answers | Where |
 |---|---|---|---|

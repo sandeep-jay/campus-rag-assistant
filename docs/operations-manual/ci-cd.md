@@ -6,7 +6,7 @@ Automated checks replace Travis CI. **Tox** remains the source of truth for what
 
 | Workflow | File | Triggers |
 |----------|------|----------|
-| **CI** | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | Push to `main`; PRs to `main`, `qa`, `release`; nightly live helpdesk trajectory eval |
+| **CI** | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | Push to `main`; PRs to `main`, `qa`, `release`; optional manual `workflow_dispatch` |
 | **CD** | [`.github/workflows/cd.yml`](../../.github/workflows/cd.yml) | Push to `qa` or `release`; manual `workflow_dispatch` |
 | **Docs** | [`.github/workflows/docs.yml`](../../.github/workflows/docs.yml) | PRs touching docs/site files; push to `main`; manual `workflow_dispatch` |
 | **No tool attribution** | [`.github/workflows/no-tool-attribution.yml`](../../.github/workflows/no-tool-attribution.yml) | Pull requests; required on `main` by the `Protect main` ruleset |
@@ -44,27 +44,6 @@ Automated checks replace Travis CI. **Tox** remains the source of truth for what
      with `.githooks/tool_attribution_guard.py --check`.
    - Fails before squash merge if an AI-tool authorship footer or generated-by
      line appears in metadata that local git hooks cannot sanitize.
-
-5. **`helpdesk trajectory eval (live nightly)`**
-   - Runs only on `schedule` or manual `workflow_dispatch`.
-   - Executes `tox -e agent-eval-live` with `LLM_PROVIDER=aws`,
-     `RETRIEVER_PROVIDER=mock`, and LangSmith tracing enabled. If live LLM
-     credentials are absent, the pytest suite skips rather than gating PRs.
-
-### Docs site
-
-`docs.yml` builds the MkDocs Material site with `mkdocs build --strict` on pull requests that touch docs, `mkdocs.yml`, or root license/notice/changelog files. On push to `main`, the same workflow deploys to GitHub Pages using `actions/deploy-pages`. Enable repository Pages source **GitHub Actions** before the first deploy. The `Docs / build` job is optional for merge gating; add it to `Protect main` if you want doc breakage to block merges.
-
-### CD pipeline
-
-On `qa` / `release` push (after branch promotion — see [RELEASE.md](./release.md)):
-
-1. **CI gate** — reusable `ci.yml` workflow.
-2. **Build Vue** — `npm ci` + `npm run build`; uploads `frontend-vue/dist` artifact.
-3. **Deploy API** (optional) — Elastic Beanstalk when `EB_DEPLOY_ENABLED` is set.
-4. **RAGAS gate** (optional) — `tox -e eval` on `release` when `RAGAS_QUALITY_GATE=1`.
-
-Without AWS configuration, CD still validates builds; deploy and RAGAS jobs are skipped.
 
 ## Repository configuration
 
