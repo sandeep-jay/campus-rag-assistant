@@ -194,7 +194,7 @@ function formatTime(dateStr: string): string {
           <AgentActivityTimeline
             v-if="agentTimelineSteps.length"
             :steps="agentTimelineSteps"
-            :default-expanded="isAgentRunning"
+            :default-expanded="isAgentRunning || showAgentTurnActions"
             :is-running="isAgentRunning"
             class="mb-3 border-b border-border pb-3"
           />

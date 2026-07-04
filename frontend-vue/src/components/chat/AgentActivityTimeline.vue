@@ -38,8 +38,10 @@ interface TimelineRow {
 const ACTION_LABELS: Record<string, string> = {
   search_existing_issues: 'Checked existing tickets',
   classify_ticket: 'Classified the issue',
-  retry_kb: 'Searched the knowledge base',
-  web_search: 'Ran a web search',
+  retry_kb: 'Knowledge base (agent retry)',
+  web_search: 'Public web search',
+  web_search_consent: 'Asked to use public web search',
+  kb_low_confidence: 'KB hits below confidence floor',
   propose_solution: 'Proposed a solution',
   skip_propose_solution: 'Skipped proposing a solution',
   file_ticket: 'Filed the ticket',
@@ -103,7 +105,6 @@ function rowTitle(row: TimelineRow): string {
 <template>
   <div v-if="hasRows" class="w-full text-chat-caption" data-testid="agent-activity-timeline">
     <button
-      v-if="!defaultExpanded"
       type="button"
       class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
       :aria-expanded="expanded"
@@ -116,7 +117,7 @@ function rowTitle(row: TimelineRow): string {
     </button>
 
     <ol
-      v-show="expanded || defaultExpanded"
+      v-show="expanded"
       id="agent-activity-list"
       class="mt-2 space-y-1.5"
       :class="{ 'pl-1': !defaultExpanded }"

@@ -211,6 +211,14 @@ class DefaultSettings(BaseSettings):
     HELPDESK_AGENT_MAX_TOKENS_PER_SESSION: int = 20000
     HELPDESK_AGENT_DEADLINE_SECONDS: float = 60.0
     HELPDESK_AGENT_KB_RETRY_TIMEOUT_SECONDS: float = 12.0
+    # Top-1 retrieval similarity score (0..1) the agent's KB retry must clear
+    # before we treat the hits as relevant. Below this, the agent pauses for
+    # web-search consent (or skips to draft if web is mock/disabled).
+    HELPDESK_AGENT_KB_CONFIDENCE_FLOOR: float = 0.55
+    # Cap on how many KB/web sources the agent surfaces with its solution.
+    # The retry returns 15+ docs from Bedrock; users only need the top-N
+    # that actually informed the answer.
+    HELPDESK_AGENT_EVIDENCE_TOP_N: int = 3
     HELPDESK_AGENT_WEB_SEARCH_TIMEOUT_SECONDS: float = 10.0
     HELPDESK_AGENT_GITHUB_SEARCH_TIMEOUT_SECONDS: float = 8.0
 
