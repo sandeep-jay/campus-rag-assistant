@@ -19,6 +19,10 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ## [Unreleased]
 
+### Fixed
+
+- **CI — agent-eval tox env fails on pytest 9.x.** GitHub Actions resolves `pytest>=8.0.0` to pytest 9.1.x; `pytest-ruff==0.2.1` still declares the removed `path` arg on `pytest_collect_file`, so pytest aborts during plugin registration (`PluginValidationError`) before any trajectory scenario runs. Bumped `pytest-ruff` to `0.5` for pytest 8.1+/9.x hook compatibility; `tox -e backend,agent-eval` passes locally.
+
 ### Added
 
 - **Helpdesk agent — score-based KB confidence gate and evidence trimming.** The agent now reads the top-1 similarity `score` from the KB retry's documents and only proposes a KB-grounded solution when it clears `HELPDESK_AGENT_KB_CONFIDENCE_FLOOR` (default `0.55`). Below the floor — or zero hits — the agent escalates to the existing web-consent flow instead of confidently surfacing irrelevant articles. Fixes the Panopto case where a 15-doc Kaltura retrieval was being marketed as the answer without ever asking the user about live web search. The retry log now includes `top_score`/`floor` so the threshold can be tuned. The agent also caps surfaced evidence at `HELPDESK_AGENT_EVIDENCE_TOP_N` (default `3`) sources/document contents so the chat bubble shows the top supporting hits rather than the full retrieved list. The activity timeline now renders the agent's KB pass as **"Knowledge base (agent retry)"** and the web pass as **"Public web search"** so they're visually distinct from the chat-level KB retrieval.
