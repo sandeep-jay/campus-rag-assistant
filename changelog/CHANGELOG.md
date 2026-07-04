@@ -21,6 +21,7 @@ Edit **`[Unreleased]`** while you work. When a session is done, rename it to
 
 ### Fixed
 
+- **CI — disable scheduled live helpdesk trajectory eval.** Removed the `agent-eval-live` GitHub Actions job and the daily `schedule` trigger; live supervisor comparison remains available locally via `tox -e agent-eval-live` when AWS/LangSmith are configured.
 - **CI — agent-eval tox env fails on pytest 9.x.** GitHub Actions resolves `pytest>=8.0.0` to pytest 9.1.x; `pytest-ruff==0.2.1` still declares the removed `path` arg on `pytest_collect_file`, so pytest aborts during plugin registration (`PluginValidationError`) before any trajectory scenario runs. Bumped `pytest-ruff` to `0.5` for pytest 8.1+/9.x hook compatibility; `tox -e backend,agent-eval` passes locally.
 
 ### Added
